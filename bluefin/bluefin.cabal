@@ -1,0 +1,34 @@
+cabal-version:      3.0
+name:               bluefin
+version:            0.0.0.0
+license:            MIT
+license-file:       LICENSE
+author:             Tom Ellis
+maintainer:         Tom Ellis
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+description:        The Bluefin effect system
+synopsis:           The Bluefin effect system
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+    default-extensions:
+      NoImplicitPrelude
+    exposed-modules:
+      Bluefin,
+      Bluefin.Compound,
+      Bluefin.Coroutine,
+      Bluefin.EarlyReturn,
+      Bluefin.Eff,
+      Bluefin.Exception,
+      Bluefin.Jump,
+      Bluefin.IO,
+      Bluefin.State,
+      Bluefin.Stream,
+    build-depends:
+      bluefin-internal < 0.1
+    hs-source-dirs:   src
+    default-language: Haskell2010

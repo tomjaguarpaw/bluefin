@@ -1,0 +1,96 @@
+cabal-version:      3.0
+name:               bluefin-internal
+version:            0.0.0.0
+license:            MIT
+license-file:       LICENSE
+author:             Tom Ellis
+maintainer:         Tom Ellis
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+description:        The Bluefin effect system, internals
+synopsis:           The Bluefin effect system, internals
+
+common defaults
+    ghc-options: -Wall
+    default-extensions:
+      -- GHC2021
+      BangPatterns
+      BinaryLiterals
+      ConstrainedClassMethods
+      ConstraintKinds
+      DeriveDataTypeable
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveLift
+      DeriveTraversable
+      DoAndIfThenElse
+      EmptyCase
+      EmptyDataDecls
+      EmptyDataDeriving
+      ExistentialQuantification
+      ExplicitForAll
+      -- Not available until 9.2
+      -- FieldSelectors
+      FlexibleContexts
+      FlexibleInstances
+      ForeignFunctionInterface
+      GADTSyntax
+      GeneralisedNewtypeDeriving
+      HexFloatLiterals
+      ImplicitPrelude
+      -- Not available until 8.10
+      -- ImportQualifiedPost
+      InstanceSigs
+      KindSignatures
+      MonomorphismRestriction
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NamedWildCards
+      NumericUnderscores
+      PatternGuards
+      PolyKinds
+      PostfixOperators
+      RankNTypes
+      RelaxedPolyRec
+      ScopedTypeVariables
+      StandaloneDeriving
+      -- Not available in 8.6
+      -- StandaloneKindSignatures
+      StarIsType
+      TraditionalRecordSyntax
+      TupleSections
+      TypeApplications
+      TypeOperators
+      TypeSynonymInstances
+      NoExplicitNamespaces
+      -- Others
+      DataKinds
+      DerivingStrategies
+      GADTs
+      LambdaCase
+
+library
+    import:           defaults
+    default-language: Haskell2010
+    hs-source-dirs: src
+    build-depends:
+      base >= 4.12 && < 4.20,
+      unliftio-core < 0.3,
+      transformers < 0.7,
+      transformers-base < 0.5,
+      monad-control < 1.1
+    ghc-options: -Wall
+    exposed-modules:
+      Bluefin.Internal,
+      Bluefin.Internal.Examples
+
+test-suite bluefin-test
+    import:           defaults
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    build-depends:
+        base,
+        bluefin-internal
