@@ -1,0 +1,71 @@
+cabal-version:      2.4
+name:               bluefin-internal
+version:            0.0.0.0
+author:             Tom Ellis
+maintainer:         Tom Ellis
+
+extra-source-files: CHANGELOG.md
+
+library
+    default-language: Haskell2010
+    default-extensions:
+      -- GHC2021
+      BangPatterns
+      BinaryLiterals
+      ConstrainedClassMethods
+      ConstraintKinds
+      DeriveDataTypeable
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveLift
+      DeriveTraversable
+      DoAndIfThenElse
+      EmptyCase
+      EmptyDataDecls
+      EmptyDataDeriving
+      ExistentialQuantification
+      ExplicitForAll
+      -- Not available until 9.2
+      -- FieldSelectors
+      FlexibleContexts
+      FlexibleInstances
+      ForeignFunctionInterface
+      GADTSyntax
+      GeneralisedNewtypeDeriving
+      HexFloatLiterals
+      ImplicitPrelude
+      -- Not available until 8.10
+      -- ImportQualifiedPost
+      InstanceSigs
+      KindSignatures
+      MonomorphismRestriction
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NamedWildCards
+      NumericUnderscores
+      PatternGuards
+      PolyKinds
+      PostfixOperators
+      RankNTypes
+      RelaxedPolyRec
+      ScopedTypeVariables
+      StandaloneDeriving
+      -- Not available in 8.6
+      -- StandaloneKindSignatures
+      StarIsType
+      TraditionalRecordSyntax
+      TupleSections
+      TypeApplications
+      TypeOperators
+      TypeSynonymInstances
+      NoExplicitNamespaces
+      -- Others
+      DataKinds
+      DerivingStrategies
+      GADTs
+      LambdaCase
+    hs-source-dirs: src
+    build-depends: base >= 4.12 && < 4.20
+    ghc-options: -Wall
+    exposed-modules: Bluefin.Internal

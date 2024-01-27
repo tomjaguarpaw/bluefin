@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  pull_request:
+    types: [synchronize, opened, reopened]
+  push:
+  schedule:
+    # additionally run once per week (At 00:00 on Sunday) to maintain cache
+    - cron: '0 0 * * 0'
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ghc ${{ matrix.ghc }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # We must always use the latest version of cabal because
+        # otherwise ghc-paths, which is a dependency of doctest,
+        # can't be configured.
+        cabal: ["3.10"]
+        ghc:
+# Can't do earlier than 8.10 because we use unlifted newtypes
+# If we're willing to fudge that then maybe we can extend
+# the range of GHCs we support
+#          - "8.6.5"
+#          - "8.8.3"
+          - "8.10.7"
+          - "9.0.2"
+          - "9.2.4"
+          - "9.4.7"
+          - "9.6.3"
+          - "9.8.1"
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: haskell-actions/setup@v2.5
+      id: setup-haskell-cabal
+      name: Setup Haskell
+      with:
+        ghc-version: ${{ matrix.ghc }}
+        cabal-version: ${{ matrix.cabal }}
+
+    - name: Configure
+      run: |
+        cabal configure --enable-tests --enable-benchmarks --enable-documentation --test-show-details=direct --write-ghc-environment-files=always
+
+    - name: Freeze
+      run: |
+        cabal freeze
+
+
+    - uses: actions/cache@v3
+      name: Cache ~/.cabal/3tore
+      with:
+        path: ~/.cabal/store
+        key: ${{ runner.os }}-${{ matrix.ghc }}-${{ hashFiles('cabal.project.freeze') }}
+
+    - name: Install dependencies
+      run: |
+        cabal build all --only-dependencies
+
+    - name: Build
+      run: |
+        cabal build all
+
+#    - name: Test
+#      run: |
+#        cabal test all
+
+#    - name: Documentation
+#      run: |
+#        cabal haddock all
