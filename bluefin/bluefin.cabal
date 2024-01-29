@@ -14,7 +14,7 @@ common warnings
 library
     import:           warnings
     exposed-modules:
-      Bluefin.Class,
+      Bluefin.Eff,
       Bluefin.Compound,
       Bluefin.Coroutine,
       Bluefin.Exception,
