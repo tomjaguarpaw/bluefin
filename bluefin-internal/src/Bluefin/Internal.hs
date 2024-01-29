@@ -233,6 +233,7 @@ type EarlyReturn = Exception
 
 withEarlyReturn ::
   (forall ex. EarlyReturn r ex -> Eff (ex :& effs) r) ->
+  -- | ͘
   Eff effs r
 withEarlyReturn = handleException' id
 
