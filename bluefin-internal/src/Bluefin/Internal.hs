@@ -10,7 +10,6 @@ import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import qualified Data.Unique
-import Data.Void (Void, absurd)
 import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
@@ -232,15 +231,10 @@ handleException' h f = do
 
 type EarlyReturn = Exception
 
-newtype MustReturnEarly = MustReturnEarly Void
-
-returnedEarly :: MustReturnEarly -> a
-returnedEarly (MustReturnEarly v) = absurd v
-
 withEarlyReturn ::
-  (forall ex. EarlyReturn r ex -> Eff (ex :& effs) MustReturnEarly) ->
+  (forall ex. EarlyReturn r ex -> Eff (ex :& effs) r) ->
   Eff effs r
-withEarlyReturn f = handleException' id (fmap returnedEarly . f)
+withEarlyReturn = handleException' id
 
 earlyReturn :: (ex :> effs) => EarlyReturn r ex -> r -> Eff effs a
 earlyReturn = throw
@@ -328,16 +322,13 @@ yieldToList' f = do
     as <- read s
     pure (reverse as, r)
 
-type Jump = Exception ()
+type Jump = EarlyReturn ()
 
 withJump ::
   (forall j. Jump j -> Eff (j :& effs) ()) ->
   -- | ͘
   Eff effs ()
-withJump f = do
-  r <- handleException $ \e ->
-    f e
-  pure (either id id r)
+withJump = withEarlyReturn
 
 jumpTo ::
   (j :> effs) =>
