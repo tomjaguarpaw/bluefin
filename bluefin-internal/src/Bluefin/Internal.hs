@@ -232,12 +232,17 @@ handleException' h f = do
 type EarlyReturn = Exception
 
 withEarlyReturn ::
-  (forall ex. EarlyReturn r ex -> Eff (ex :& effs) r) ->
+  (forall er. EarlyReturn r er -> Eff (er :& effs) r) ->
   -- | ͘
   Eff effs r
 withEarlyReturn = handleException' id
 
-earlyReturn :: (ex :> effs) => EarlyReturn r ex -> r -> Eff effs a
+earlyReturn ::
+  (er :> effs) =>
+  EarlyReturn r er ->
+  r ->
+  -- | ͘
+  Eff effs a
 earlyReturn = throw
 
 evalState ::
