@@ -331,7 +331,7 @@ yieldToList' f = do
 type Jump = Exception ()
 
 withJump ::
-  (forall e. Jump j -> Eff (e :& effs) ()) ->
+  (forall j. Jump j -> Eff (j :& effs) ()) ->
   -- | ͘
   Eff effs ()
 withJump f = do
