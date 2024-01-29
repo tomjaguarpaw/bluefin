@@ -1,9 +1,8 @@
-{-# OPTIONS_HADDOCK not-home #-}
-
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UnliftedNewtypes #-}
+{-# OPTIONS_HADDOCK not-home #-}
 
 module Bluefin.Internal where
 
@@ -104,6 +103,7 @@ instance (e :> es) => e :> (x :& es)
 -- instance {-# incoherent #-} (e :> es) => (e' :& e) :> (e' :> es)
 
 -- This seems a bit wobbly
+
 -- | @e@ is a subset of a larger set @e :& es@
 instance {-# INCOHERENT #-} e :> (e :& es)
 
@@ -127,9 +127,9 @@ have = unsafeCoerce (Dict @(a :> (a :& b)))
 
 handleException ::
   forall e (effs :: Effects) a.
-  -- | blah
+  -- | ͘
   (forall ex. Exception e ex -> Eff (ex :& effs) a) ->
-  -- | oeu
+  -- | ͘
   Eff effs (Either e a)
 handleException f =
   Eff $ withScopedException_ (\throw_ -> unsafeUnEff (f (Exception throw_)))
