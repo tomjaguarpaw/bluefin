@@ -327,3 +327,21 @@ yieldToList' f = do
       modify s (i :)
     as <- read s
     pure (reverse as, r)
+
+type Jump = Exception ()
+
+withJump ::
+  (forall e. Jump j -> Eff (e :& effs) ()) ->
+  -- | ͘
+  Eff effs ()
+withJump f = do
+  r <- handleException $ \e ->
+    f e
+  pure (either id id r)
+
+jumpTo ::
+  (j :> effs) =>
+  Jump j ->
+  -- | ͘
+  Eff effs a
+jumpTo tag = throw tag ()

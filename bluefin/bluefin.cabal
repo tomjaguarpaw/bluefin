@@ -18,6 +18,7 @@ library
       Bluefin.Compound,
       Bluefin.Coroutine,
       Bluefin.Exception,
+      Bluefin.Jump,
       Bluefin.State,
       Bluefin.Stream,
     build-depends:
