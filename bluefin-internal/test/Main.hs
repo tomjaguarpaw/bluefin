@@ -24,26 +24,33 @@ main = do
       "State"
       (runEff (runState 10 (stateEff (\n -> (show n, n * 2)))) == ("10", 20))
 
-allTrue ::
-  (forall e1 effs. Stream (String, Bool) e1 -> Eff (e1 :& effs) ()) ->
-  IO ()
-allTrue f = runEffIO $ \ioe -> do
-  passed <- evalState True $ \passedAllSoFar -> do
+runTests ::
+  (e2 :> effs) =>
+  (forall e1 st. Stream (String, Bool) e1 -> Eff (e1 :& st :& effs) ()) ->
+  Stream String e2 ->
+  Eff effs Bool
+runTests f y = do
+  evalState True $ \passedAllSoFar -> do
     forEach f $ \(name, passedThisOne) -> do
       unless passedThisOne $
         write passedAllSoFar False
 
-      effIO
-        ioe
-        ( putStrLn
-            ( name
-                ++ " "
-                ++ if passedThisOne
-                  then "PASS"
-                  else "FAIL"
-            )
+      yieldCoroutine
+        y
+        ( name
+            ++ " "
+            ++ if passedThisOne
+              then "PASS"
+              else "FAIL"
         )
     read passedAllSoFar
+
+allTrue ::
+  (forall e1 effs. Stream (String, Bool) e1 -> Eff (e1 :& effs) ()) ->
+  IO ()
+allTrue f = runEffIO $ \ioe -> do
+  passed <- forEach (runTests f) $ \text ->
+    effIO ioe (putStrLn text)
 
   effIO ioe $ case passed of
     True -> pure ()

@@ -21,6 +21,8 @@ type Effect = ()
 data Effects = Union Effects Effects
 
 -- | Union of effects
+infixr :&
+
 type (:&) = Union
 
 newtype Eff (es :: Effects) a = Eff {unsafeUnEff :: IO a}
