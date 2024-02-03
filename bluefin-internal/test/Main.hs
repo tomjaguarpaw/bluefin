@@ -4,13 +4,27 @@ import Bluefin.Internal
 import Control.Monad (when)
 import Data.Foldable (for_)
 import System.Exit (ExitCode (ExitFailure), exitWith)
-import Prelude hiding (break)
+import Prelude hiding (break, read)
 
 main :: IO ()
 main =
-  if oddsUntilFirstGreaterThan5 == [1, 3, 5, 7]
+  if and
+    [ oddsUntilFirstGreaterThan5 == [1, 3, 5, 7],
+      [0, 1, 2, 3] !? 2 == Just 2,
+      [0, 1, 2, 3] !? 4 == Nothing
+    ]
     then pure ()
     else exitWith (ExitFailure 1)
+
+(!?) :: [a] -> Int -> Maybe a
+xs !? i = runEff $
+  withEarlyReturn $ \ret -> do
+    evalState 0 $ \s -> do
+      for_ xs $ \a -> do
+        i' <- read s
+        when (i == i') (earlyReturn ret (Just a))
+        write s (i' + 1)
+    earlyReturn ret Nothing
 
 oddsUntilFirstGreaterThan5 :: [Int]
 oddsUntilFirstGreaterThan5 =
