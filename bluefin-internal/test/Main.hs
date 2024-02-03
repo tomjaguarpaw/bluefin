@@ -48,11 +48,12 @@ runTests f y = do
 
       yieldCoroutine
         y
-        ( name
+        ( ( if passedThisOne
+              then "✓"
+              else "✗"
+          )
             ++ " "
-            ++ if passedThisOne
-              then "PASS"
-              else "FAIL"
+            ++ name
         )
     read passedAllSoFar
 
