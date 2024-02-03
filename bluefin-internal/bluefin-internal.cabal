@@ -6,11 +6,8 @@ maintainer:         Tom Ellis
 
 extra-source-files: CHANGELOG.md
 
-common warnings
+common defaults
     ghc-options: -Wall
-
-library
-    default-language: Haskell2010
     default-extensions:
       -- GHC2021
       BangPatterns
@@ -68,13 +65,17 @@ library
       DerivingStrategies
       GADTs
       LambdaCase
+
+library
+    import:           defaults
+    default-language: Haskell2010
     hs-source-dirs: src
     build-depends: base >= 4.12 && < 4.20
     ghc-options: -Wall
     exposed-modules: Bluefin.Internal
 
 test-suite bluefin-test
-    import:           warnings
+    import:           defaults
     default-language: Haskell2010
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
