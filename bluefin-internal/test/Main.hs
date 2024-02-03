@@ -46,7 +46,7 @@ runTests f y = do
       unless passedThisOne $
         write passedAllSoFar False
 
-      yieldCoroutine
+      yield
         y
         ( ( if passedThisOne
               then "✓"
