@@ -13,7 +13,8 @@ main =
       [0, 1, 2, 3] !? 2 == Just 2,
       [0, 1, 2, 3] !? 4 == Nothing,
       runEff (handleException (eitherEff (Left True))) == (Left True :: Either Bool ()),
-      runEff (handleException (eitherEff (Right True))) == (Right True :: Either () Bool)
+      runEff (handleException (eitherEff (Right True))) == (Right True :: Either () Bool),
+      runEff (runState 10 (stateEff (\n -> (show n, n * 2)))) == ("10", 20)
     ]
     then pure ()
     else exitWith (ExitFailure 1)
@@ -46,3 +47,10 @@ eitherEff :: e1 :> effs => Either e r -> Exception e e1 -> Eff effs r
 eitherEff eith ex = case eith of
   Left e -> throw ex e
   Right r -> pure r
+
+stateEff :: e1 :> effs => (s -> (a, s)) -> State s e1 -> Eff effs a
+stateEff f st = do
+  s <- read st
+  let (a, s') = f s
+  write st s'
+  pure a

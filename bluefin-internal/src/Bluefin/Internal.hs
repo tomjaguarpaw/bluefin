@@ -176,11 +176,11 @@ withScopedException_ f = do
       -- unsafeCoerce is very unpleasant
       if tag == fresh then Just (unsafeCoerce e) else Nothing
 
-handleState ::
+runState ::
   s ->
   (forall st. State s st -> Eff (st :& effs) a) ->
   Eff effs (a, s)
-handleState s f = do
+runState s f = do
   state <- Eff (fmap State (newIORef s))
   unsafeRemoveEff $ do
     a <- f state
@@ -250,7 +250,7 @@ evalState ::
   s ->
   (forall st. State s st -> Eff (st :& effs) a) ->
   Eff effs a
-evalState s f = fmap fst (handleState s f)
+evalState s f = fmap fst (runState s f)
 
 data Compound e1 e2 ss where
   Compound ::
