@@ -2,6 +2,7 @@ module Bluefin.Stream
   ( Stream,
     yield,
     forEach,
+    yieldToList,
   )
 where
 
