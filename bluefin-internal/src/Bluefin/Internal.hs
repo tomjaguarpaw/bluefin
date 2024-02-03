@@ -315,6 +315,7 @@ runC0 e1 e2 k = assoc1Eff (k (compound e1 e2))
 
 yieldToList ::
   (forall eff. Stream a eff -> Eff (eff :& effs) r) ->
+  -- | ͘
   Eff effs ([a], r)
 yieldToList f = yieldToList' (insertSecond . f)
 
