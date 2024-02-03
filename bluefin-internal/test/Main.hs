@@ -28,22 +28,22 @@ allTrue ::
   (forall e1 effs. Stream (String, Bool) e1 -> Eff (e1 :& effs) ()) ->
   IO ()
 allTrue f = runEffIO $ \ioe -> do
-  passed <- evalState True $ \s -> do
-    forEach f $ \(name, passed) -> do
-      unless passed $
-        write s False
+  passed <- evalState True $ \passedAllSoFar -> do
+    forEach f $ \(name, passedThisOne) -> do
+      unless passedThisOne $
+        write passedAllSoFar False
 
       effIO
         ioe
         ( putStrLn
             ( name
                 ++ " "
-                ++ if passed
+                ++ if passedThisOne
                   then "PASS"
                   else "FAIL"
             )
         )
-    read s
+    read passedAllSoFar
 
   effIO ioe $ case passed of
     True -> pure ()
