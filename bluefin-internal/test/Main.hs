@@ -10,12 +10,14 @@ main :: IO ()
 main = do
   let r =
         allTrue $ \y -> do
-          yield y (oddsUntilFirstGreaterThan5 == [1, 3, 5, 7])
-          yield y ([0, 1, 2, 3] !? 2 == Just 2)
-          yield y ([0, 1, 2, 3] !? 4 == Nothing)
-          yield y (runEff (handleException (eitherEff (Left True))) == (Left True :: Either Bool ()))
-          yield y (runEff (handleException (eitherEff (Right True))) == (Right True :: Either () Bool))
-          yield y (runEff (runState 10 (stateEff (\n -> (show n, n * 2)))) == ("10", 20))
+          let assert = yield y
+
+          assert (oddsUntilFirstGreaterThan5 == [1, 3, 5, 7])
+          assert ([0, 1, 2, 3] !? 2 == Just 2)
+          assert ([0, 1, 2, 3] !? 4 == Nothing)
+          assert (runEff (handleException (eitherEff (Left True))) == (Left True :: Either Bool ()))
+          assert (runEff (handleException (eitherEff (Right True))) == (Right True :: Either () Bool))
+          assert (runEff (runState 10 (stateEff (\n -> (show n, n * 2)))) == ("10", 20))
 
   case r of
     Right () -> pure ()
