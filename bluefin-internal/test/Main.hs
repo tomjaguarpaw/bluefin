@@ -16,18 +16,29 @@ main = do
     assert "index 2" ([0, 1, 2, 3] !? 4 == Nothing)
     assert
       "Exception 1"
-      (runEff (handleException (eitherEff (Left True))) == (Left True :: Either Bool ()))
+      ( runEff (handleException (eitherEff (Left True)))
+          == (Left True :: Either Bool ())
+      )
     assert
       "Exception 2"
-      (runEff (handleException (eitherEff (Right True))) == (Right True :: Either () Bool))
+      ( runEff (handleException (eitherEff (Right True)))
+          == (Right True :: Either () Bool)
+      )
     assert
       "State"
-      (runEff (runState 10 (stateEff (\n -> (show n, n * 2)))) == ("10", 20))
+      ( runEff (runState 10 (stateEff (\n -> (show n, n * 2))))
+          == ("10", 20)
+      )
+    assert
+      "List"
+      ( runEff (yieldToList (listEff ([20, 30, 40], "Hello")))
+          == ([20, 30, 40], "Hello")
+      )
 
 runTests ::
-  (e2 :> effs) =>
-  (forall e1 st. Stream (String, Bool) e1 -> Eff (e1 :& st :& effs) ()) ->
-  Stream String e2 ->
+  (e3 :> effs) =>
+  (forall e1 e2. Stream (String, Bool) e1 -> Eff (e1 :& e2 :& effs) ()) ->
+  Stream String e3 ->
   Eff effs Bool
 runTests f y = do
   evalState True $ \passedAllSoFar -> do
@@ -91,3 +102,8 @@ stateEff f st = do
   let (a, s') = f s
   write st s'
   pure a
+
+listEff :: (e1 :> effs) => ([a], r) -> Stream a e1 -> Eff effs r
+listEff (as, r) y = do
+  for_ as (yield y)
+  pure r
