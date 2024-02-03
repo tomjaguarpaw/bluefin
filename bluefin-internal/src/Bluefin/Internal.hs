@@ -343,3 +343,19 @@ jumpTo ::
   -- | ͘
   Eff effs a
 jumpTo tag = throw tag ()
+
+data IOE (e :: Effects) = IOE
+
+effIO ::
+  (e :> effs) =>
+  IOE e ->
+  IO a ->
+  -- | ͘
+  Eff effs a
+effIO IOE = Eff
+
+runEffIO ::
+  (forall e effs. IOE e -> Eff (e :& effs) a) ->
+  -- | ͘
+  IO a
+runEffIO eff = unsafeUnEff (eff IOE)

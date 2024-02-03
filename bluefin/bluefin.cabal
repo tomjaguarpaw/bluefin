@@ -14,12 +14,13 @@ common warnings
 library
     import:           warnings
     exposed-modules:
-      Bluefin.EarlyReturn,
-      Bluefin.Eff,
       Bluefin.Compound,
       Bluefin.Coroutine,
+      Bluefin.EarlyReturn,
+      Bluefin.Eff,
       Bluefin.Exception,
       Bluefin.Jump,
+      Bluefin.IO,
       Bluefin.State,
       Bluefin.Stream,
     build-depends:

@@ -1,3 +1,11 @@
-module Bluefin.Eff (Eff, Effects, (:>), (:&)) where
+module Bluefin.Eff
+  ( Eff,
+    runEff,
+    runEffIO,
+    Effects,
+    (:>),
+    (:&),
+  )
+where
 
 import Bluefin.Internal
