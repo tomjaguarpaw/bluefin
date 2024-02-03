@@ -8,32 +8,27 @@ import Prelude hiding (break, read)
 
 main :: IO ()
 main = do
-  passed <-
-    allTrue $ \y -> do
-      let assert n c = yield y (n, c)
+  allTrue $ \y -> do
+    let assert n c = yield y (n, c)
 
-      assert "oddsUntilFirstGreaterThan5" (oddsUntilFirstGreaterThan5 == [1, 3, 5, 7])
-      assert "index 1" ([0, 1, 2, 3] !? 2 == Just 2)
-      assert "index 2" ([0, 1, 2, 3] !? 4 == Nothing)
-      assert
-        "Exception 1"
-        (runEff (handleException (eitherEff (Left True))) == (Left True :: Either Bool ()))
-      assert
-        "Exception 2"
-        (runEff (handleException (eitherEff (Right True))) == (Right True :: Either () Bool))
-      assert
-        "State"
-        (runEff (runState 10 (stateEff (\n -> (show n, n * 2)))) == ("10", 20))
-
-  case passed of
-    True -> pure ()
-    False -> exitWith (ExitFailure 1)
+    assert "oddsUntilFirstGreaterThan5" (oddsUntilFirstGreaterThan5 == [1, 3, 5, 7])
+    assert "index 1" ([0, 1, 2, 3] !? 2 == Just 2)
+    assert "index 2" ([0, 1, 2, 3] !? 4 == Nothing)
+    assert
+      "Exception 1"
+      (runEff (handleException (eitherEff (Left True))) == (Left True :: Either Bool ()))
+    assert
+      "Exception 2"
+      (runEff (handleException (eitherEff (Right True))) == (Right True :: Either () Bool))
+    assert
+      "State"
+      (runEff (runState 10 (stateEff (\n -> (show n, n * 2)))) == ("10", 20))
 
 allTrue ::
   (forall e1 effs. Stream (String, Bool) e1 -> Eff (e1 :& effs) ()) ->
-  IO Bool
+  IO ()
 allTrue f = runEffIO $ \ioe -> do
-  evalState True $ \s -> do
+  passed <- evalState True $ \s -> do
     forEach f $ \(name, passed) -> do
       unless passed $
         write s False
@@ -49,6 +44,10 @@ allTrue f = runEffIO $ \ioe -> do
             )
         )
     read s
+
+  effIO ioe $ case passed of
+    True -> pure ()
+    False -> exitWith (ExitFailure 1)
 
 (!?) :: [a] -> Int -> Maybe a
 xs !? i = runEff $
