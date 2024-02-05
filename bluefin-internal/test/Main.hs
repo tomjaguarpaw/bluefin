@@ -46,15 +46,10 @@ runTests f y = do
       unless passedThisOne $
         write passedAllSoFar False
 
-      yield
-        y
-        ( ( if passedThisOne
-              then "✓"
-              else "✗"
-          )
-            ++ " "
-            ++ name
-        )
+      let mark = if passedThisOne then "✓" else "✗"
+
+      yield y (mark ++ " " ++ name)
+
     read passedAllSoFar
 
 allTrue ::
