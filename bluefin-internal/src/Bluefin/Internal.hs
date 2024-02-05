@@ -8,6 +8,7 @@ module Bluefin.Internal where
 
 import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
+import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import qualified Data.Unique
 import GHC.Exts (Proxy#, proxy#)
@@ -21,7 +22,7 @@ type Effect = ()
 data Effects = Union Effects Effects
 
 -- | Union of effects
-infixr :&
+infixr 9 :&
 
 type (:&) = Union
 
@@ -220,6 +221,26 @@ forEach ::
   (a -> Eff effs b) ->
   Eff effs r
 forEach f h = unsafeRemoveEff (f (Coroutine (unsafeUnEff . h)))
+
+inFoldable ::
+  (Foldable t, e1 :> effs) =>
+  -- | ͘
+  t a ->
+  Stream a e1 ->
+  Eff effs ()
+inFoldable t = for_ t . yield
+
+enumerate ::
+  (e2 :> effs) =>
+  -- | ͘
+  (forall e1 st. Stream a e1 -> Eff (e1 :& st :& effs) ()) ->
+  -- | ͘ FIXME: remove st
+  Stream (Int, a) e2 ->
+  Eff effs ()
+enumerate ss st = evalState 0 $ \i -> forEach ss $ \s -> do
+  ii <- read i
+  yield st (ii, s)
+  write i (ii + 1)
 
 handleException' ::
   (e -> r) ->

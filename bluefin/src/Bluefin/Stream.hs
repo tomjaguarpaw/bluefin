@@ -3,6 +3,8 @@ module Bluefin.Stream
     yield,
     forEach,
     yieldToList,
+    inFoldable,
+    enumerate,
   )
 where
 
