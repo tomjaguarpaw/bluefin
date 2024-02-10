@@ -16,6 +16,7 @@ import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, read, return)
+import Control.Monad (when)
 
 type Effect = ()
 
@@ -417,19 +418,49 @@ enumerateExample = runEff $ yieldToList $ enumerate (inFoldable ["A", "B", "C"])
 
 type EarlyReturn = Exception
 
+-- | Run an 'Eff' action with the ability to return early to this
+-- point.
+--
+-- @
+-- >>> runEff $ withEarlyReturn $ \\e -> do
+--       for_ [1 .. 10] $ \\i -> do
+--         when (i >= 5) $
+--           returnEarly e ("Returned early with " ++ show i)
+--
+--       pure "End of loop"
+-- "Returned early with 5"
+-- @
 withEarlyReturn ::
   (forall er. EarlyReturn r er -> Eff (er :& effs) r) ->
   -- | ͘
   Eff effs r
 withEarlyReturn = handle pure
 
-earlyReturn ::
+-- |
+-- @
+-- >>> runEff $ withEarlyReturn $ \\e -> do
+--       for_ [1 .. 10] $ \\i -> do
+--         when (i >= 5) $
+--           returnEarly e ("Returned early with " ++ show i)
+--
+--       pure "End of loop"
+-- "Returned early with 5"
+-- @
+returnEarly ::
   (er :> effs) =>
   EarlyReturn r er ->
+  -- | Return early to the handler with this value.
   r ->
-  -- | ͘
   Eff effs a
-earlyReturn = throw
+returnEarly = throw
+
+returnEarlyExample :: String
+returnEarlyExample = runEff $ withEarlyReturn $ \e -> do
+  for_ [1 :: Int .. 10] $ \i -> do
+    when (i >= 5) $
+      returnEarly e ("Returned early with " ++ show i)
+
+  pure "End of loop"
 
 -- |
 -- @

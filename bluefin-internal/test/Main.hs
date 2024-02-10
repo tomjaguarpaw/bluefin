@@ -69,7 +69,7 @@ xs !? i = runEff $
     evalState 0 $ \s -> do
       for_ xs $ \a -> do
         i' <- get s
-        when (i == i') (earlyReturn ret (Just a))
+        when (i == i') (returnEarly ret (Just a))
         put s (i' + 1)
     pure Nothing
 
