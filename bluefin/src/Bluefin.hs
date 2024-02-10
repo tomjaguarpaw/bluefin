@@ -7,5 +7,36 @@ module Bluefin
     --  * "Bluefin.IO", for I/O
     --  * "Bluefin.State", for mutable state
     --  * "Bluefin.Stream", for streams
+    --
+    -- @
+    -- exampleParity :: [Int] -> String
+    -- exampleParity is = 'Bluefin.Eff.runEff' $
+    --   'Bluefin.State.evalState' (0 :: Int) $ \\positives -> do
+    --       r \<- 'Bluefin.Exception.try' $ \\ex ->
+    --           evalState (0 :: Int) $ \\negatives -> do
+    --               for_ is $ \\i -> do
+    --                   case compare i 0 of
+    --                       GT -> 'Bluefin.State.modify' positives (+ 1)
+    --                       EQ -> throw ex ()
+    --                       LT -> modify negatives (+ 1)
+    --
+    --               p <- 'Bluefin.State.get' positives
+    --               n <- get negatives
+    --
+    --               pure $
+    --                 "Positives: "
+    --                   ++ show p
+    --                   ++ ", negatives "
+    --                   ++ show n
+    --
+    --       case r of
+    --           Right r' -> pure r'
+    --           Left () -> do
+    --               p <- get positives
+    --               pure $
+    --                 "We saw a zero, but before that there were "
+    --                   ++ show p
+    --                   ++ " positives"
+    -- @
   )
 where

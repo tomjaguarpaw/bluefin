@@ -8,6 +8,7 @@ module Bluefin.Internal where
 
 import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
+import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
@@ -16,7 +17,6 @@ import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, read, return)
-import Control.Monad (when)
 
 type Effect = ()
 
@@ -646,19 +646,31 @@ runEffIO ::
   IO a
 runEffIO eff = unsafeUnEff (eff IOE)
 
-exampleParity :: Either e (Int, Int)
-exampleParity = runEff $
- try $ \_ ->
-  evalState 0 $ \evens -> do
-    evalState 0 $ \odds -> do
-      for_ [1 :: Int .. 10] $ \i -> do
-        ( if even i
-            then modify odds
-            else modify evens
-          )
-          (+ 1)
+exampleParity :: [Int] -> String
+exampleParity is = runEff $
+  evalState (0 :: Int) $ \positives -> do
+    r <- try $ \ex ->
+      evalState (0 :: Int) $ \negatives -> do
+        for_ is $ \i -> do
+          case compare i 0 of
+            GT -> modify positives (+ 1)
+            EQ -> throw ex ()
+            LT -> modify negatives (+ 1)
 
-      e <- get evens
-      o <- get odds
+        p <- get positives
+        n <- get negatives
 
-      pure (e, o)
+        pure $
+          "Positives: "
+            ++ show p
+            ++ ", negatives "
+            ++ show n
+
+    case r of
+      Right r' -> pure r'
+      Left () -> do
+        p <- get positives
+        pure $
+          "We saw a zero, but before that there were "
+            ++ show p
+            ++ " positives"
