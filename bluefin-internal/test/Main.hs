@@ -9,7 +9,7 @@ import Prelude hiding (break, read)
 main :: IO ()
 main = do
   allTrue $ \y -> do
-    let assert n c = yield y (n, if c then Nothing else Just (pure ()))
+    let assert n c = yield y (n, if c then Nothing else Just (W (\_ -> pure ())))
 
     assert "oddsUntilFirstGreaterThan5" (oddsUntilFirstGreaterThan5 == [1, 3, 5, 7])
     assert "index 1" ([0, 1, 2, 3] !? 2 == Just 2)
@@ -35,10 +35,24 @@ main = do
           == ([20, 30, 40], "Hello")
       )
 
+newtype W effs
+  = W
+      ( forall e4.
+        (e4 :> effs) =>
+        Stream String e4 ->
+        Eff effs ()
+      )
+
 runTests ::
   (e3 :> effs) =>
   ( forall e1 e2.
-    Stream (String, Maybe (Eff (e2 :& effs) ())) e1 ->
+    Stream
+      ( String,
+        Maybe
+          ( W (e2 :& effs)
+          )
+      )
+      e1 ->
     Eff (e1 :& e2 :& effs) ()
   ) ->
   Stream String e3 ->
@@ -59,7 +73,7 @@ runTests f y = do
     get passedAllSoFar
 
 allTrue ::
-  (forall e1 effs. Stream (String, Maybe (Eff effs ())) e1 -> Eff (e1 :& effs) ()) ->
+  (forall e1 effs. Stream (String, Maybe (W effs)) e1 -> Eff (e1 :& effs) ()) ->
   IO ()
 allTrue f = runEffIO $ \ioe -> do
   passed <- forEach (runTests f) $ \text ->
