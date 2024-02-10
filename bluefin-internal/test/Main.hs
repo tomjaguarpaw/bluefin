@@ -11,7 +11,7 @@ import Prelude hiding (break, read)
 main :: IO ()
 main = do
   allTrue $ \y -> do
-    let assert n c = yield y (n, if c then Nothing else Just (W (\_ -> pure ())))
+    let assert n c = yield y (n, if c then Nothing else Just (W (Nest (\_ -> pure ()))))
     let assertEqual n c1 c2 =
           yield
             y
@@ -21,9 +21,11 @@ main = do
                 else
                   Just
                     ( W
-                        ( \y2 -> do
-                            yield y2 ("Expected: " ++ show c1)
-                            yield y2 ("But got: " ++ show c2)
+                        ( Nest
+                            ( \y2 -> do
+                                yield y2 ("Expected: " ++ show c1)
+                                yield y2 ("But got: " ++ show c2)
+                            )
                         )
                     )
             )
@@ -48,15 +50,16 @@ main = do
       (runEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
       ([20, 30, 40], "Hello")
 
+newtype Nest effs = Nest {unNest :: forall e4. (e4 :> effs) => Stream String e4 -> Eff effs ()}
+
 newtype W
   = W
-      ( forall e4 effs.
-        (e4 :> effs) =>
-        Stream String e4 ->
-        Eff effs ()
+      ( forall effs.
+        Nest effs
       )
 
 runTests ::
+  forall effs e3.
   (e3 :> effs) =>
   ( forall e1 e2.
     Stream
@@ -85,9 +88,9 @@ runTests f y = do
 
       case passedThisOne of
         Nothing -> pure ()
-        Just (W s) -> do
+        Just (W n) -> do
           yield y ""
-          forEach s $ \entry -> do
+          forEach (unNest n) $ \entry -> do
             yield y ("    " ++ entry)
           yield y ""
 
