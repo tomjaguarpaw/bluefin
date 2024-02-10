@@ -7,7 +7,96 @@ module Bluefin
     --  * "Bluefin.IO", for I/O
     --  * "Bluefin.State", for mutable state
     --  * "Bluefin.Stream", for streams
+
+    -- * Introduction
+
+    -- | Bluefin is a new style of effect system for Haskell.  It is
+    -- distinct from prior effect systems because effects are accessed
+    -- explicitly through value-level handles which occur as arguments
+    -- to effectful operations. Handles are introduced by handlers,
+    -- and Bluefin's use of the type system ensures that a handle can
+    -- never escape the scope of its handler.  That is, once the
+    -- handler has finished running there is no way you can use the
+    -- handle anymore.
     --
+    -- Here's an example, where a mutable state effect handle, @sn@,
+    -- is introduced by its handler, 'Bluefin.State.evalState'.
+    --
+    -- @
+    -- -- If @n < 10@ then add 10 to it, otherwise
+    -- -- return it unchanged
+    -- example1 :: Int -> Int
+    -- example1 n = 'Bluefin.Eff.runEff' $ 'Bluefin.State.evalState' n $ \\sn -> do
+    --   n' <- 'Bluefin.State.get' sn
+    --   when (n' < 10) $
+    --     'Bluefin.State.put' sn (n' + 10)
+    --   get sn
+    -- @
+    --
+    -- @
+    -- >>> example1 5
+    -- 15
+    -- >>> example1 12
+    -- 12
+    -- @
+    --
+    -- The handle @st@ is used in much the same way as an @STRef@ or
+    -- @IORef@.
+    --
+    -- A benefit of value-level effect handles is that it's simple to
+    -- have multiple effects of the same type in scope at the same
+    -- time, something that is not simple with existing effect
+    -- systems.
+    --
+    -- @
+    -- -- Compare two values and add 10
+    -- -- to the smaller
+    -- example2 :: (Int, Int) -> (Int, Int)
+    -- example2 (m, n) = 'Bluefin.Eff.runEff' $
+    --   'Bluefin.State.evalState' m $ \\sm -> do
+    --     evalState n $ \\sn -> do
+    --       do
+    --         n' <- 'Bluefin.State.get' sn
+    --         m' <- get sm
+    --
+    --         if n' < m'
+    --           then 'Bluefin.State.put' sn (n' + 10)
+    --           else put sm (m' + 10)
+    --
+    --       n' <- get sn
+    --       m' <- get sm
+    --
+    --       pure (n', m')
+    -- @
+    --
+    -- @
+    -- >>> example2 (5, 10)
+    -- (15, 10)
+    -- >>> example2 (30, 0)
+    -- (30, 10)
+    -- @
+
+    -- * Implementation
+
+    -- | Bluefin has a similar implementation style to Effectful.
+    -- 'Bluefin.Eff.Eff' is an opaque wrapper around 'IO',
+    -- 'Bluefin.State.State' is an opaque wrapper around 'IORef', and
+    -- 'Bluefin.Exception.throw' throws an actual @IO@ exception.
+    --
+    -- @
+    -- newtype Eff (es :: Effects) a = UnsafeMkEff (IO a)
+    -- newtype State s (st :: Effects) = UnsafeMkState (IORef s)
+    -- @
+    --
+    -- Types of kind 'Bluefin.Eff.Effects' track which effects can be
+    -- used in an operation. Bluefin uses them to ensure that effects
+    -- cannot escape the scope of their handler, in the same way that
+    -- the type parameter to the 'Control.Monad.ST.ST' monad ensures
+    -- that state references cannot escape 'Control.Monad.ST.runST'.
+
+    -- * Example
+
+    -- |
     -- @
     -- countPositivesNegatives :: [Int] -> String
     -- countPositivesNegatives is = 'Bluefin.Eff.runEff' $

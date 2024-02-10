@@ -87,11 +87,13 @@ oddsUntilFirstGreaterThan5 =
               when (i > 5) $
                 jumpTo break
 
+-- | Inverse to 'try'
 eitherEff :: (e1 :> effs) => Either e r -> Exception e e1 -> Eff effs r
 eitherEff eith ex = case eith of
   Left e -> throw ex e
   Right r -> pure r
 
+-- | Inverse to 'runState'
 stateEff :: (e1 :> effs) => (s -> (a, s)) -> State s e1 -> Eff effs a
 stateEff f st = do
   s <- get st
@@ -99,6 +101,7 @@ stateEff f st = do
   put st s'
   pure a
 
+-- | Inverse to 'yieldToList'
 listEff :: (e1 :> effs) => ([a], r) -> Stream a e1 -> Eff effs r
 listEff (as, r) y = do
   for_ as (yield y)

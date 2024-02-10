@@ -28,7 +28,7 @@ infixr 9 :&
 
 type (:&) = Union
 
-newtype Eff (es :: Effects) a = Eff {unsafeUnEff :: IO a}
+newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: IO a}
   deriving stock (Functor)
   deriving newtype (Applicative, Monad)
 
@@ -50,14 +50,14 @@ withMonadIO :: IOE e -> EffReaderT (IOE e) (Eff effs) r -> Eff effs r
 withMonadIO = flip unEffReaderT
 
 unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
-unsafeRemoveEff = Eff . unsafeUnEff
+unsafeRemoveEff = UnsafeMkEff . unsafeUnEff
 
 -- | Run an 'Eff' that doesn't contain any unhandled effects.
 runEff :: (forall es. Eff es a) -> a
 runEff e = unsafePerformIO (unsafeUnEff e)
 
 weakenEff :: t `In` t' -> Eff t r -> Eff t' r
-weakenEff _ = Eff . unsafeUnEff
+weakenEff _ = UnsafeMkEff . unsafeUnEff
 
 insertSecond :: Eff (c1 :& b) r -> Eff (c1 :& (c2 :& b)) r
 insertSecond = weakenEff (b (drop (eq (# #))))
@@ -69,7 +69,7 @@ assoc1Eff = weakenEff (assoc1 (# #))
 newtype Exception e (ex :: Effects) = Exception (forall a. e -> IO a)
 
 -- | A handle to a mutable state of type @a@
-newtype State s (st :: Effects) = State (IORef s)
+newtype State s (st :: Effects) = UnsafeMkState (IORef s)
 
 -- | A handle to a coroutine that expects values of type @a@ and then
 -- yields values of type @b@.
@@ -155,7 +155,7 @@ throw ::
   -- | Value to throw
   e ->
   Eff effs a
-throw (Exception throw_) e = Eff (throw_ e)
+throw (Exception throw_) e = UnsafeMkEff (throw_ e)
 
 throwExample :: Either Int String
 throwExample = runEff $ try $ \e -> do
@@ -185,7 +185,7 @@ try ::
   -- | @Left@ if the exception was thrown, @Right@ otherwise
   Eff effs (Either e a)
 try f =
-  Eff $ withScopedException_ (\throw_ -> unsafeUnEff (f (Exception throw_)))
+  UnsafeMkEff $ withScopedException_ (\throw_ -> unsafeUnEff (f (Exception throw_)))
 
 -- | 'handle', but with the argument order swapped
 --
@@ -231,7 +231,7 @@ get ::
   State s st ->
   -- | The current value of the state
   Eff effs s
-get (State r) = Eff (readIORef r)
+get (UnsafeMkState r) = UnsafeMkEff (readIORef r)
 
 exampleGet :: (Int, Int)
 exampleGet = runEff $ runState 10 $ \st -> do
@@ -253,7 +253,7 @@ put ::
   -- writing it to the state.
   s ->
   Eff effs ()
-put (State r) !s = Eff (writeIORef r s)
+put (UnsafeMkState r) !s = UnsafeMkEff (writeIORef r s)
 
 examplePut :: ((), Int)
 examplePut = runEff $ runState 10 $ \st -> do
@@ -269,7 +269,8 @@ examplePut = runEff $ runState 10 $ \st -> do
 modify ::
   (st :> effs) =>
   State s st ->
-  -- | Apply this function to the state
+  -- | Apply this function to the state.  The new value of the state
+  -- is forced before writing it to the state.
   (s -> s) ->
   Eff effs ()
 modify state f = do
@@ -313,7 +314,7 @@ runState ::
   -- | Result and final state
   Eff effs (a, s)
 runState s f = do
-  state <- Eff (fmap State (newIORef s))
+  state <- UnsafeMkEff (fmap UnsafeMkState (newIORef s))
   unsafeRemoveEff $ do
     a <- f state
     s' <- get state
@@ -325,7 +326,7 @@ yieldCoroutine ::
   -- | ͘
   a ->
   Eff effs b
-yieldCoroutine (Coroutine f) a = Eff (f a)
+yieldCoroutine (Coroutine f) a = UnsafeMkEff (f a)
 
 -- |
 -- @
@@ -627,7 +628,7 @@ effIO ::
   IO a ->
   -- | ͘
   Eff effs a
-effIO IOE = Eff
+effIO IOE = UnsafeMkEff
 
 effIOExample :: IO ()
 effIOExample = runEffIO $ \io -> do
@@ -704,3 +705,33 @@ head' c = do
   pure $ case r of
     Right r' -> Right r'
     Left (l, _) -> Left l
+
+example1_ :: (Int, Int)
+example1_ =
+  let example1 :: Int -> Int
+      example1 n = runEff $ evalState n $ \st -> do
+        n' <- get st
+        when (n' < 10) $
+          put st (n' + 10)
+        get st
+   in (example1 5, example1 12)
+
+example2_ :: ((Int, Int), (Int, Int))
+example2_ =
+  let example2 :: (Int, Int) -> (Int, Int)
+      example2 (m, n) = runEff $
+        evalState m $ \sm -> do
+          evalState n $ \sn -> do
+            do
+              n' <- get sn
+              m' <- get sm
+
+              if n' < m'
+                then put sn (n' + 10)
+                else put sm (m' + 10)
+
+            n' <- get sn
+            m' <- get sm
+
+            pure (n', m')
+   in (example2 (5, 10), example2 (12, 5))
