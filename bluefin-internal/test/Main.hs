@@ -1,4 +1,5 @@
 {-# LANGUAGE NoMonoLocalBinds #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Main (main) where
 
@@ -10,45 +11,53 @@ import Prelude hiding (break, read)
 
 main :: IO ()
 main = do
-  allTrue $ \y -> do
-    let assert n c = yield y (n, if c then Nothing else Just (Forall (Nest (\_ -> pure ()))))
-    let assertEqual n c1 c2 =
-          yield
-            y
-            ( n,
-              if c1 == c2
-                then Nothing
-                else
-                  Just
-                    ( Forall
-                        ( Nest
-                            ( \y2 -> do
-                                yield y2 ("Expected: " ++ show c1)
-                                yield y2 ("But got: " ++ show c2)
-                            )
-                        )
-                    )
-            )
+  allTrue $ \(y :: Stream (String, (Maybe (Forall (Nest (Stream String) Eff) ()))) e1) -> do
+    let assertEqual' = assertEqual y
 
-    assertEqual "oddsUntilFirstGreaterThan5" oddsUntilFirstGreaterThan5 [1, 3, 5, 7]
-    assertEqual "index 1" ([0, 1, 2, 3] !? 2) (Just 2)
-    assertEqual "index 2" ([0, 1, 2, 3] !? 4) Nothing
-    assertEqual
+    assertEqual' "oddsUntilFirstGreaterThan5" oddsUntilFirstGreaterThan5 [1, 3, 5, 7]
+    assertEqual' "index 1" ([0, 1, 2, 3] !? 2) (Just 2)
+    assertEqual' "index 2" ([0, 1, 2, 3] !? 4) Nothing
+    assertEqual'
       "Exception 1"
       (runEff (try (eitherEff (Left True))))
       (Left True :: Either Bool ())
-    assertEqual
+    assertEqual'
       "Exception 2"
       (runEff (try (eitherEff (Right True))))
       (Right True :: Either () Bool)
-    assertEqual
+    assertEqual'
       "State"
       (runEff (runState 10 (stateEff (\n -> (show n, n * 2)))))
       ("10", 20)
-    assertEqual
+    assertEqual'
       "List"
       (runEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
       ([20, 30, 40], "Hello")
+
+assertEqual ::
+  (e1 :> effs, Eq a, Show a) =>
+  Stream (a2, Maybe (Forall (Nest (Stream String) Eff) ())) e1 ->
+  a2 ->
+  a ->
+  a ->
+  Eff effs ()
+assertEqual y n c1 c2 =
+  yield
+    y
+    ( n,
+      if c1 == c2
+        then Nothing
+        else
+          Just
+            ( Forall
+                ( Nest
+                    ( \y2 -> do
+                        yield y2 ("Expected: " ++ show c1)
+                        yield y2 ("But got: " ++ show c2)
+                    )
+                )
+            )
+    )
 
 newtype Nest h t effs r = Nest
   { unNest ::
