@@ -8,6 +8,7 @@ module Bluefin.Internal where
 
 import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import qualified Data.Unique
@@ -15,7 +16,6 @@ import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, read, return)
-import Control.Monad.IO.Class (MonadIO, liftIO)
 
 type Effect = ()
 
@@ -31,18 +31,18 @@ newtype Eff (es :: Effects) a = Eff {unsafeUnEff :: IO a}
   deriving stock (Functor)
   deriving newtype (Applicative, Monad)
 
-newtype EffReaderT r m a = MkEffReaderT { unEffReaderT :: r -> m a }
-  deriving Functor
+newtype EffReaderT r m a = MkEffReaderT {unEffReaderT :: r -> m a}
+  deriving (Functor)
 
-instance Applicative m => Applicative (EffReaderT r m) where
+instance (Applicative m) => Applicative (EffReaderT r m) where
   pure = MkEffReaderT . pure . pure
   MkEffReaderT f <*> MkEffReaderT x = MkEffReaderT (\r -> f r <*> x r)
 
-instance Monad m => Monad (EffReaderT r m) where
+instance (Monad m) => Monad (EffReaderT r m) where
   MkEffReaderT m >>= f =
     MkEffReaderT (\r -> m r >>= (\a -> unEffReaderT (f a) r))
 
-instance e :> effs => MonadIO (EffReaderT (IOE e) (Eff effs)) where
+instance (e :> effs) => MonadIO (EffReaderT (IOE e) (Eff effs)) where
   liftIO = MkEffReaderT . flip effIO
 
 withMonadIO :: IOE e -> EffReaderT (IOE e) (Eff effs) r -> Eff effs r
