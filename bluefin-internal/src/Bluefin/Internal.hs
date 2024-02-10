@@ -16,7 +16,7 @@ import qualified Data.Unique
 import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
-import Prelude hiding (drop, read, return)
+import Prelude hiding (drop, head, read, return)
 
 type Effect = ()
 
@@ -674,3 +674,33 @@ countPositivesNegatives is = runEff $
           "We saw a zero, but before that there were "
             ++ show p
             ++ " positives"
+
+connect ::
+  (forall e1. Coroutine a b e1 -> Eff (e1 :& effs) r1) ->
+  (forall e2. a -> Coroutine b a e2 -> Eff (e2 :& effs) r2) ->
+  forall e1 e2.
+  (e1 :> effs, e2 :> effs) =>
+  Eff
+    effs
+    ( Either
+        (r1, a -> Coroutine b a e2 -> Eff effs r2)
+        (r2, b -> Coroutine a b e1 -> Eff effs r1)
+    )
+connect _ _ = error "connect unimplemented, sorry"
+
+head' ::
+  forall a b r effs.
+  (forall e. Coroutine a b e -> Eff (e :& effs) r) ->
+  forall e.
+  (e :> effs) =>
+  Eff
+    effs
+    ( Either
+        r
+        (a, b -> Coroutine a b e -> Eff effs r)
+    )
+head' c = do
+  r <- connect c (\a _ -> pure a) @_ @effs
+  pure $ case r of
+    Right r' -> Right r'
+    Left (l, _) -> Left l
