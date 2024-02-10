@@ -134,6 +134,13 @@ instance (e :> es) => e :> (x :& es)
 -- | @e@ is a subset of a larger set @e :& es@
 instance {-# INCOHERENT #-} e :> (e :& es)
 
+-- |
+-- @
+-- >>> runEff $ try $ \\e -> do
+--       throw e "Exception thrown"
+--       pure "No exception thrown"
+-- Left "Exception thrown"
+-- @
 throw ::
   (ex :> effs) =>
   Exception e ex ->
@@ -141,6 +148,11 @@ throw ::
   e ->
   Eff effs a
 throw (Exception throw_) e = Eff (throw_ e)
+
+throwExample :: Either String String
+throwExample = runEff $ try $ \e -> do
+  _ <- throw e "Exception thrown"
+  pure "No exception thrown"
 
 has :: forall a b. (a :> b) => a `In` b
 has = In# (# #)
@@ -179,6 +191,13 @@ catch ::
   Eff effs a
 catch f h = handle h f
 
+-- |
+-- @
+-- >>> runEff $ runState 10 $ \\st -> do
+--       n <- get st
+--       pure (2 * n)
+-- (20,10)
+-- @
 get ::
   (st :> effs) =>
   State s st ->
@@ -186,14 +205,32 @@ get ::
   Eff effs s
 get (State r) = Eff (readIORef r)
 
+exampleGet :: (Int, Int)
+exampleGet = runEff $ runState 10 $ \st -> do
+  n <- get st
+  pure (2 * n)
+
 -- | Set the value of the state
+--
+-- @
+-- >>> runEff $ runState 10 $ \\st -> do
+--       put st 30
+--       pure ()
+-- ((), 30)
+-- @
 put ::
   (st :> effs) =>
   State s st ->
-  -- | The new value of the state
+  -- | The new value of the state.  The new value is forced before
+  -- writing it to the state.
   s ->
   Eff effs ()
 put (State r) !s = Eff (writeIORef r s)
+
+examplePut :: ((), Int)
+examplePut = runEff $ runState 10 $ \st -> do
+  put st 30
+  pure ()
 
 modify ::
   (st :> effs) =>
