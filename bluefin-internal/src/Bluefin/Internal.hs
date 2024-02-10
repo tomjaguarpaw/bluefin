@@ -232,6 +232,12 @@ examplePut = runEff $ runState 10 $ \st -> do
   put st 30
   pure ()
 
+-- |
+-- @
+-- >>> runEff $ runState 10 $ \\st -> do
+--       modify st (* 2)
+-- ((), 20)
+-- @
 modify ::
   (st :> effs) =>
   State s st ->
@@ -241,6 +247,10 @@ modify ::
 modify state f = do
   s <- get state
   put state (f s)
+
+modifyExample :: ((), Int)
+modifyExample = runEff $ runState 10 $ \st -> do
+  modify st (* 2)
 
 -- This is roughly how effectful does it
 data MyException where
@@ -260,6 +270,13 @@ withScopedException_ f = do
       -- unsafeCoerce is very unpleasant
       if tag == fresh then Just (unsafeCoerce e) else Nothing
 
+-- |
+-- @
+-- >>> runEff $ runState 10 $ \\st -> do
+--       n <- get st
+--       pure (2 * n)
+-- (20,10)
+-- @
 runState ::
   -- | Initial state
   s ->
@@ -282,6 +299,14 @@ yieldCoroutine ::
   Eff effs b
 yieldCoroutine (Coroutine f) a = Eff (f a)
 
+-- |
+-- @
+-- >>> runEff $ yieldToList $ \\y -> do
+--       yield y 1
+--       yield y 2
+--       yield y 100
+-- ([1,2,100], ())
+-- @
 yield ::
   (e1 :> effs) =>
   Stream a e1 ->
@@ -289,6 +314,12 @@ yield ::
   a ->
   Eff effs ()
 yield = yieldCoroutine
+
+yieldExample :: ([Int], ())
+yieldExample = runEff $ yieldToList $ \y -> do
+  yield y 1
+  yield y 2
+  yield y 100
 
 handleCoroutine ::
   (a -> Eff effs b) ->
@@ -306,6 +337,11 @@ forEach ::
   Eff effs r
 forEach f h = unsafeRemoveEff (f (Coroutine (unsafeUnEff . h)))
 
+-- |
+-- @
+-- >>> runEff $ yieldToList $ inFoldable [1, 2, 100]
+-- ([1, 2, 100], ())
+-- @
 inFoldable ::
   (Foldable t, e1 :> effs) =>
   -- | Yield all these values from the stream
@@ -314,8 +350,16 @@ inFoldable ::
   Eff effs ()
 inFoldable t = for_ t . yield
 
+inFoldableExample :: ([Int], ())
+inFoldableExample = runEff $ yieldToList $ inFoldable [1, 2, 100]
+
 -- | Pair each element in the stream with an increasing index,
 -- starting from 0.
+--
+-- @
+-- >>> runEff $ yieldToList $ enumerate (inFoldable [\"A\", \"B\", \"C\"])
+-- ([(0, \"A\"), (1, \"B\"), (2, \"C\")], ())
+-- @
 enumerate ::
   (e2 :> effs) =>
   -- | ͘
@@ -326,6 +370,9 @@ enumerate ss st = evalState 0 $ \i -> forEach (insertSecond . ss) $ \s -> do
   ii <- get i
   yield st (ii, s)
   put i (ii + 1)
+
+enumerateExample :: ([(Int, String)], ())
+enumerateExample = runEff $ yieldToList $ enumerate (inFoldable ["A", "B", "C"])
 
 handleException' ::
   (e -> r) ->
@@ -353,6 +400,13 @@ earlyReturn ::
   Eff effs a
 earlyReturn = throw
 
+-- |
+-- @
+-- >>> runEff $ evalState 10 $ \\st -> do
+--       n <- get st
+--       pure (2 * n)
+-- 20
+-- @
 evalState ::
   -- | Initial state
   s ->

@@ -16,12 +16,12 @@ main = do
     assert "index 2" ([0, 1, 2, 3] !? 4 == Nothing)
     assert
       "Exception 1"
-      ( runEff (handleException (eitherEff (Left True)))
+      ( runEff (try (eitherEff (Left True)))
           == (Left True :: Either Bool ())
       )
     assert
       "Exception 2"
-      ( runEff (handleException (eitherEff (Right True)))
+      ( runEff (try (eitherEff (Right True)))
           == (Right True :: Either () Bool)
       )
     assert
@@ -44,13 +44,13 @@ runTests f y = do
   evalState True $ \passedAllSoFar -> do
     forEach f $ \(name, passedThisOne) -> do
       unless passedThisOne $
-        write passedAllSoFar False
+        put passedAllSoFar False
 
       let mark = if passedThisOne then "✓" else "✗"
 
       yield y (mark ++ " " ++ name)
 
-    read passedAllSoFar
+    get passedAllSoFar
 
 allTrue ::
   (forall e1 effs. Stream (String, Bool) e1 -> Eff (e1 :& effs) ()) ->
@@ -68,9 +68,9 @@ xs !? i = runEff $
   withEarlyReturn $ \ret -> do
     evalState 0 $ \s -> do
       for_ xs $ \a -> do
-        i' <- read s
+        i' <- get s
         when (i == i') (earlyReturn ret (Just a))
-        write s (i' + 1)
+        put s (i' + 1)
     earlyReturn ret Nothing
 
 oddsUntilFirstGreaterThan5 :: [Int]
@@ -94,9 +94,9 @@ eitherEff eith ex = case eith of
 
 stateEff :: (e1 :> effs) => (s -> (a, s)) -> State s e1 -> Eff effs a
 stateEff f st = do
-  s <- read st
+  s <- get st
   let (a, s') = f s
-  write st s'
+  put st s'
   pure a
 
 listEff :: (e1 :> effs) => ([a], r) -> Stream a e1 -> Eff effs r

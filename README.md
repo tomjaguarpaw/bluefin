@@ -4,6 +4,8 @@
 
 * Benchmarks (against `effectful` particularly)
 
+* Doctests
+
 # Acknowledgements
 
 * Oleg Kiselyov for his work on effects and delimited continuations
