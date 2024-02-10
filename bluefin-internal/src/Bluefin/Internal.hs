@@ -51,6 +51,7 @@ withMonadIO = flip unEffReaderT
 unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
 unsafeRemoveEff = Eff . unsafeUnEff
 
+-- | Run an 'Eff' that doesn't contain any unhandled effects.
 runEff :: (forall es. Eff es a) -> a
 runEff e = unsafePerformIO (unsafeUnEff e)
 
@@ -560,8 +561,16 @@ jumpTo ::
   Eff effs a
 jumpTo tag = throw tag ()
 
+-- | Handle that allows you to run 'IO' operations
 data IOE (e :: Effects) = IOE
 
+-- | Run an 'IO' operation in 'Eff'
+--
+-- @
+-- >>> runEffIO $ \\io -> do
+--       effIO io (putStrLn "Hello world!")
+-- Hello, world!
+-- @
 effIO ::
   (e :> effs) =>
   IOE e ->
@@ -570,6 +579,17 @@ effIO ::
   Eff effs a
 effIO IOE = Eff
 
+effIOExample :: IO ()
+effIOExample = runEffIO $ \io -> do
+  effIO io (putStrLn "Hello world!")
+
+-- | Run an 'Eff' whose only unhandled effect is 'IO'.
+--
+-- @
+-- >>> runEffIO $ \\io -> do
+--       effIO io (putStrLn "Hello world!")
+-- Hello, world!
+-- @
 runEffIO ::
   (forall e effs. IOE e -> Eff (e :& effs) a) ->
   -- | ͘
