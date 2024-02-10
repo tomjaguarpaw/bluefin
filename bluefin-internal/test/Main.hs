@@ -1,3 +1,5 @@
+{-# LANGUAGE NoMonoLocalBinds #-}
+
 module Main (main) where
 
 import Bluefin.Internal
@@ -10,34 +12,45 @@ main :: IO ()
 main = do
   allTrue $ \y -> do
     let assert n c = yield y (n, if c then Nothing else Just (W (\_ -> pure ())))
+    let assertEqual n c1 c2 =
+          yield
+            y
+            ( n,
+              if c1 == c2
+                then Nothing
+                else
+                  Just
+                    ( W
+                        ( \y2 -> do
+                            yield y2 ("Expected: " ++ show c1)
+                            yield y2 ("But got: " ++ show c2)
+                        )
+                    )
+            )
 
-    assert "oddsUntilFirstGreaterThan5" (oddsUntilFirstGreaterThan5 == [1, 3, 5, 7])
-    assert "index 1" ([0, 1, 2, 3] !? 2 == Just 2)
-    assert "index 2" ([0, 1, 2, 3] !? 4 == Nothing)
-    assert
+    assertEqual "oddsUntilFirstGreaterThan5" oddsUntilFirstGreaterThan5 [1, 3, 5, 7]
+    assertEqual "index 1" ([0, 1, 2, 3] !? 2) (Just 2)
+    assertEqual "index 2" ([0, 1, 2, 3] !? 4) Nothing
+    assertEqual
       "Exception 1"
-      ( runEff (try (eitherEff (Left True)))
-          == (Left True :: Either Bool ())
-      )
-    assert
+      (runEff (try (eitherEff (Left True))))
+      (Left True :: Either Bool ())
+    assertEqual
       "Exception 2"
-      ( runEff (try (eitherEff (Right True)))
-          == (Right True :: Either () Bool)
-      )
-    assert
+      (runEff (try (eitherEff (Right True))))
+      (Right True :: Either () Bool)
+    assertEqual
       "State"
-      ( runEff (runState 10 (stateEff (\n -> (show n, n * 2))))
-          == ("10", 20)
-      )
-    assert
+      (runEff (runState 10 (stateEff (\n -> (show n, n * 2)))))
+      ("10", 20)
+    assertEqual
       "List"
-      ( runEff (yieldToList (listEff ([20, 30, 40], "Hello")))
-          == ([20, 30, 40], "Hello")
-      )
+      (runEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
+      ([20, 30, 40], "Hello")
 
-newtype W effs
+newtype W
   = W
-      ( forall e4.
+      ( forall e4 effs.
         (e4 :> effs) =>
         Stream String e4 ->
         Eff effs ()
@@ -49,7 +62,7 @@ runTests ::
     Stream
       ( String,
         Maybe
-          ( W (e2 :& effs)
+          ( W
           )
       )
       e1 ->
@@ -70,10 +83,18 @@ runTests f y = do
 
       yield y (mark ++ " " ++ name)
 
+      case passedThisOne of
+        Nothing -> pure ()
+        Just (W s) -> do
+          yield y ""
+          forEach s $ \entry -> do
+            yield y ("    " ++ entry)
+          yield y ""
+
     get passedAllSoFar
 
 allTrue ::
-  (forall e1 effs. Stream (String, Maybe (W effs)) e1 -> Eff (e1 :& effs) ()) ->
+  (forall e1 effs. Stream (String, Maybe W) e1 -> Eff (e1 :& effs) ()) ->
   IO ()
 allTrue f = runEffIO $ \ioe -> do
   passed <- forEach (runTests f) $ \text ->
