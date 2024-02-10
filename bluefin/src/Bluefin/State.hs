@@ -1,8 +1,8 @@
 module Bluefin.State
   ( State,
     evalState,
-    read,
-    write,
+    get,
+    put,
     modify,
   )
 where

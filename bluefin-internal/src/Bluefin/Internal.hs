@@ -154,20 +154,20 @@ handleException ::
 handleException f =
   Eff $ withScopedException_ (\throw_ -> unsafeUnEff (f (Exception throw_)))
 
-read ::
+get ::
   (st :> effs) =>
   State s st ->
   -- | ͘
   Eff effs s
-read (State r) = Eff (readIORef r)
+get (State r) = Eff (readIORef r)
 
-write ::
+put ::
   (st :> effs) =>
   State s st ->
   s ->
   -- | ͘
   Eff effs ()
-write (State r) !s = Eff (writeIORef r s)
+put (State r) !s = Eff (writeIORef r s)
 
 modify ::
   (st :> effs) =>
@@ -176,8 +176,8 @@ modify ::
   -- | ͘
   Eff effs ()
 modify state f = do
-  s <- read state
-  write state (f s)
+  s <- get state
+  put state (f s)
 
 -- This is roughly how effectful does it
 data MyException where
@@ -205,7 +205,7 @@ runState s f = do
   state <- Eff (fmap State (newIORef s))
   unsafeRemoveEff $ do
     a <- f state
-    s' <- read state
+    s' <- get state
     pure (a, s')
 
 yieldCoroutine ::
@@ -256,9 +256,9 @@ enumerate ::
   Stream (Int, a) e2 ->
   Eff effs ()
 enumerate ss st = evalState 0 $ \i -> forEach ss $ \s -> do
-  ii <- read i
+  ii <- get i
   yield st (ii, s)
-  write i (ii + 1)
+  put i (ii + 1)
 
 handleException' ::
   (e -> r) ->
@@ -340,10 +340,10 @@ withC2 ::
 withC2 c f = withC c (\_ i -> f i)
 
 putC :: forall ss es e. (ss :> es) => Compound e (State Int) ss -> Int -> Eff es ()
-putC c i = withC2 c (\h -> write h i)
+putC c i = withC2 c (\h -> put h i)
 
 getC :: forall ss es e. (ss :> es) => Compound e (State Int) ss -> Eff es Int
-getC c = withC2 c (\h -> read h)
+getC c = withC2 c (\h -> get h)
 
 -- TODO: Make this (s1 :> es, s2 :> es), like withC
 runC0 ::
@@ -367,7 +367,7 @@ yieldToList' f = do
   evalState [] $ \(s :: State lo st) -> do
     r <- forEach f $ \i ->
       modify s (i :)
-    as <- read s
+    as <- get s
     pure (reverse as, r)
 
 type Jump = EarlyReturn ()
