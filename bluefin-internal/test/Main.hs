@@ -52,9 +52,9 @@ main = do
 
 newtype Nest h effs = Nest
   { unNest ::
-      forall e4.
-      (e4 :> effs) =>
-      h e4 ->
+      forall e.
+      (e :> effs) =>
+      h e ->
       Eff effs ()
   }
 
@@ -90,9 +90,9 @@ runTests f y = do
 
       case passedThisOne of
         Nothing -> pure ()
-        Just (Forall n) -> do
+        Just n -> do
           yield y ""
-          forEach (unNest n) $ \entry -> do
+          forEach (unNest (unForall n)) $ \entry -> do
             yield y ("    " ++ entry)
           yield y ""
 
