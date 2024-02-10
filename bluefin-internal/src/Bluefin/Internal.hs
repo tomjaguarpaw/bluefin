@@ -78,7 +78,7 @@ newtype Coroutine a b (s :: Effects) = Coroutine (a -> IO b)
 -- | A handle to a stream that yields values of type @a@.  It is
 -- implemented as a handle to a coroutine that expects values of type
 -- @()@ and then yields values of type @a@.
-type Stream a (s :: Effects) = Coroutine a () s
+type Stream a = Coroutine a ()
 
 newtype In (a :: Effects) (b :: Effects) = In# (# #)
 
