@@ -9,8 +9,8 @@ module Bluefin
     --  * "Bluefin.Stream", for streams
     --
     -- @
-    -- exampleParity :: [Int] -> String
-    -- exampleParity is = 'Bluefin.Eff.runEff' $
+    -- countPositivesNegatives :: [Int] -> String
+    -- countPositivesNegatives is = 'Bluefin.Eff.runEff' $
     --   'Bluefin.State.evalState' (0 :: Int) $ \\positives -> do
     --       r \<- 'Bluefin.Exception.try' $ \\ex ->
     --           evalState (0 :: Int) $ \\negatives -> do

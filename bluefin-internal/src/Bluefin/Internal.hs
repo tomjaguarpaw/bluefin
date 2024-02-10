@@ -646,8 +646,8 @@ runEffIO ::
   IO a
 runEffIO eff = unsafeUnEff (eff IOE)
 
-exampleParity :: [Int] -> String
-exampleParity is = runEff $
+countPositivesNegatives :: [Int] -> String
+countPositivesNegatives is = runEff $
   evalState (0 :: Int) $ \positives -> do
     r <- try $ \ex ->
       evalState (0 :: Int) $ \negatives -> do
