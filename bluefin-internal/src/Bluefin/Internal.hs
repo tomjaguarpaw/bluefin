@@ -419,7 +419,8 @@ enumerateExample = runEff $ yieldToList $ enumerate (inFoldable ["A", "B", "C"])
 type EarlyReturn = Exception
 
 -- | Run an 'Eff' action with the ability to return early to this
--- point.
+-- point.  In the language of exceptions, 'withEarlyReturn' installs
+-- an exception handler for an exception of type @r@.
 --
 -- @
 -- >>> runEff $ withEarlyReturn $ \\e -> do
@@ -449,7 +450,7 @@ withEarlyReturn = handle pure
 returnEarly ::
   (er :> effs) =>
   EarlyReturn r er ->
-  -- | Return early to the handler with this value.
+  -- | Return early to the handler, with this value.
   r ->
   Eff effs a
 returnEarly = throw
@@ -477,6 +478,24 @@ evalState ::
   -- | Result
   Eff effs a
 evalState s f = fmap fst (runState s f)
+
+-- |
+-- @
+-- >>> runEff $ withState 10 $ \\st -> do
+--       n <- get st
+--       pure (\s -> (2 * n, s))
+-- (20,10)
+-- @
+withState ::
+  -- | Initial state
+  s ->
+  -- | Stateful computation
+  (forall st. State s st -> Eff (st :& effs) (s -> a)) ->
+  -- | Result
+  Eff effs a
+withState s f = do
+  (g, s') <- runState s f
+  pure (g s')
 
 data Compound e1 e2 ss where
   Compound ::
@@ -626,3 +645,20 @@ runEffIO ::
   -- | ͘
   IO a
 runEffIO eff = unsafeUnEff (eff IOE)
+
+exampleParity :: Either e (Int, Int)
+exampleParity = runEff $
+ try $ \_ ->
+  evalState 0 $ \evens -> do
+    evalState 0 $ \odds -> do
+      for_ [1 :: Int .. 10] $ \i -> do
+        ( if even i
+            then modify odds
+            else modify evens
+          )
+          (+ 1)
+
+      e <- get evens
+      o <- get odds
+
+      pure (e, o)
