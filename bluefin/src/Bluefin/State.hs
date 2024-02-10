@@ -1,6 +1,10 @@
 module Bluefin.State
-  ( State,
+  ( -- * Handle
+    State,
+    -- * Handlers
     evalState,
+    runState,
+    -- * Effectful operations
     get,
     put,
     modify,

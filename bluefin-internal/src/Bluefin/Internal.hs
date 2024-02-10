@@ -63,12 +63,19 @@ insertSecond = weakenEff (b (drop (eq (# #))))
 assoc1Eff :: Eff ((a :& b) :& c) r -> Eff (a :& (b :& c)) r
 assoc1Eff = weakenEff (assoc1 (# #))
 
+-- | Handle to an exception of type @e@
 newtype Exception e (ex :: Effects) = Exception (forall a. e -> IO a)
 
+-- | A handle to a state of type @a@
 newtype State s (st :: Effects) = State (IORef s)
 
+-- | A handle to a coroutine that expects values of type @a@ and then
+-- yields values of type @b@.
 newtype Coroutine a b (s :: Effects) = Coroutine (a -> IO b)
 
+-- | A handle to a stream that yields values of type @a@.  It is
+-- implemented as a handle to a coroutine that expects values of type
+-- @()@ and then yields values of type @a@.
 type Stream a (s :: Effects) = Coroutine a () s
 
 newtype In (a :: Effects) (b :: Effects) = In# (# #)
@@ -145,35 +152,54 @@ data Dict c where
 have :: forall a b. a `In` b -> Dict (a :> b)
 have = unsafeCoerce (Dict @(a :> (a :& b)))
 
-handleException ::
+try ::
   forall e (effs :: Effects) a.
-  -- | ͘
   (forall ex. Exception e ex -> Eff (ex :& effs) a) ->
-  -- | ͘
+  -- | @Left@ if the exception was thrown, @Right@ otherwise
   Eff effs (Either e a)
-handleException f =
+try f =
   Eff $ withScopedException_ (\throw_ -> unsafeUnEff (f (Exception throw_)))
+
+handle ::
+  forall e (effs :: Effects) a.
+  -- | If the exception is thrown, apply this handler
+  (e -> Eff effs a) ->
+  (forall ex. Exception e ex -> Eff (ex :& effs) a) ->
+  Eff effs a
+handle h f = try f >>= \case
+  Left e -> h e
+  Right a -> pure a
+
+-- | 'handle', but with the argument order swapped
+catch ::
+  forall e (effs :: Effects) a.
+  (forall ex. Exception e ex -> Eff (ex :& effs) a) ->
+  -- | If the exception is thrown, apply this handler
+  (e -> Eff effs a) ->
+  Eff effs a
+catch f h = handle h f
 
 get ::
   (st :> effs) =>
   State s st ->
-  -- | ͘
+  -- | The current value of the state
   Eff effs s
 get (State r) = Eff (readIORef r)
 
+-- | Set the value of the state
 put ::
   (st :> effs) =>
   State s st ->
+  -- | The new value of the state
   s ->
-  -- | ͘
   Eff effs ()
 put (State r) !s = Eff (writeIORef r s)
 
 modify ::
   (st :> effs) =>
   State s st ->
+  -- | Apply this function to the state
   (s -> s) ->
-  -- | ͘
   Eff effs ()
 modify state f = do
   s <- get state
@@ -198,8 +224,11 @@ withScopedException_ f = do
       if tag == fresh then Just (unsafeCoerce e) else Nothing
 
 runState ::
+  -- | Initial state
   s ->
+  -- | Stateful computation
   (forall st. State s st -> Eff (st :& effs) a) ->
+  -- | Result and final state
   Eff effs (a, s)
 runState s f = do
   state <- Eff (fmap State (newIORef s))
@@ -209,53 +238,54 @@ runState s f = do
     pure (a, s')
 
 yieldCoroutine ::
-  (eff :> effs) =>
-  Coroutine a b eff ->
+  (e1 :> effs) =>
+  Coroutine a b e1 ->
   -- | ͘
   a ->
   Eff effs b
 yieldCoroutine (Coroutine f) a = Eff (f a)
 
 yield ::
-  (eff :> effs) =>
-  Stream a eff ->
+  (e1 :> effs) =>
+  Stream a e1 ->
+  -- | Yield this value from the stream
   a ->
-  -- | ͘
   Eff effs ()
 yield = yieldCoroutine
 
 handleCoroutine ::
   (a -> Eff effs b) ->
   (z -> Eff effs r) ->
-  (forall eff. Coroutine a b eff -> Eff (eff :& effs) z) ->
+  (forall e1. Coroutine a b e1 -> Eff (e1 :& effs) z) ->
   Eff effs r
 handleCoroutine update finish f = do
   z <- forEach f update
   finish z
 
 forEach ::
-  (forall eff. Coroutine a b eff -> Eff (eff :& effs) r) ->
-  -- | ͘
+  (forall e1. Coroutine a b e1 -> Eff (e1 :& effs) r) ->
+  -- | Apply this effectful function for each element of the coroutine
   (a -> Eff effs b) ->
   Eff effs r
 forEach f h = unsafeRemoveEff (f (Coroutine (unsafeUnEff . h)))
 
 inFoldable ::
   (Foldable t, e1 :> effs) =>
-  -- | ͘
+  -- | Yield all these values from the stream
   t a ->
   Stream a e1 ->
   Eff effs ()
 inFoldable t = for_ t . yield
 
+-- | Pair each element in the stream with an increasing index,
+-- starting from 0.
 enumerate ::
   (e2 :> effs) =>
   -- | ͘
-  (forall e1 st. Stream a e1 -> Eff (e1 :& st :& effs) ()) ->
-  -- | ͘ FIXME: remove st
+  (forall e1. Stream a e1 -> Eff (e1 :& effs) ()) ->
   Stream (Int, a) e2 ->
   Eff effs ()
-enumerate ss st = evalState 0 $ \i -> forEach ss $ \s -> do
+enumerate ss st = evalState 0 $ \i -> forEach (insertSecond . ss) $ \s -> do
   ii <- get i
   yield st (ii, s)
   put i (ii + 1)
@@ -265,7 +295,7 @@ handleException' ::
   (forall ex. Exception e ex -> Eff (ex :& effs) r) ->
   Eff effs r
 handleException' h f = do
-  r1 <- handleException f
+  r1 <- try f
   pure $ case r1 of
     Right r -> r
     Left l -> h l
@@ -289,7 +319,9 @@ earlyReturn = throw
 evalState ::
   -- | Initial state
   s ->
+  -- | Stateful computation
   (forall st. State s st -> Eff (st :& effs) a) ->
+  -- | Result
   Eff effs a
 evalState s f = fmap fst (runState s f)
 
@@ -355,20 +387,26 @@ runC0 ::
 runC0 e1 e2 k = assoc1Eff (k (compound e1 e2))
 
 yieldToList ::
-  (forall eff. Stream a eff -> Eff (eff :& effs) r) ->
-  -- | ͘
+  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
+  -- | Yielded elements and final result
   Eff effs ([a], r)
-yieldToList f = yieldToList' (insertSecond . f)
+yieldToList f = do
+  (as, r) <- yieldToReverseList f
+  pure (reverse as, r)
 
-yieldToList' ::
-  (forall eff st. Stream a eff -> Eff (eff :& (st :& effs)) r) ->
+-- | This is more efficient than 'yieldToList' because it gathers the
+-- elements into a stack in reverse order. @yieldToList@ then reverses
+-- that stack.
+yieldToReverseList ::
+  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
+  -- | Yielded elements in reverse order, and final result
   Eff effs ([a], r)
-yieldToList' f = do
+yieldToReverseList f = do
   evalState [] $ \(s :: State lo st) -> do
-    r <- forEach f $ \i ->
+    r <- forEach (insertSecond . f) $ \i ->
       modify s (i :)
     as <- get s
-    pure (reverse as, r)
+    pure (as, r)
 
 type Jump = EarlyReturn ()
 

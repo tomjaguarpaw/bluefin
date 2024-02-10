@@ -1,6 +1,11 @@
 module Bluefin.Exception
-  ( Exception,
-    handleException,
+  ( -- * Handle
+    Exception,
+    -- * Handlers
+    try,
+    handle
+    catch,,
+    -- * Effectful operations
     throw,
   )
 where

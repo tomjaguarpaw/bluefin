@@ -1,10 +1,14 @@
 module Bluefin.Stream
-  ( Stream,
-    yield,
+  ( -- * Handle
+    Stream,
+    -- * Handlers
     forEach,
     yieldToList,
-    inFoldable,
+    yieldToReverseList,
     enumerate,
+    -- * Effectful operations
+    yield,
+    inFoldable,
   )
 where
 
