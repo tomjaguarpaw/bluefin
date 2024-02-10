@@ -58,7 +58,7 @@ newtype Nest h t effs r = Nest
       t effs r
   }
 
-newtype Forall f r = Forall {unForall :: forall e. f Eff e  r}
+newtype Forall f r = Forall {unForall :: forall e. f e r}
 
 runTests ::
   forall effs e3.
@@ -67,7 +67,7 @@ runTests ::
     Stream
       ( String,
         Maybe
-          ( Forall (Nest (Stream String)) ()
+          ( Forall (Nest (Stream String) Eff) ()
           )
       )
       e1 ->
@@ -100,7 +100,7 @@ runTests f y = do
 
 allTrue ::
   ( forall e1 effs.
-    Stream (String, Maybe (Forall (Nest (Stream String)) ())) e1 ->
+    Stream (String, Maybe (Forall (Nest (Stream String) Eff) ())) e1 ->
     Eff (e1 :& effs) ()
   ) ->
   IO ()
