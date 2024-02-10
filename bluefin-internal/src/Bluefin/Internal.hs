@@ -137,9 +137,15 @@ instance {-# INCOHERENT #-} e :> (e :& es)
 -- |
 -- @
 -- >>> runEff $ try $ \\e -> do
---       throw e "Exception thrown"
+--       throw e 42
 --       pure "No exception thrown"
--- Left "Exception thrown"
+-- Left 42
+-- @
+--
+-- @
+-- >>> runEff $ try $ \\e -> do
+--       pure "No exception thrown"
+-- Right "No exception thrown"
 -- @
 throw ::
   (ex :> effs) =>
@@ -149,9 +155,9 @@ throw ::
   Eff effs a
 throw (Exception throw_) e = Eff (throw_ e)
 
-throwExample :: Either String String
+throwExample :: Either Int String
 throwExample = runEff $ try $ \e -> do
-  _ <- throw e "Exception thrown"
+  _ <- throw e 42
   pure "No exception thrown"
 
 has :: forall a b. (a :> b) => a `In` b
@@ -164,6 +170,13 @@ data Dict c where
 have :: forall a b. a `In` b -> Dict (a :> b)
 have = unsafeCoerce (Dict @(a :> (a :& b)))
 
+-- |
+-- @
+-- >>> runEff $ try $ \\e -> do
+--       throw e 42
+--       pure "No exception thrown"
+-- Left 42
+-- @
 try ::
   forall e (effs :: Effects) a.
   (forall ex. Exception e ex -> Eff (ex :& effs) a) ->
@@ -172,17 +185,30 @@ try ::
 try f =
   Eff $ withScopedException_ (\throw_ -> unsafeUnEff (f (Exception throw_)))
 
+-- | 'handle', but with the argument order swapped
+--
+-- @
+-- >>> runEff $ handle (pure . show) $ \\e -> do
+--       throw e 42
+--       pure "No exception thrown"
+-- "42"
+-- @
 handle ::
   forall e (effs :: Effects) a.
   -- | If the exception is thrown, apply this handler
   (e -> Eff effs a) ->
   (forall ex. Exception e ex -> Eff (ex :& effs) a) ->
   Eff effs a
-handle h f = try f >>= \case
-  Left e -> h e
-  Right a -> pure a
+handle h f =
+  try f >>= \case
+    Left e -> h e
+    Right a -> pure a
 
--- | 'handle', but with the argument order swapped
+handleExample :: String
+handleExample = runEff $ handle (pure . show) $ \e -> do
+  _ <- throw e (42 :: Int)
+  pure "No exception thrown"
+
 catch ::
   forall e (effs :: Effects) a.
   (forall ex. Exception e ex -> Eff (ex :& effs) a) ->
