@@ -11,7 +11,7 @@ import Prelude hiding (break, read)
 
 main :: IO ()
 main = do
-  allTrue $ \(y :: Stream (String, (Maybe (Forall (Nest (Stream String) Eff) ()))) e1) -> do
+  allTrue $ \y -> do
     let assertEqual' = assertEqual y
 
     assertEqual' "oddsUntilFirstGreaterThan5" oddsUntilFirstGreaterThan5 [1, 3, 5, 7]
@@ -34,13 +34,13 @@ main = do
       (runEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
       ([20, 30, 40], "Hello")
 
+-- A SpecH yields pairs of
+--
+--   (name, Maybe (stream of error text))
+type SpecH = Stream (String, Maybe (Forall (Nest (Stream String) Eff) ()))
+
 assertEqual ::
-  (e1 :> effs, Eq a, Show a) =>
-  Stream (a2, Maybe (Forall (Nest (Stream String) Eff) ())) e1 ->
-  a2 ->
-  a ->
-  a ->
-  Eff effs ()
+  (e :> effs, Eq a, Show a) => SpecH e -> String -> a -> a -> Eff effs ()
 assertEqual y n c1 c2 =
   yield
     y
@@ -72,16 +72,7 @@ newtype Forall f r = Forall {unForall :: forall e. f e r}
 runTests ::
   forall effs e3.
   (e3 :> effs) =>
-  ( forall e1 e2.
-    Stream
-      ( String,
-        Maybe
-          ( Forall (Nest (Stream String) Eff) ()
-          )
-      )
-      e1 ->
-    Eff (e1 :& e2 :& effs) ()
-  ) ->
+  (forall e1 e2. SpecH e1 -> Eff (e1 :& e2 :& effs) ()) ->
   Stream String e3 ->
   Eff effs Bool
 runTests f y = do
@@ -108,10 +99,7 @@ runTests f y = do
     get passedAllSoFar
 
 allTrue ::
-  ( forall e1 effs.
-    Stream (String, Maybe (Forall (Nest (Stream String) Eff) ())) e1 ->
-    Eff (e1 :& effs) ()
-  ) ->
+  (forall e1 effs. SpecH e1 -> Eff (e1 :& effs) ()) ->
   IO ()
 allTrue f = runEffIO $ \ioe -> do
   passed <- forEach (runTests f) $ \text ->
