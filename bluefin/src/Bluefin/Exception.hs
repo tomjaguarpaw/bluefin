@@ -3,7 +3,7 @@ module Bluefin.Exception
     Exception,
     -- * Handlers
     try,
-    handle
+    handle,
     catch,
     -- * Effectful operations
     throw,
