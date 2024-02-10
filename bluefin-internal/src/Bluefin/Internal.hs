@@ -67,7 +67,7 @@ assoc1Eff = weakenEff (assoc1 (# #))
 -- | Handle to an exception of type @e@
 newtype Exception e (ex :: Effects) = Exception (forall a. e -> IO a)
 
--- | A handle to a state of type @a@
+-- | A handle to a mutable state of type @a@
 newtype State s (st :: Effects) = State (IORef s)
 
 -- | A handle to a coroutine that expects values of type @a@ and then
