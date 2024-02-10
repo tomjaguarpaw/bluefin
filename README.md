@@ -20,3 +20,7 @@
 * David Feuer
 
 * Andrzej Rybczak for his work on effectful
+
+* Francois Pottier for "Wandering through linear types, capabilities,
+  and regions"
+  <http://pauillac.inria.fr/~fpottier/slides/fpottier-2007-05-linear-bestiary.pdf>
