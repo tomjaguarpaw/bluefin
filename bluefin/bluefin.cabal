@@ -14,6 +14,7 @@ common warnings
 library
     import:           warnings
     exposed-modules:
+      Bluefin,
       Bluefin.Compound,
       Bluefin.Coroutine,
       Bluefin.EarlyReturn,
