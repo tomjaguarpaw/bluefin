@@ -99,7 +99,10 @@ runTests f y = do
     get passedAllSoFar
 
 allTrue ::
-  (forall e1 effs. Stream (String, Maybe (Forall (Nest (Stream String)))) e1 -> Eff (e1 :& effs) ()) ->
+  ( forall e1 effs.
+    Stream (String, Maybe (Forall (Nest (Stream String)))) e1 ->
+    Eff (e1 :& effs) ()
+  ) ->
   IO ()
 allTrue f = runEffIO $ \ioe -> do
   passed <- forEach (runTests f) $ \text ->
