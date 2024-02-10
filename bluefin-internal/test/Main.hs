@@ -50,15 +50,15 @@ main = do
       (runEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
       ([20, 30, 40], "Hello")
 
-newtype Nest h effs = Nest
+newtype Nest h effs r = Nest
   { unNest ::
       forall e.
       (e :> effs) =>
       h e ->
-      Eff effs ()
+      Eff effs r
   }
 
-newtype Forall f = Forall {unForall :: forall e. f e}
+newtype Forall f r = Forall {unForall :: forall e. f e r}
 
 runTests ::
   forall effs e3.
@@ -67,7 +67,7 @@ runTests ::
     Stream
       ( String,
         Maybe
-          ( Forall (Nest (Stream String))
+          ( Forall (Nest (Stream String)) ()
           )
       )
       e1 ->
@@ -100,7 +100,7 @@ runTests f y = do
 
 allTrue ::
   ( forall e1 effs.
-    Stream (String, Maybe (Forall (Nest (Stream String)))) e1 ->
+    Stream (String, Maybe (Forall (Nest (Stream String)) ())) e1 ->
     Eff (e1 :& effs) ()
   ) ->
   IO ()
