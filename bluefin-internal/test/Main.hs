@@ -50,15 +50,15 @@ main = do
       (runEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
       ([20, 30, 40], "Hello")
 
-newtype Nest h effs r = Nest
+newtype Nest h t effs r = Nest
   { unNest ::
       forall e.
       (e :> effs) =>
       h e ->
-      Eff effs r
+      t effs r
   }
 
-newtype Forall f r = Forall {unForall :: forall e. f e r}
+newtype Forall f r = Forall {unForall :: forall e. f Eff e  r}
 
 runTests ::
   forall effs e3.
