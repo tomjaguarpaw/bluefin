@@ -11,7 +11,7 @@ import Prelude hiding (break, read)
 main :: IO ()
 main = do
   allTrue $ \y -> do
-    let assert n c = yield y (n, if c then Nothing else Just (W (Nest (\_ -> pure ()))))
+    let assert n c = yield y (n, if c then Nothing else Just (Forall (Nest (\_ -> pure ()))))
     let assertEqual n c1 c2 =
           yield
             y
@@ -20,7 +20,7 @@ main = do
                 then Nothing
                 else
                   Just
-                    ( W
+                    ( Forall
                         ( Nest
                             ( \y2 -> do
                                 yield y2 ("Expected: " ++ show c1)
@@ -50,13 +50,15 @@ main = do
       (runEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
       ([20, 30, 40], "Hello")
 
-newtype Nest effs = Nest {unNest :: forall e4. (e4 :> effs) => Stream String e4 -> Eff effs ()}
+newtype Nest h effs = Nest
+  { unNest ::
+      forall e4.
+      (e4 :> effs) =>
+      h e4 ->
+      Eff effs ()
+  }
 
-newtype W
-  = W
-      ( forall effs.
-        Nest effs
-      )
+newtype Forall f = Forall {unForall :: forall e. f e}
 
 runTests ::
   forall effs e3.
@@ -65,7 +67,7 @@ runTests ::
     Stream
       ( String,
         Maybe
-          ( W
+          ( Forall (Nest (Stream String))
           )
       )
       e1 ->
@@ -88,7 +90,7 @@ runTests f y = do
 
       case passedThisOne of
         Nothing -> pure ()
-        Just (W n) -> do
+        Just (Forall n) -> do
           yield y ""
           forEach (unNest n) $ \entry -> do
             yield y ("    " ++ entry)
@@ -97,7 +99,7 @@ runTests f y = do
     get passedAllSoFar
 
 allTrue ::
-  (forall e1 effs. Stream (String, Maybe W) e1 -> Eff (e1 :& effs) ()) ->
+  (forall e1 effs. Stream (String, Maybe (Forall (Nest (Stream String)))) e1 -> Eff (e1 :& effs) ()) ->
   IO ()
 allTrue f = runEffIO $ \ioe -> do
   passed <- forEach (runTests f) $ \text ->
