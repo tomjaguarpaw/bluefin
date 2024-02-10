@@ -356,12 +356,26 @@ handleCoroutine update finish f = do
   z <- forEach f update
   finish z
 
+-- |
+-- @
+-- >>> runEff $ yieldToList $ \\y -> do
+--       forEach (inFoldable [0 .. 3]) $ \\i -> do
+--         yield y i
+--         yield y (i * 10)
+-- ([0, 0, 1, 10, 2, 20, 3, 30], ())
+-- @
 forEach ::
   (forall e1. Coroutine a b e1 -> Eff (e1 :& effs) r) ->
   -- | Apply this effectful function for each element of the coroutine
   (a -> Eff effs b) ->
   Eff effs r
 forEach f h = unsafeRemoveEff (f (Coroutine (unsafeUnEff . h)))
+
+forEachExample :: ([Int], ())
+forEachExample = runEff $ yieldToList $ \y -> do
+  forEach (inFoldable [0 .. 4]) $ \i -> do
+    yield y i
+    yield y (i * 10)
 
 -- |
 -- @
@@ -400,23 +414,13 @@ enumerate ss st = evalState 0 $ \i -> forEach (insertSecond . ss) $ \s -> do
 enumerateExample :: ([(Int, String)], ())
 enumerateExample = runEff $ yieldToList $ enumerate (inFoldable ["A", "B", "C"])
 
-handleException' ::
-  (e -> r) ->
-  (forall ex. Exception e ex -> Eff (ex :& effs) r) ->
-  Eff effs r
-handleException' h f = do
-  r1 <- try f
-  pure $ case r1 of
-    Right r -> r
-    Left l -> h l
-
 type EarlyReturn = Exception
 
 withEarlyReturn ::
   (forall er. EarlyReturn r er -> Eff (er :& effs) r) ->
   -- | ͘
   Eff effs r
-withEarlyReturn = handleException' id
+withEarlyReturn = handle pure
 
 earlyReturn ::
   (er :> effs) =>
@@ -503,6 +507,14 @@ runC0 ::
   Eff (s1 :& (s2 :& es)) r
 runC0 e1 e2 k = assoc1Eff (k (compound e1 e2))
 
+-- |
+-- @
+-- >>> runEff $ yieldToList $ \\y -> do
+--       yield y 1
+--       yield y 2
+--       yield y 100
+-- ([1,2,100], ())
+-- @
 yieldToList ::
   (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
   -- | Yielded elements and final result
@@ -514,6 +526,14 @@ yieldToList f = do
 -- | This is more efficient than 'yieldToList' because it gathers the
 -- elements into a stack in reverse order. @yieldToList@ then reverses
 -- that stack.
+--
+-- @
+-- >>> runEff $ yieldToReverseList $ \\y -> do
+--       yield y 1
+--       yield y 2
+--       yield y 100
+-- ([100,2,1], ())
+-- @
 yieldToReverseList ::
   (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
   -- | Yielded elements in reverse order, and final result

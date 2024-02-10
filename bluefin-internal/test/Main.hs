@@ -71,7 +71,7 @@ xs !? i = runEff $
         i' <- get s
         when (i == i') (earlyReturn ret (Just a))
         put s (i' + 1)
-    earlyReturn ret Nothing
+    pure Nothing
 
 oddsUntilFirstGreaterThan5 :: [Int]
 oddsUntilFirstGreaterThan5 =
