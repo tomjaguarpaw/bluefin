@@ -39,6 +39,8 @@ main = do
 --   (name, Maybe (stream of error text))
 type SpecH effs = Stream (String, Maybe (Nest (Stream String) Eff effs ()))
 
+-- I'm still no convinced that this scheme is usable for calling outer
+-- effects from the inner
 assertEqual ::
   (e1 :> e1effs, Eq a, Show a) => SpecH effs e1 -> String -> a -> a -> Eff (e1effs :& effs) ()
 assertEqual y n c1 c2 =
