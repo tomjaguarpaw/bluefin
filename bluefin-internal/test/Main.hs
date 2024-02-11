@@ -4,7 +4,7 @@
 module Main (main) where
 
 import Bluefin.Internal
-import Control.Monad (unless, when)
+import Control.Monad (when)
 import Data.Foldable (for_)
 import System.Exit (ExitCode (ExitFailure), exitWith)
 import Prelude hiding (break, read)
@@ -50,14 +50,18 @@ assertEqual y n c1 c2 =
           then Nothing
           else
             Just
-              ( ( Nest
-                    ( \y2 -> pushFirst $ do
-                        yield y2 ("Expected: " ++ show c1)
-                        yield y2 ("But got: " ++ show c2)
-                    )
-                )
+              ( p
+                  ( \y2 -> do
+                      yield y2 ("Expected: " ++ show c1)
+                      yield y2 ("But got: " ++ show c2)
+                  )
               )
       )
+
+p ::
+  (forall e effs'. (e :> effs') => h e -> Eff effs' r) ->
+  Nest h Eff effs r
+p bb = Nest (pushFirst . bb)
 
 newtype Nest h t effs r = Nest
   { unNest ::
@@ -66,8 +70,6 @@ newtype Nest h t effs r = Nest
       h e ->
       t (effs' :& effs) r
   }
-
-newtype Forall f r = Forall {unForall :: forall e. f e r}
 
 runTests ::
   forall effs e3.
@@ -99,7 +101,7 @@ runTests f y = do
     get passedAllSoFar
 
 allTrue ::
-  (forall e1 effs. SpecH (effs) e1 -> Eff (e1 :& effs) ()) ->
+  (forall e1 effs. SpecH effs e1 -> Eff (e1 :& effs) ()) ->
   IO ()
 allTrue f = runEffIO $ \ioe -> do
   passed <- forEach (runTests f) $ \text ->
