@@ -59,11 +59,17 @@ runEff e = unsafePerformIO (unsafeUnEff e)
 weakenEff :: t `In` t' -> Eff t r -> Eff t' r
 weakenEff _ = UnsafeMkEff . unsafeUnEff
 
+insertFirst :: Eff b r -> Eff (c1 :& b) r
+insertFirst = weakenEff (drop (eq (# #)))
+
 insertSecond :: Eff (c1 :& b) r -> Eff (c1 :& (c2 :& b)) r
 insertSecond = weakenEff (b (drop (eq (# #))))
 
 assoc1Eff :: Eff ((a :& b) :& c) r -> Eff (a :& (b :& c)) r
 assoc1Eff = weakenEff (assoc1 (# #))
+
+pushFirst :: Eff a r -> Eff (a :& b) r
+pushFirst = weakenEff (fstI (# #))
 
 -- | Handle to an exception of type @e@
 newtype Exception e (ex :: Effects) = Exception (forall a. e -> IO a)
