@@ -618,6 +618,11 @@ jumpTo ::
   Eff effs a
 jumpTo tag = throw tag ()
 
+unwrap :: j :> effs => Jump j -> Maybe a -> Eff effs a
+unwrap j = \case
+  Nothing -> jumpTo j
+  Just a -> pure a
+
 -- | Handle that allows you to run 'IO' operations
 data IOE (e :: Effects) = IOE
 
