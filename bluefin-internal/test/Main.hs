@@ -37,7 +37,7 @@ main = do
 -- A SpecH yields pairs of
 --
 --   (name, Maybe (stream of error text))
-type SpecH effs = Stream (String, Maybe (Nest (Stream String) Eff effs ()))
+type SpecH = Stream (String, Maybe (Forall (Nest (Stream String) Eff) ()))
 
 -- I'm still not convinced that this scheme is practical for calling
 -- outer effects from the inner.  The problem is that at the time of
@@ -52,7 +52,7 @@ type SpecH effs = Stream (String, Maybe (Nest (Stream String) Eff effs ()))
 -- but then we've coupled the order of the handlers to the effectful
 -- operation, which is antithetical to the point of Bluefin.
 assertEqual ::
-  (e1 :> e1effs, Eq a, Show a) => SpecH effs e1 -> String -> a -> a -> Eff (e1effs :& effs) ()
+  (e1 :> e1effs, Eq a, Show a) => SpecH e1 -> String -> a -> a -> Eff (e1effs :& effs) ()
 assertEqual y n c1 c2 =
   pushFirst $
     yield
@@ -62,10 +62,12 @@ assertEqual y n c1 c2 =
           then Nothing
           else
             Just
-              ( p
-                  ( \y2 -> do
-                      yield y2 ("Expected: " ++ show c1)
-                      yield y2 ("But got: " ++ show c2)
+              ( Forall
+                  ( p
+                      ( \y2 -> do
+                          yield y2 ("Expected: " ++ show c1)
+                          yield y2 ("But got: " ++ show c2)
+                      )
                   )
               )
       )
@@ -83,10 +85,12 @@ newtype Nest h t effs r = Nest
       t (effs' :& effs) r
   }
 
+newtype Forall t r = Forall {unForall :: forall effs. t effs r}
+
 runTests ::
   forall effs e3.
   (e3 :> effs) =>
-  (forall e1 e2. SpecH (e2 :& effs) e1 -> Eff (e1 :& e2 :& effs) ()) ->
+  (forall e1 e2. SpecH e1 -> Eff (e1 :& e2 :& effs) ()) ->
   Stream String e3 ->
   Eff effs Bool
 runTests f y = do
@@ -106,14 +110,14 @@ runTests f y = do
         Nothing -> pure ()
         Just n -> do
           yield y "" :: Eff (e2 :& effs) ()
-          _ <- forEach (unNest n) $ \entry -> do
+          _ <- forEach (unNest (unForall n)) $ \entry -> do
             yield y ("    " ++ entry)
           yield y ""
 
     get passedAllSoFar
 
 allTrue ::
-  (forall e1 effs. SpecH effs e1 -> Eff (e1 :& effs) ()) ->
+  (forall e1 effs. SpecH e1 -> Eff (e1 :& effs) ()) ->
   IO ()
 allTrue f = runEffIO $ \ioe -> do
   passed <- forEach (runTests f) $ \text ->
