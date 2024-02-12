@@ -37,7 +37,7 @@ main = do
 -- A SpecH yields pairs of
 --
 --   (name, Maybe (stream of error text))
-type SpecH = Stream (String, Maybe (Forall (Nest (Stream String) Eff) ()))
+type SpecH = Stream (String, Maybe (SpecInfo ()))
 
 -- I'm still not convinced that this scheme is practical for calling
 -- outer effects from the inner.  The problem is that at the time of
@@ -52,37 +52,31 @@ type SpecH = Stream (String, Maybe (Forall (Nest (Stream String) Eff) ()))
 -- but then we've coupled the order of the handlers to the effectful
 -- operation, which is antithetical to the point of Bluefin.
 assertEqual ::
-  (e1 :> e1effs, Eq a, Show a) => SpecH e1 -> String -> a -> a -> Eff (e1effs :& effs) ()
+  (e :> effs, Eq a, Show a) => SpecH e -> String -> a -> a -> Eff effs ()
 assertEqual y n c1 c2 =
-  pushFirst $
-    yield
-      y
-      ( n,
-        if c1 == c2
-          then Nothing
-          else
-            Just
-              ( Forall
-                  ( p
-                      ( \y2 -> do
-                          yield y2 ("Expected: " ++ show c1)
-                          yield y2 ("But got: " ++ show c2)
-                      )
-                  )
-              )
-      )
+  yield
+    y
+    ( n,
+      if c1 == c2
+        then Nothing
+        else Just $ withSpecInfo $ \y2 -> do
+          yield y2 ("Expected: " ++ show c1)
+          yield y2 ("But got: " ++ show c2)
+    )
 
-p ::
-  (forall e effs'. (e :> effs') => h e -> Eff effs' r) ->
-  Nest h Eff effs r
-p bb = Nest (pushFirst . bb)
+type SpecInfo = Forall (Nest (Stream String) Eff)
+
+withSpecInfo ::
+  (forall e effs. (e :> effs) => Stream String e -> Eff effs r) ->
+  SpecInfo r
+withSpecInfo x = Forall (Nest x)
 
 newtype Nest h t effs r = Nest
   { unNest ::
-      forall e effs'.
-      (e :> effs') =>
+      forall e.
+      (e :> effs) =>
       h e ->
-      t (effs' :& effs) r
+      t effs r
   }
 
 newtype Forall t r = Forall {unForall :: forall effs. t effs r}
