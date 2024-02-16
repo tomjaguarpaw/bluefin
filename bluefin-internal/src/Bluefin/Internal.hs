@@ -9,7 +9,7 @@ module Bluefin.Internal where
 
 import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
-import Control.Monad (when)
+import Control.Monad (forever, when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
 import qualified Control.Monad.Trans.Reader as Reader
@@ -648,18 +648,27 @@ yieldToReverseList f = do
     pure (as, r)
 
 mapMaybe ::
-  e2 :> effs =>
-  -- | Input stream
-  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
+  (e2 :> effs) =>
   -- | Yield from the output stream all of the elemnts of the input
   -- stream for which this function returns @Just@
   (a -> Maybe b) ->
+  -- | Input stream
+  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
   Stream b e2 ->
   Eff effs r
-mapMaybe s f y = forEach s $ \a -> do
+mapMaybe f s y = forEach s $ \a -> do
   case f a of
     Nothing -> pure ()
     Just b_ -> yield y b_
+
+-- | Remove 'Nothing' elements from a stream.
+catMaybes ::
+  (e2 :> effs) =>
+  -- | Input stream
+  (forall e1. Stream (Maybe a) e1 -> Eff (e1 :& effs) r) ->
+  Stream a e2 ->
+  Eff effs r
+catMaybes s y = mapMaybe id s y
 
 type Jump = EarlyReturn ()
 
@@ -804,3 +813,22 @@ example2_ =
 
             pure (n', m')
    in (example2 (5, 10), example2 (12, 5))
+
+example3_ :: IO ()
+example3_ = runEffIO $ \io -> do
+  let getLineUntilStop y = withJump $ \stop -> forever $ do
+        line <- effIO io getLine
+        when (line == "STOP") $
+          jumpTo stop
+        yield y line
+
+  let nonEmptyLines =
+        mapMaybe
+          ( \case
+              "" -> Nothing
+              line -> Just line
+          )
+          getLineUntilStop
+
+  forEach nonEmptyLines $ \line -> do
+    effIO io (putStrLn ("Hello! You said " ++ line))

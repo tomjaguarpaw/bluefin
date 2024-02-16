@@ -7,6 +7,7 @@ module Bluefin.Stream
     yieldToReverseList,
     enumerate,
     mapMaybe,
+    catMaybes,
     -- * Effectful operations
     yield,
     inFoldable,

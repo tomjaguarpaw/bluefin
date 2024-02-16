@@ -102,6 +102,11 @@ module Bluefin
     -- the type parameter to the 'Control.Monad.ST.ST' monad ensures
     -- that state references cannot escape 'Control.Monad.ST.runST'.
 
+    -- * Tips
+
+    -- | Type inference for Bluefin code works best with
+    -- @NoMonoLocalBinds@ and @NoMonomorphismRestriction@.
+
     -- * Example
 
     -- |
