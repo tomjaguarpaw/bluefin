@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UnliftedNewtypes #-}
@@ -12,7 +13,6 @@ import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
 import qualified Control.Monad.Trans.Reader as Reader
-import Data.Coerce (coerce)
 import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import qualified Data.Unique
@@ -35,27 +35,34 @@ newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: IO a}
   deriving stock (Functor)
   deriving newtype (Applicative, Monad)
 
+-- | Because doing 'IO' operations inside 'Eff' requires a value-level
+-- argument we can't give @IO@-related instances to @Eff@ directly.
+-- Instead we wrap it in @EffReader@.
 newtype EffReader r effs a = MkEffReader
   { unEffReader ::
-      Reader.ReaderT r (Eff effs) a
+      r -> Eff effs a
   }
-  deriving newtype (Functor, Applicative, Monad)
+  deriving (Functor, Applicative, Monad) via (Reader.ReaderT r (Eff effs))
 
 instance (e :> effs) => MonadIO (EffReader (IOE e) effs) where
-  liftIO = MkEffReader . Reader.ReaderT . flip effIO
+  liftIO = MkEffReader . flip effIO
 
+-- We don't try to do anything sophisticated here.  I haven't thought
+-- through all the consequences.
 instance (e :> effs) => MonadUnliftIO (EffReader (IOE e) effs) where
   withRunInIO ::
     ((forall a. EffReader (IOE e) effs a -> IO a) -> IO b) ->
     EffReader (IOE e) effs b
   withRunInIO k =
     MkEffReader
-      ( hoistReader UnsafeMkEff
+      ( UnsafeMkEff .
+        Reader.runReaderT
           ( withRunInIO
               ( \f ->
                   k
                     ( f
-                        . hoistReader unsafeUnEff
+                        . Reader.ReaderT
+                        . (unsafeUnEff .)
                         . unEffReader
                     )
               )
@@ -68,8 +75,28 @@ hoistReader ::
   Reader.ReaderT r n a
 hoistReader f = Reader.ReaderT . (\m -> f . Reader.runReaderT m)
 
-withMonadIO :: IOE e -> EffReader (IOE e) effs r -> Eff effs r
-withMonadIO = flip (Reader.runReaderT . unEffReader)
+-- | Run `MonadIO` operations in 'Eff'.
+--
+-- @
+-- >>> runEffIO $ \\io -> withMonadIO io $ liftIO $ do
+--       name <- readLn
+--       print ("Hello " ++ name)
+-- > Bluefin
+-- "Hello Bluefin"
+-- @
+withMonadIO ::
+  (e :> effs) =>
+  IOE e ->
+  -- | 'MonadIO' operation
+  (forall m. (MonadIO m) => m r) ->
+  -- | @MonadIO@ operation run in @Eff@
+  Eff effs r
+withMonadIO = flip unEffReader
+
+monadIOExample :: IO ()
+monadIOExample = runEffIO $ \io -> withMonadIO io $ liftIO $ do
+  name <- readLn
+  putStrLn ("Hello " ++ name)
 
 unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
 unsafeRemoveEff = UnsafeMkEff . unsafeUnEff
