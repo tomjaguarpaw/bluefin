@@ -1,6 +1,8 @@
 module Bluefin
-  ( -- | Bluefin's effects take place in the 'Bluefin.Eff.Eff' monad.
-    -- The most common effects are
+  ( -- * In brief
+
+    -- | Bluefin is an effect system which allows you to freely mix a
+    -- variety of effects, including
     --
     --  * "Bluefin.EarlyReturn", for early return
     --  * "Bluefin.Exception", for exceptions
@@ -15,21 +17,23 @@ module Bluefin
     -- accessed explicitly through value-level handles which occur as
     -- arguments to effectful operations. Handles (such as
     -- 'Bluefin.State.State' handles, which allow access to mutable
-    -- state) are introduced by handlers (such as the
-    -- 'Bluefin.State.evalState' handler, which sets the initial
-    -- state).  Here's an example, where a mutable state effect
-    -- handle, @sn@, is introduced by its handler,
-    -- 'Bluefin.State.evalState'.
+    -- state) are introduced by handlers (such as
+    -- 'Bluefin.State.evalState', which sets the initial state).
+    -- Here's an example where a mutable state effect handle, @sn@, is
+    -- introduced by its handler, 'Bluefin.State.evalState'.
     --
     -- @
     -- -- If @n < 10@ then add 10 to it, otherwise
     -- -- return it unchanged
     -- example1 :: Int -> Int
-    -- example1 n = 'Bluefin.Eff.runEff' $ 'Bluefin.State.evalState' n $ \\sn -> do
-    --   n' <- 'Bluefin.State.get' sn
-    --   when (n' < 10) $
-    --     'Bluefin.State.put' sn (n' + 10)
-    --   get sn
+    -- example1 n = 'Bluefin.Eff.runEff' $
+    --   -- Create a new state handle, sn, and
+    --   -- initialize the value of the state to n
+    --   'Bluefin.State.evalState' n $ \\sn -> do
+    --     n' <- 'Bluefin.State.get' sn
+    --     when (n' < 10) $
+    --       'Bluefin.State.modify' sn (+ 10)
+    --     get sn
     -- @
     --
     -- @
@@ -44,9 +48,8 @@ module Bluefin
     --
     -- A benefit of value-level effect handles is that it's simple to
     -- have multiple effects of the same type in scope at the same
-    -- time, something that is not simple with existing effect
-    -- systems.  Here is an example with two @Int@ mutable state
-    -- effects in scope.
+    -- time, which is not simple with existing effect systems.  Here
+    -- is an example with two @Int@ mutable state effects in scope.
     --
     -- @
     -- -- Compare two values and add 10
@@ -60,8 +63,8 @@ module Bluefin
     --         m' <- get sm
     --
     --         if n' < m'
-    --           then 'Bluefin.State.put' sn (n' + 10)
-    --           else put sm (m' + 10)
+    --           then 'Bluefin.State.modify' sn (+ 10)
+    --           else modify sm (+ 10)
     --
     --       n' <- get sn
     --       m' <- get sm

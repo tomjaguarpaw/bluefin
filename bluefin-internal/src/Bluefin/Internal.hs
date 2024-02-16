@@ -295,7 +295,6 @@ exampleGet = runEff $ runState 10 $ \st -> do
 -- @
 -- >>> runEff $ runState 10 $ \\st -> do
 --       put st 30
---       pure ()
 -- ((), 30)
 -- @
 put ::
@@ -310,7 +309,6 @@ put (UnsafeMkState r) s = UnsafeMkEff (writeIORef r $! s)
 examplePut :: ((), Int)
 examplePut = runEff $ runState 10 $ \st -> do
   put st 30
-  pure ()
 
 -- |
 -- @
@@ -480,7 +478,6 @@ type EarlyReturn = Exception
 --       for_ [1 .. 10] $ \\i -> do
 --         when (i >= 5) $
 --           returnEarly e ("Returned early with " ++ show i)
---
 --       pure "End of loop"
 -- "Returned early with 5"
 -- @
@@ -496,7 +493,6 @@ withEarlyReturn = handle pure
 --       for_ [1 .. 10] $ \\i -> do
 --         when (i >= 5) $
 --           returnEarly e ("Returned early with " ++ show i)
---
 --       pure "End of loop"
 -- "Returned early with 5"
 -- @
@@ -513,7 +509,6 @@ returnEarlyExample = runEff $ withEarlyReturn $ \e -> do
   for_ [1 :: Int .. 10] $ \i -> do
     when (i >= 5) $
       returnEarly e ("Returned early with " ++ show i)
-
   pure "End of loop"
 
 -- |
