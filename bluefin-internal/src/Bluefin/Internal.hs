@@ -86,7 +86,7 @@ withMonadIO ::
   (forall m. (MonadIO m) => m r) ->
   -- | @MonadIO@ operation run in @Eff@
   Eff effs r
-withMonadIO = flip unEffReader
+withMonadIO io m = unEffReader m io
 
 monadIOExample :: IO ()
 monadIOExample = runEffIO $ \io -> withMonadIO io $ liftIO $ do
