@@ -7,6 +7,8 @@ module Bluefin.IO
     runEffIO,
     -- * Effectful operations
     effIO,
+    -- * IO type classes
+    withMonadIO,
   )
 where
 

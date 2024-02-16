@@ -10,6 +10,9 @@ import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
 import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
+import qualified Control.Monad.Trans.Reader as Reader
+import Data.Coerce (coerce)
 import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import qualified Data.Unique
@@ -32,22 +35,41 @@ newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: IO a}
   deriving stock (Functor)
   deriving newtype (Applicative, Monad)
 
-newtype EffReaderT r m a = MkEffReaderT {unEffReaderT :: r -> m a}
-  deriving (Functor)
+newtype EffReader r effs a = MkEffReader
+  { unEffReader ::
+      Reader.ReaderT r (Eff effs) a
+  }
+  deriving newtype (Functor, Applicative, Monad)
 
-instance (Applicative m) => Applicative (EffReaderT r m) where
-  pure = MkEffReaderT . pure . pure
-  MkEffReaderT f <*> MkEffReaderT x = MkEffReaderT (\r -> f r <*> x r)
+instance (e :> effs) => MonadIO (EffReader (IOE e) effs) where
+  liftIO = MkEffReader . Reader.ReaderT . flip effIO
 
-instance (Monad m) => Monad (EffReaderT r m) where
-  MkEffReaderT m >>= f =
-    MkEffReaderT (\r -> m r >>= (\a -> unEffReaderT (f a) r))
+instance (e :> effs) => MonadUnliftIO (EffReader (IOE e) effs) where
+  withRunInIO ::
+    ((forall a. EffReader (IOE e) effs a -> IO a) -> IO b) ->
+    EffReader (IOE e) effs b
+  withRunInIO k =
+    MkEffReader
+      ( hoistReader UnsafeMkEff
+          ( withRunInIO
+              ( \f ->
+                  k
+                    ( f
+                        . hoistReader unsafeUnEff
+                        . unEffReader
+                    )
+              )
+          )
+      )
 
-instance (e :> effs) => MonadIO (EffReaderT (IOE e) (Eff effs)) where
-  liftIO = MkEffReaderT . flip effIO
+hoistReader ::
+  (forall b. m b -> n b) ->
+  Reader.ReaderT r m a ->
+  Reader.ReaderT r n a
+hoistReader f = Reader.ReaderT . (\m -> f . Reader.runReaderT m)
 
-withMonadIO :: IOE e -> EffReaderT (IOE e) (Eff effs) r -> Eff effs r
-withMonadIO = flip unEffReaderT
+withMonadIO :: IOE e -> EffReader (IOE e) effs r -> Eff effs r
+withMonadIO = flip (Reader.runReaderT . unEffReader)
 
 unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
 unsafeRemoveEff = UnsafeMkEff . unsafeUnEff
@@ -618,7 +640,7 @@ jumpTo ::
   Eff effs a
 jumpTo tag = throw tag ()
 
-unwrap :: j :> effs => Jump j -> Maybe a -> Eff effs a
+unwrap :: (j :> effs) => Jump j -> Maybe a -> Eff effs a
 unwrap j = \case
   Nothing -> jumpTo j
   Just a -> pure a

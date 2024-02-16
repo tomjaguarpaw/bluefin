@@ -1,6 +1,6 @@
 module Bluefin
-  ( -- | Bluefin's effects take place in the 'Eff' monad.  The most
-    -- common effects are
+  ( -- | Bluefin's effects take place in the 'Bluefin.Eff.Eff' monad.
+    -- The most common effects are
     --
     --  * "Bluefin.EarlyReturn", for early return
     --  * "Bluefin.Exception", for exceptions
