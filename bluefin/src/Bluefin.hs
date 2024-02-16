@@ -104,8 +104,10 @@ module Bluefin
 
     -- * Tips
 
-    -- | Type inference for Bluefin code works best with
+    -- | * Type inference for Bluefin code works best with
     -- @NoMonoLocalBinds@ and @NoMonomorphismRestriction@.
+    --
+    -- * Writing a handler often requires an explicit type signature.
 
     -- * Example
 

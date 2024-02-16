@@ -3,6 +3,8 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UnliftedNewtypes #-}
+{-# LANGUAGE NoMonoLocalBinds #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 module Bluefin.Internal where
@@ -456,9 +458,9 @@ inFoldableExample = runEff $ yieldToList $ inFoldable [1, 2, 100]
 enumerate ::
   (e2 :> effs) =>
   -- | ͘
-  (forall e1. Stream a e1 -> Eff (e1 :& effs) ()) ->
+  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
   Stream (Int, a) e2 ->
-  Eff effs ()
+  Eff effs r
 enumerate ss st = evalState 0 $ \i -> forEach (insertSecond . ss) $ \s -> do
   ii <- get i
   yield st (ii, s)
@@ -647,6 +649,16 @@ yieldToReverseList f = do
     as <- get s
     pure (as, r)
 
+mapStream ::
+  (e2 :> effs) =>
+  -- | Apply this function to all elements of the input stream.
+  (a -> b) ->
+  -- | Input stream
+  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
+  Stream b e2 ->
+  Eff effs r
+mapStream f = mapMaybe (Just . f)
+
 mapMaybe ::
   (e2 :> effs) =>
   -- | Yield from the output stream all of the elemnts of the input
@@ -822,7 +834,7 @@ example3_ = runEffIO $ \io -> do
           jumpTo stop
         yield y line
 
-  let nonEmptyLines =
+      nonEmptyLines =
         mapMaybe
           ( \case
               "" -> Nothing
@@ -830,5 +842,20 @@ example3_ = runEffIO $ \io -> do
           )
           getLineUntilStop
 
-  forEach nonEmptyLines $ \line -> do
-    effIO io (putStrLn ("Hello! You said " ++ line))
+      enumerateFrom ::
+        e2 :> effs =>
+        Int ->
+        (forall e1 e4. Stream a e1 -> Eff (e1 :& e4 :& effs) r) ->
+        Stream (Int, a) e2 ->
+        Eff effs r
+      enumerateFrom n s y = forEach (enumerate s) $ \(i, x) -> do
+        yield y (i + n, x)
+
+      enumeratedLines = enumerateFrom 1 nonEmptyLines
+
+      formattedLines =
+        mapStream
+          (\(i, line) -> show i ++ ". Hello! You said " ++ line)
+          enumeratedLines
+
+  forEach formattedLines $ \line -> effIO io (putStrLn line)
