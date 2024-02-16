@@ -649,6 +649,20 @@ yieldToReverseList f = do
     as <- get s
     pure (as, r)
 
+mapMaybe ::
+  e2 :> effs =>
+  -- | Input stream
+  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
+  -- | Yield from the output stream all of the elemnts of the input
+  -- stream for which this function returns @Just@
+  (a -> Maybe b) ->
+  Stream b e2 ->
+  Eff effs r
+mapMaybe s f y = forEach s $ \a -> do
+  case f a of
+    Nothing -> pure ()
+    Just b_ -> yield y b_
+
 type Jump = EarlyReturn ()
 
 withJump ::
