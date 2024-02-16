@@ -38,10 +38,7 @@ newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: IO a}
 -- | Because doing 'IO' operations inside 'Eff' requires a value-level
 -- argument we can't give @IO@-related instances to @Eff@ directly.
 -- Instead we wrap it in @EffReader@.
-newtype EffReader r effs a = MkEffReader
-  { unEffReader ::
-      r -> Eff effs a
-  }
+newtype EffReader r effs a = MkEffReader {unEffReader :: r -> Eff effs a}
   deriving (Functor, Applicative, Monad) via (Reader.ReaderT r (Eff effs))
 
 instance (e :> effs) => MonadIO (EffReader (IOE e) effs) where
@@ -55,18 +52,18 @@ instance (e :> effs) => MonadUnliftIO (EffReader (IOE e) effs) where
     EffReader (IOE e) effs b
   withRunInIO k =
     MkEffReader
-      ( UnsafeMkEff .
-        Reader.runReaderT
-          ( withRunInIO
-              ( \f ->
-                  k
-                    ( f
-                        . Reader.ReaderT
-                        . (unsafeUnEff .)
-                        . unEffReader
-                    )
-              )
-          )
+      ( UnsafeMkEff
+          . Reader.runReaderT
+            ( withRunInIO
+                ( \f ->
+                    k
+                      ( f
+                          . Reader.ReaderT
+                          . (unsafeUnEff .)
+                          . unEffReader
+                      )
+                )
+            )
       )
 
 hoistReader ::
