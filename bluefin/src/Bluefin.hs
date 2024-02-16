@@ -10,17 +10,16 @@ module Bluefin
 
     -- * Introduction
 
-    -- | Bluefin is a new style of effect system for Haskell.  It is
-    -- distinct from prior effect systems because effects are accessed
-    -- explicitly through value-level handles which occur as arguments
-    -- to effectful operations. Handles are introduced by handlers,
-    -- and Bluefin's use of the type system ensures that a handle can
-    -- never escape the scope of its handler.  That is, once the
-    -- handler has finished running there is no way you can use the
-    -- handle anymore.
-    --
-    -- Here's an example, where a mutable state effect handle, @sn@,
-    -- is introduced by its handler, 'Bluefin.State.evalState'.
+    -- | Bluefin is a Haskell effect system with a new style of API.
+    -- It is distinct from prior effect systems because effects are
+    -- accessed explicitly through value-level handles which occur as
+    -- arguments to effectful operations. Handles (such as
+    -- 'Bluefin.State.State' handles, which allow access to mutable
+    -- state) are introduced by handlers (such as the
+    -- 'Bluefin.State.evalState' handler, which sets the initial
+    -- state).  Here's an example, where a mutable state effect
+    -- handle, @sn@, is introduced by its handler,
+    -- 'Bluefin.State.evalState'.
     --
     -- @
     -- -- If @n < 10@ then add 10 to it, otherwise
@@ -46,7 +45,8 @@ module Bluefin
     -- A benefit of value-level effect handles is that it's simple to
     -- have multiple effects of the same type in scope at the same
     -- time, something that is not simple with existing effect
-    -- systems.
+    -- systems.  Here is an example with two @Int@ mutable state
+    -- effects in scope.
     --
     -- @
     -- -- Compare two values and add 10
@@ -75,6 +75,14 @@ module Bluefin
     -- >>> example2 (30, 0)
     -- (30, 10)
     -- @
+
+    -- ** Effect scoping
+
+    -- | Bluefin's use of the type system is very similar to
+    -- 'Control.Monad.ST': it ensures that a handle can never escape
+    -- the scope of its handler.  That is, once the handler has
+    -- finished running there is no way you can use the handle
+    -- anymore.
 
     -- * Implementation
 

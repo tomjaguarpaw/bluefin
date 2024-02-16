@@ -76,10 +76,8 @@ hoistReader f = Reader.ReaderT . (\m -> f . Reader.runReaderT m)
 --
 -- @
 -- >>> runEffIO $ \\io -> withMonadIO io $ liftIO $ do
---       name <- readLn
---       print ("Hello " ++ name)
--- > Bluefin
--- "Hello Bluefin"
+--       putStrLn "Hello world!"
+-- Hello, world!
 -- @
 withMonadIO ::
   (e :> effs) =>
@@ -120,7 +118,7 @@ pushFirst = weakenEff (fstI (# #))
 -- | Handle to an exception of type @e@
 newtype Exception e (ex :: Effects) = Exception (forall a. e -> IO a)
 
--- | A handle to a mutable state of type @a@
+-- | A handle to a strict mutable state of type @a@
 newtype State s (st :: Effects) = UnsafeMkState (IORef s)
 
 -- | A handle to a coroutine that expects values of type @a@ and then
@@ -305,7 +303,7 @@ put ::
   -- writing it to the state.
   s ->
   Eff effs ()
-put (UnsafeMkState r) !s = UnsafeMkEff (writeIORef r s)
+put (UnsafeMkState r) s = UnsafeMkEff (writeIORef r $! s)
 
 examplePut :: ((), Int)
 examplePut = runEff $ runState 10 $ \st -> do
@@ -639,7 +637,7 @@ yieldToList f = do
 -- ([100,2,1], ())
 -- @
 yieldToReverseList ::
-  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
+  (forall e. Stream a e -> Eff (e :& effs) r) ->
   -- | Yielded elements in reverse order, and final result
   Eff effs ([a], r)
 yieldToReverseList f = do
