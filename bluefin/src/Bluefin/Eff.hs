@@ -4,7 +4,6 @@ module Bluefin.Eff
     -- * Run an 'Eff'
     runPureEff,
     runEff,
-    runEffIO,
     -- * Effect tracking
     Effects,
     (:>),

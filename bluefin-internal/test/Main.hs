@@ -113,7 +113,7 @@ runTests f y = do
 allTrue ::
   (forall e1 effs. SpecH e1 -> Eff (e1 :& effs) ()) ->
   IO ()
-allTrue f = runEffIO $ \ioe -> do
+allTrue f = runEff $ \ioe -> do
   passed <- forEach (runTests f) $ \text ->
     effIO ioe (putStrLn text)
 

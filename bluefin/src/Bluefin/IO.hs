@@ -4,7 +4,7 @@ module Bluefin.IO
     -- * Handle
     IOE,
     -- * Handlers
-    runEffIO,
+    runEff,
     -- * Effectful operations
     effIO,
     -- * IO type classes

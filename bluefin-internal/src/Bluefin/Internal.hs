@@ -77,7 +77,7 @@ hoistReader f = Reader.ReaderT . (\m -> f . Reader.runReaderT m)
 -- | Run `MonadIO` operations in 'Eff'.
 --
 -- @
--- >>> runEffIO $ \\io -> withMonadIO io $ liftIO $ do
+-- >>> runEff $ \\io -> withMonadIO io $ liftIO $ do
 --       putStrLn "Hello world!"
 -- Hello, world!
 -- @
@@ -91,16 +91,12 @@ withMonadIO ::
 withMonadIO io m = unEffReader m io
 
 monadIOExample :: IO ()
-monadIOExample = runEffIO $ \io -> withMonadIO io $ liftIO $ do
+monadIOExample = runEff $ \io -> withMonadIO io $ liftIO $ do
   name <- readLn
   putStrLn ("Hello " ++ name)
 
 unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
 unsafeRemoveEff = UnsafeMkEff . unsafeUnEff
-
--- | Run an 'Eff' that doesn't contain any unhandled effects.
-runEff :: (forall es. Eff es a) -> a
-runEff e = unsafePerformIO (unsafeUnEff e)
 
 -- | Run an 'Eff' that doesn't contain any unhandled effects.
 runPureEff :: (forall es. Eff es a) -> a
@@ -724,7 +720,7 @@ data IOE (e :: Effects) = IOE
 -- | Run an 'IO' operation in 'Eff'
 --
 -- @
--- >>> runEffIO $ \\io -> do
+-- >>> runEff $ \\io -> do
 --       effIO io (putStrLn "Hello world!")
 -- Hello, world!
 -- @
@@ -737,21 +733,21 @@ effIO ::
 effIO IOE = UnsafeMkEff
 
 effIOExample :: IO ()
-effIOExample = runEffIO $ \io -> do
+effIOExample = runEff $ \io -> do
   effIO io (putStrLn "Hello world!")
 
 -- | Run an 'Eff' whose only unhandled effect is 'IO'.
 --
 -- @
--- >>> runEffIO $ \\io -> do
+-- >>> runEff $ \\io -> do
 --       effIO io (putStrLn "Hello world!")
 -- Hello, world!
 -- @
-runEffIO ::
+runEff ::
   (forall e effs. IOE e -> Eff (e :& effs) a) ->
   -- | ͘
   IO a
-runEffIO eff = unsafeUnEff (eff IOE)
+runEff eff = unsafeUnEff (eff IOE)
 
 countPositivesNegatives :: [Int] -> String
 countPositivesNegatives is = runPureEff $
@@ -843,7 +839,7 @@ example2_ =
    in (example2 (5, 10), example2 (12, 5))
 
 example3_ :: IO ()
-example3_ = runEffIO $ \io -> do
+example3_ = runEff $ \io -> do
   let getLineUntilStop y = withJump $ \stop -> forever $ do
         line <- effIO io getLine
         when (line == "STOP") $
