@@ -87,16 +87,30 @@ module Bluefin
     -- finished running there is no way you can use the handle
     -- anymore.
 
+    -- * Comparison to other effect systems
+
+    -- ** Effectful
+
+    -- Haddock seems to have trouble with italic sections spanning
+    -- lines :(
+
+    -- | "/Why not just implement this as an alternative API on top of/
+    -- /Effectful?/"
+    --
+    -- I'd love to
+    --
+
     -- * Implementation
 
     -- | Bluefin has a similar implementation style to Effectful.
     -- 'Bluefin.Eff.Eff' is an opaque wrapper around 'IO',
-    -- 'Bluefin.State.State' is an opaque wrapper around 'IORef', and
-    -- 'Bluefin.Exception.throw' throws an actual @IO@ exception.
+    -- 'Bluefin.State.State' is an opaque wrapper around
+    -- 'Data.IORef.IORef', and 'Bluefin.Exception.throw' throws an
+    -- actual @IO@ exception.
     --
     -- @
-    -- newtype Eff (es :: Effects) a = UnsafeMkEff (IO a)
-    -- newtype State s (st :: Effects) = UnsafeMkState (IORef s)
+    -- newtype 'Bluefin.Eff.Eff' (es :: 'Bluefin.Eff.Effects') a = 'Bluefin.Internal.UnsafeMkEff' (IO a)
+    -- newtype 'Bluefin.State.State' s (st :: Effects) = 'Bluefin.Internal.UnsafeMkState' (IORef s)
     -- @
     --
     -- Types of kind 'Bluefin.Eff.Effects' track which effects can be
