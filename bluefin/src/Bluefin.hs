@@ -26,7 +26,7 @@ module Bluefin
     -- -- If @n < 10@ then add 10 to it, otherwise
     -- -- return it unchanged
     -- example1 :: Int -> Int
-    -- example1 n = 'Bluefin.Eff.runEff' $
+    -- example1 n = 'Bluefin.Eff.runPureEff' $
     --   -- Create a new state handle, sn, and
     --   -- initialize the value of the state to n
     --   'Bluefin.State.evalState' n $ \\sn -> do
@@ -55,7 +55,7 @@ module Bluefin
     -- -- Compare two values and add 10
     -- -- to the smaller
     -- example2 :: (Int, Int) -> (Int, Int)
-    -- example2 (m, n) = 'Bluefin.Eff.runEff' $
+    -- example2 (m, n) = 'Bluefin.Eff.runPureEff' $
     --   'Bluefin.State.evalState' m $ \\sm -> do
     --     evalState n $ \\sn -> do
     --       do
@@ -97,8 +97,10 @@ module Bluefin
     -- | "/Why not just implement this as an alternative API on top of/
     -- /Effectful?/"
     --
-    -- I'd love to
-    --
+    -- That would be great!  But there are two Bluefin features that I
+    -- don't know to implement in terms of Effectful:
+    -- 'Bluefin.Bluefin.Compound' effects and
+    -- 'Bluefin.Bluefin.Coroutine's.
 
     -- * Implementation
 
@@ -118,11 +120,15 @@ module Bluefin
     -- cannot escape the scope of their handler, in the same way that
     -- the type parameter to the 'Control.Monad.ST.ST' monad ensures
     -- that state references cannot escape 'Control.Monad.ST.runST'.
+    -- When the type system indicates that there are no unhandled
+    -- effects it is safe to run the underlying @IO@ action using
+    -- 'System.IO.Unsafe.unsafePerformIO', which is the approach taken
+    -- to implement 'Bluefin.Eff.runPureEff'.
 
     -- * Tips
 
-    -- | * Type inference for Bluefin code works best with
-    -- @NoMonoLocalBinds@ and @NoMonomorphismRestriction@.
+    -- | * Use @NoMonoLocalBinds@ and @NoMonomorphismRestriction@ for
+    -- better type inference.
     --
     -- * Writing a handler often requires an explicit type signature.
 
@@ -131,7 +137,7 @@ module Bluefin
     -- |
     -- @
     -- countPositivesNegatives :: [Int] -> String
-    -- countPositivesNegatives is = 'Bluefin.Eff.runEff' $
+    -- countPositivesNegatives is = 'Bluefin.Eff.runPureEff' $
     --   'Bluefin.State.evalState' (0 :: Int) $ \\positives -> do
     --       r \<- 'Bluefin.Exception.try' $ \\ex ->
     --           evalState (0 :: Int) $ \\negatives -> do

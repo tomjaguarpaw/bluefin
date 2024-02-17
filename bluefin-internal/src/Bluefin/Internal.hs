@@ -102,6 +102,10 @@ unsafeRemoveEff = UnsafeMkEff . unsafeUnEff
 runEff :: (forall es. Eff es a) -> a
 runEff e = unsafePerformIO (unsafeUnEff e)
 
+-- | Run an 'Eff' that doesn't contain any unhandled effects.
+runPureEff :: (forall es. Eff es a) -> a
+runPureEff e = unsafePerformIO (unsafeUnEff e)
+
 weakenEff :: t `In` t' -> Eff t r -> Eff t' r
 weakenEff _ = UnsafeMkEff . unsafeUnEff
 
@@ -190,14 +194,14 @@ instance {-# INCOHERENT #-} e :> (e :& es)
 
 -- |
 -- @
--- >>> runEff $ try $ \\e -> do
+-- >>> runPureEff $ try $ \\e -> do
 --       throw e 42
 --       pure "No exception thrown"
 -- Left 42
 -- @
 --
 -- @
--- >>> runEff $ try $ \\e -> do
+-- >>> runPureEff $ try $ \\e -> do
 --       pure "No exception thrown"
 -- Right "No exception thrown"
 -- @
@@ -210,7 +214,7 @@ throw ::
 throw (Exception throw_) e = UnsafeMkEff (throw_ e)
 
 throwExample :: Either Int String
-throwExample = runEff $ try $ \e -> do
+throwExample = runPureEff $ try $ \e -> do
   _ <- throw e 42
   pure "No exception thrown"
 
@@ -226,7 +230,7 @@ have = unsafeCoerce (Dict @(a :> (a :& b)))
 
 -- |
 -- @
--- >>> runEff $ try $ \\e -> do
+-- >>> runPureEff $ try $ \\e -> do
 --       throw e 42
 --       pure "No exception thrown"
 -- Left 42
@@ -242,7 +246,7 @@ try f =
 -- | 'handle', but with the argument order swapped
 --
 -- @
--- >>> runEff $ handle (pure . show) $ \\e -> do
+-- >>> runPureEff $ handle (pure . show) $ \\e -> do
 --       throw e 42
 --       pure "No exception thrown"
 -- "42"
@@ -259,7 +263,7 @@ handle h f =
     Right a -> pure a
 
 handleExample :: String
-handleExample = runEff $ handle (pure . show) $ \e -> do
+handleExample = runPureEff $ handle (pure . show) $ \e -> do
   _ <- throw e (42 :: Int)
   pure "No exception thrown"
 
@@ -273,7 +277,7 @@ catch f h = handle h f
 
 -- |
 -- @
--- >>> runEff $ runState 10 $ \\st -> do
+-- >>> runPureEff $ runState 10 $ \\st -> do
 --       n <- get st
 --       pure (2 * n)
 -- (20,10)
@@ -286,14 +290,14 @@ get ::
 get (UnsafeMkState r) = UnsafeMkEff (readIORef r)
 
 exampleGet :: (Int, Int)
-exampleGet = runEff $ runState 10 $ \st -> do
+exampleGet = runPureEff $ runState 10 $ \st -> do
   n <- get st
   pure (2 * n)
 
 -- | Set the value of the state
 --
 -- @
--- >>> runEff $ runState 10 $ \\st -> do
+-- >>> runPureEff $ runState 10 $ \\st -> do
 --       put st 30
 -- ((), 30)
 -- @
@@ -307,12 +311,12 @@ put ::
 put (UnsafeMkState r) s = UnsafeMkEff (writeIORef r $! s)
 
 examplePut :: ((), Int)
-examplePut = runEff $ runState 10 $ \st -> do
+examplePut = runPureEff $ runState 10 $ \st -> do
   put st 30
 
 -- |
 -- @
--- >>> runEff $ runState 10 $ \\st -> do
+-- >>> runPureEff $ runState 10 $ \\st -> do
 --       modify st (* 2)
 -- ((), 20)
 -- @
@@ -328,7 +332,7 @@ modify state f = do
   put state (f s)
 
 modifyExample :: ((), Int)
-modifyExample = runEff $ runState 10 $ \st -> do
+modifyExample = runPureEff $ runState 10 $ \st -> do
   modify st (* 2)
 
 -- This is roughly how effectful does it
@@ -351,7 +355,7 @@ withScopedException_ f = do
 
 -- |
 -- @
--- >>> runEff $ runState 10 $ \\st -> do
+-- >>> runPureEff $ runState 10 $ \\st -> do
 --       n <- get st
 --       pure (2 * n)
 -- (20,10)
@@ -380,7 +384,7 @@ yieldCoroutine (Coroutine f) a = UnsafeMkEff (f a)
 
 -- |
 -- @
--- >>> runEff $ yieldToList $ \\y -> do
+-- >>> runPureEff $ yieldToList $ \\y -> do
 --       yield y 1
 --       yield y 2
 --       yield y 100
@@ -395,7 +399,7 @@ yield ::
 yield = yieldCoroutine
 
 yieldExample :: ([Int], ())
-yieldExample = runEff $ yieldToList $ \y -> do
+yieldExample = runPureEff $ yieldToList $ \y -> do
   yield y 1
   yield y 2
   yield y 100
@@ -411,7 +415,7 @@ handleCoroutine update finish f = do
 
 -- |
 -- @
--- >>> runEff $ yieldToList $ \\y -> do
+-- >>> runPureEff $ yieldToList $ \\y -> do
 --       forEach (inFoldable [0 .. 3]) $ \\i -> do
 --         yield y i
 --         yield y (i * 10)
@@ -425,14 +429,14 @@ forEach ::
 forEach f h = unsafeRemoveEff (f (Coroutine (unsafeUnEff . h)))
 
 forEachExample :: ([Int], ())
-forEachExample = runEff $ yieldToList $ \y -> do
+forEachExample = runPureEff $ yieldToList $ \y -> do
   forEach (inFoldable [0 .. 4]) $ \i -> do
     yield y i
     yield y (i * 10)
 
 -- |
 -- @
--- >>> runEff $ yieldToList $ inFoldable [1, 2, 100]
+-- >>> runPureEff $ yieldToList $ inFoldable [1, 2, 100]
 -- ([1, 2, 100], ())
 -- @
 inFoldable ::
@@ -444,13 +448,13 @@ inFoldable ::
 inFoldable t = for_ t . yield
 
 inFoldableExample :: ([Int], ())
-inFoldableExample = runEff $ yieldToList $ inFoldable [1, 2, 100]
+inFoldableExample = runPureEff $ yieldToList $ inFoldable [1, 2, 100]
 
 -- | Pair each element in the stream with an increasing index,
 -- starting from 0.
 --
 -- @
--- >>> runEff $ yieldToList $ enumerate (inFoldable [\"A\", \"B\", \"C\"])
+-- >>> runPureEff $ yieldToList $ enumerate (inFoldable [\"A\", \"B\", \"C\"])
 -- ([(0, \"A\"), (1, \"B\"), (2, \"C\")], ())
 -- @
 enumerate ::
@@ -465,7 +469,7 @@ enumerate s = enumerateFrom 0 s
 -- starting from an inital value.
 --
 -- @
--- >>> runEff $ yieldToList $ enumerateFrom1 (inFoldable [\"A\", \"B\", \"C\"])
+-- >>> runPureEff $ yieldToList $ enumerateFrom1 (inFoldable [\"A\", \"B\", \"C\"])
 -- ([(1, \"A\"), (2, \"B\"), (3, \"C\")], ())
 -- @
 enumerateFrom ::
@@ -482,7 +486,7 @@ enumerateFrom n ss st =
     put i (ii + 1)
 
 enumerateExample :: ([(Int, String)], ())
-enumerateExample = runEff $ yieldToList $ enumerate (inFoldable ["A", "B", "C"])
+enumerateExample = runPureEff $ yieldToList $ enumerate (inFoldable ["A", "B", "C"])
 
 type EarlyReturn = Exception
 
@@ -491,7 +495,7 @@ type EarlyReturn = Exception
 -- an exception handler for an exception of type @r@.
 --
 -- @
--- >>> runEff $ withEarlyReturn $ \\e -> do
+-- >>> runPureEff $ withEarlyReturn $ \\e -> do
 --       for_ [1 .. 10] $ \\i -> do
 --         when (i >= 5) $
 --           returnEarly e ("Returned early with " ++ show i)
@@ -506,7 +510,7 @@ withEarlyReturn = handle pure
 
 -- |
 -- @
--- >>> runEff $ withEarlyReturn $ \\e -> do
+-- >>> runPureEff $ withEarlyReturn $ \\e -> do
 --       for_ [1 .. 10] $ \\i -> do
 --         when (i >= 5) $
 --           returnEarly e ("Returned early with " ++ show i)
@@ -522,7 +526,7 @@ returnEarly ::
 returnEarly = throw
 
 returnEarlyExample :: String
-returnEarlyExample = runEff $ withEarlyReturn $ \e -> do
+returnEarlyExample = runPureEff $ withEarlyReturn $ \e -> do
   for_ [1 :: Int .. 10] $ \i -> do
     when (i >= 5) $
       returnEarly e ("Returned early with " ++ show i)
@@ -530,7 +534,7 @@ returnEarlyExample = runEff $ withEarlyReturn $ \e -> do
 
 -- |
 -- @
--- >>> runEff $ evalState 10 $ \\st -> do
+-- >>> runPureEff $ evalState 10 $ \\st -> do
 --       n <- get st
 --       pure (2 * n)
 -- 20
@@ -546,7 +550,7 @@ evalState s f = fmap fst (runState s f)
 
 -- |
 -- @
--- >>> runEff $ withState 10 $ \\st -> do
+-- >>> runPureEff $ withState 10 $ \\st -> do
 --       n <- get st
 --       pure (\s -> (2 * n, s))
 -- (20,10)
@@ -625,7 +629,7 @@ runC0 e1 e2 k = assoc1Eff (k (compound e1 e2))
 
 -- |
 -- @
--- >>> runEff $ yieldToList $ \\y -> do
+-- >>> runPureEff $ yieldToList $ \\y -> do
 --       yield y 1
 --       yield y 2
 --       yield y 100
@@ -644,7 +648,7 @@ yieldToList f = do
 -- that stack.
 --
 -- @
--- >>> runEff $ yieldToReverseList $ \\y -> do
+-- >>> runPureEff $ yieldToReverseList $ \\y -> do
 --       yield y 1
 --       yield y 2
 --       yield y 100
@@ -750,7 +754,7 @@ runEffIO ::
 runEffIO eff = unsafeUnEff (eff IOE)
 
 countPositivesNegatives :: [Int] -> String
-countPositivesNegatives is = runEff $
+countPositivesNegatives is = runPureEff $
   evalState (0 :: Int) $ \positives -> do
     r <- try $ \ex ->
       evalState (0 :: Int) $ \negatives -> do
@@ -811,7 +815,7 @@ head' c = do
 example1_ :: (Int, Int)
 example1_ =
   let example1 :: Int -> Int
-      example1 n = runEff $ evalState n $ \st -> do
+      example1 n = runPureEff $ evalState n $ \st -> do
         n' <- get st
         when (n' < 10) $
           put st (n' + 10)
@@ -821,7 +825,7 @@ example1_ =
 example2_ :: ((Int, Int), (Int, Int))
 example2_ =
   let example2 :: (Int, Int) -> (Int, Int)
-      example2 (m, n) = runEff $
+      example2 (m, n) = runPureEff $
         evalState m $ \sm -> do
           evalState n $ \sn -> do
             do

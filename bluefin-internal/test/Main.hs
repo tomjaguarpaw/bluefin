@@ -19,19 +19,19 @@ main = do
     assertEqual' "index 2" ([0, 1, 2, 3] !? 4) Nothing
     assertEqual'
       "Exception 1"
-      (runEff (try (eitherEff (Left True))))
+      (runPureEff (try (eitherEff (Left True))))
       (Left True :: Either Bool ())
     assertEqual'
       "Exception 2"
-      (runEff (try (eitherEff (Right True))))
+      (runPureEff (try (eitherEff (Right True))))
       (Right True :: Either () Bool)
     assertEqual'
       "State"
-      (runEff (runState 10 (stateEff (\n -> (show n, n * 2)))))
+      (runPureEff (runState 10 (stateEff (\n -> (show n, n * 2)))))
       ("10", 20)
     assertEqual'
       "List"
-      (runEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
+      (runPureEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
       ([20, 30, 40], "Hello")
 
 -- A SpecH yields pairs of
@@ -122,7 +122,7 @@ allTrue f = runEffIO $ \ioe -> do
     False -> exitWith (ExitFailure 1)
 
 (!?) :: [a] -> Int -> Maybe a
-xs !? i = runEff $
+xs !? i = runPureEff $
   withEarlyReturn $ \ret -> do
     evalState 0 $ \s -> do
       for_ xs $ \a -> do
@@ -134,7 +134,7 @@ xs !? i = runEff $
 oddsUntilFirstGreaterThan5 :: [Int]
 oddsUntilFirstGreaterThan5 =
   fst $
-    runEff $
+    runPureEff $
       yieldToList $ \y -> do
         withJump $ \break -> do
           for_ [1 .. 10] $ \i -> do
