@@ -154,3 +154,21 @@ countPositivesNegatives is = runPureEff $
           "We saw a zero, but before that there were "
             ++ show p
             ++ " positives"
+
+type MyHandle = Compound (State Int) (Exception String)
+
+myInc :: (e :> effs) => MyHandle e -> Eff effs ()
+myInc h = withCompound h (\s _ -> modify s (+ 1))
+
+myBail :: (e :> effs) => MyHandle e -> Eff effs r
+myBail h = withCompound h $ \s e -> do
+  i <- get s
+  throw e ("Current state was: " ++ show i)
+
+runMyHandle ::
+  (forall e. MyHandle e -> Eff (e :& effs) a) ->
+  Eff effs (Either String (a, Int))
+runMyHandle f =
+  try $ \e -> do
+    runState 0 $ \s -> do
+      runCompound s e f

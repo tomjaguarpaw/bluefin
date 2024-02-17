@@ -578,16 +578,16 @@ inComp :: forall a b c r. (a :> b) => (b :> c) => ((a :> c) => r) -> r
 inComp k = case have (cmp (has @a @b) (has @b @c)) of Dict -> k
 
 withCompound ::
-  forall e1 e2 ss es r.
-  (ss :> es) =>
-  Compound e1 e2 ss ->
+  forall h1 h2 e effs r.
+  (e :> effs) =>
+  Compound h1 h2 e ->
   -- | ͘
-  (forall s1 s2. (s1 :> es, s2 :> es) => e1 s1 -> e2 s2 -> Eff es r) ->
-  Eff es r
+  (forall e1 e2. (e1 :> effs, e2 :> effs) => h1 e1 -> h2 e2 -> Eff effs r) ->
+  Eff effs r
 withCompound c f =
   case c of
     Compound (_ :: Proxy# st) (_ :: Proxy# st') h i ->
-      inComp @st @ss @es (inComp @st' @ss @es (f h i))
+      inComp @st @e @effs (inComp @st' @e @effs (f h i))
 
 withC1 ::
   forall e1 e2 ss es r.
@@ -612,13 +612,13 @@ getC :: forall ss es e. (ss :> es) => Compound e (State Int) ss -> Eff es Int
 getC c = withC2 c (\h -> get h)
 
 -- TODO: Make this (s1 :> es, s2 :> es), like withC
-runC0 ::
+runCompound ::
   e1 s1 ->
   -- | ͘
   e2 s2 ->
   (forall ss. Compound e1 e2 ss -> Eff (ss :& es) r) ->
   Eff (s1 :& (s2 :& es)) r
-runC0 e1 e2 k = assoc1Eff (k (compound e1 e2))
+runCompound e1 e2 k = assoc1Eff (k (compound e1 e2))
 
 -- |
 -- @

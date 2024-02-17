@@ -5,8 +5,10 @@ module Bluefin.Compound
     -- * Handle
     Compound,
 
+    -- * Handler
+    runCompound,
+
     -- * Effectful operations
-    compound,
     withCompound,
   )
 where
