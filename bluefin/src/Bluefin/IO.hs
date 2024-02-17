@@ -9,6 +9,11 @@ module Bluefin.IO
     effIO,
     -- * IO type classes
     withMonadIO,
+    withEffToIO,
+    -- ** @EffReader@
+    EffReader,
+    effReader,
+    runEffReader,
   )
 where
 

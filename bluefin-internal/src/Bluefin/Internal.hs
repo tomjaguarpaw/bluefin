@@ -1,19 +1,19 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UnliftedNewtypes #-}
-{-# LANGUAGE NoMonoLocalBinds #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 module Bluefin.Internal where
 
 import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
-import Control.Monad (forever, when)
+import Control.Monad.Base (MonadBase (liftBase))
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
+import Control.Monad.Trans.Control (MonadBaseControl, StM, liftBaseWith, restoreM)
 import qualified Control.Monad.Trans.Reader as Reader
 import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
@@ -23,12 +23,12 @@ import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
 
-type Effect = ()
-
 -- TODO: Rename branch?  Or just use :& directly?
 data Effects = Union Effects Effects
 
--- | Union of effects
+-- | @type (:&) :: Effects -> Effects -> Effects@
+--
+-- Union of effects
 infixr 9 :&
 
 type (:&) = Union
@@ -45,6 +45,21 @@ newtype EffReader r effs a = MkEffReader {unEffReader :: r -> Eff effs a}
 
 instance (e :> effs) => MonadIO (EffReader (IOE e) effs) where
   liftIO = MkEffReader . flip effIO
+
+effReader :: (r -> Eff effs a) -> EffReader r effs a
+effReader = MkEffReader
+
+runEffReader :: r -> EffReader r effs a -> Eff effs a
+runEffReader r (MkEffReader m) = m r
+
+-- This is possibly what @withRunInIO@ should morally be.
+withEffToIO ::
+  (e2 :> effs) =>
+  -- | Continuation with the unlifting function in scope.
+  ((forall r. (forall e1. IOE e1 -> Eff (e1 :& effs) r) -> IO r) -> IO a) ->
+  IOE e2 ->
+  Eff effs a
+withEffToIO k io = effIO io (k (\f -> unsafeUnEff (f MkIOE)))
 
 -- We don't try to do anything sophisticated here.  I haven't thought
 -- through all the consequences.
@@ -67,6 +82,14 @@ instance (e :> effs) => MonadUnliftIO (EffReader (IOE e) effs) where
                 )
             )
       )
+
+instance (e :> effs) => MonadBase IO (EffReader (IOE e) effs) where
+  liftBase = liftIO
+
+instance (e :> effs) => MonadBaseControl IO (EffReader (IOE e) effs) where
+  type StM (EffReader (IOE e) effs) a = a
+  liftBaseWith = withRunInIO
+  restoreM = pure
 
 instance (e :> effs) => MonadFail (EffReader (Exception String e) effs) where
   fail = MkEffReader . flip throw
@@ -96,11 +119,6 @@ withMonadIO ::
   Eff effs r
 withMonadIO io m = unEffReader m io
 
-monadIOExample :: IO ()
-monadIOExample = runEff $ \io -> withMonadIO io $ liftIO $ do
-  name <- readLn
-  putStrLn ("Hello " ++ name)
-
 -- | Run 'MonadFail' operations in 'Eff'.
 --
 -- @
@@ -121,11 +139,6 @@ withMonadFail ::
   -- | @MonadFail@ operation run in @Eff@
   Eff effs r
 withMonadFail f m = unEffReader m f
-
-monadFailExample :: Either String ()
-monadFailExample = runPureEff $ try $ \e ->
-  when ((2 :: Int) > 1) $
-    withMonadFail e (fail "2 was bigger than 1")
 
 unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
 unsafeRemoveEff = UnsafeMkEff . unsafeUnEff
@@ -241,11 +254,6 @@ throw ::
   Eff effs a
 throw (Exception throw_) e = UnsafeMkEff (throw_ e)
 
-throwExample :: Either Int String
-throwExample = runPureEff $ try $ \e -> do
-  _ <- throw e 42
-  pure "No exception thrown"
-
 has :: forall a b. (a :> b) => a `In` b
 has = In# (# #)
 
@@ -290,11 +298,6 @@ handle h f =
     Left e -> h e
     Right a -> pure a
 
-handleExample :: String
-handleExample = runPureEff $ handle (pure . show) $ \e -> do
-  _ <- throw e (42 :: Int)
-  pure "No exception thrown"
-
 catch ::
   forall e (effs :: Effects) a.
   (forall ex. Exception e ex -> Eff (ex :& effs) a) ->
@@ -317,11 +320,6 @@ get ::
   Eff effs s
 get (UnsafeMkState r) = UnsafeMkEff (readIORef r)
 
-exampleGet :: (Int, Int)
-exampleGet = runPureEff $ runState 10 $ \st -> do
-  n <- get st
-  pure (2 * n)
-
 -- | Set the value of the state
 --
 -- @
@@ -337,10 +335,6 @@ put ::
   s ->
   Eff effs ()
 put (UnsafeMkState r) s = UnsafeMkEff (writeIORef r $! s)
-
-examplePut :: ((), Int)
-examplePut = runPureEff $ runState 10 $ \st -> do
-  put st 30
 
 -- |
 -- @
@@ -358,10 +352,6 @@ modify ::
 modify state f = do
   s <- get state
   put state (f s)
-
-modifyExample :: ((), Int)
-modifyExample = runPureEff $ runState 10 $ \st -> do
-  modify st (* 2)
 
 -- This is roughly how effectful does it
 data MyException where
@@ -426,12 +416,6 @@ yield ::
   Eff effs ()
 yield = yieldCoroutine
 
-yieldExample :: ([Int], ())
-yieldExample = runPureEff $ yieldToList $ \y -> do
-  yield y 1
-  yield y 2
-  yield y 100
-
 handleCoroutine ::
   (a -> Eff effs b) ->
   (z -> Eff effs r) ->
@@ -456,12 +440,6 @@ forEach ::
   Eff effs r
 forEach f h = unsafeRemoveEff (f (Coroutine (unsafeUnEff . h)))
 
-forEachExample :: ([Int], ())
-forEachExample = runPureEff $ yieldToList $ \y -> do
-  forEach (inFoldable [0 .. 4]) $ \i -> do
-    yield y i
-    yield y (i * 10)
-
 -- |
 -- @
 -- >>> runPureEff $ yieldToList $ inFoldable [1, 2, 100]
@@ -474,9 +452,6 @@ inFoldable ::
   Stream a e1 ->
   Eff effs ()
 inFoldable t = for_ t . yield
-
-inFoldableExample :: ([Int], ())
-inFoldableExample = runPureEff $ yieldToList $ inFoldable [1, 2, 100]
 
 -- | Pair each element in the stream with an increasing index,
 -- starting from 0.
@@ -512,9 +487,6 @@ enumerateFrom n ss st =
     ii <- get i
     yield st (ii, s)
     put i (ii + 1)
-
-enumerateExample :: ([(Int, String)], ())
-enumerateExample = runPureEff $ yieldToList $ enumerate (inFoldable ["A", "B", "C"])
 
 type EarlyReturn = Exception
 
@@ -552,13 +524,6 @@ returnEarly ::
   r ->
   Eff effs a
 returnEarly = throw
-
-returnEarlyExample :: String
-returnEarlyExample = runPureEff $ withEarlyReturn $ \e -> do
-  for_ [1 :: Int .. 10] $ \i -> do
-    when (i >= 5) $
-      returnEarly e ("Returned early with " ++ show i)
-  pure "End of loop"
 
 -- |
 -- @
@@ -603,23 +568,23 @@ data Compound e1 e2 ss where
     Compound e1 e2 (s1 :& s2)
 
 compound ::
-  e1 ex ->
+  h1 e1 ->
   -- | ͘
-  e2 st ->
-  Compound e1 e2 (ex :& st)
+  h2 e2 ->
+  Compound h1 h2 (e1 :& e2)
 compound = Compound proxy# proxy#
 
 inComp :: forall a b c r. (a :> b) => (b :> c) => ((a :> c) => r) -> r
 inComp k = case have (cmp (has @a @b) (has @b @c)) of Dict -> k
 
-withC ::
+withCompound ::
   forall e1 e2 ss es r.
   (ss :> es) =>
   Compound e1 e2 ss ->
   -- | ͘
   (forall s1 s2. (s1 :> es, s2 :> es) => e1 s1 -> e2 s2 -> Eff es r) ->
   Eff es r
-withC c f =
+withCompound c f =
   case c of
     Compound (_ :: Proxy# st) (_ :: Proxy# st') h i ->
       inComp @st @ss @es (inComp @st' @ss @es (f h i))
@@ -630,7 +595,7 @@ withC1 ::
   Compound e1 e2 ss ->
   (forall st. (st :> es) => e1 st -> Eff es r) ->
   Eff es r
-withC1 c f = withC c (\h _ -> f h)
+withC1 c f = withCompound c (\h _ -> f h)
 
 withC2 ::
   forall e1 e2 ss es r.
@@ -638,7 +603,7 @@ withC2 ::
   Compound e1 e2 ss ->
   (forall st. (st :> es) => e2 st -> Eff es r) ->
   Eff es r
-withC2 c f = withC c (\_ i -> f i)
+withC2 c f = withCompound c (\_ i -> f i)
 
 putC :: forall ss es e. (ss :> es) => Compound e (State Int) ss -> Int -> Eff es ()
 putC c i = withC2 c (\h -> put h i)
@@ -747,7 +712,7 @@ unwrap j = \case
   Just a -> pure a
 
 -- | Handle that allows you to run 'IO' operations
-data IOE (e :: Effects) = IOE
+data IOE (e :: Effects) = MkIOE
 
 -- | Run an 'IO' operation in 'Eff'
 --
@@ -762,11 +727,7 @@ effIO ::
   IO a ->
   -- | ͘
   Eff effs a
-effIO IOE = UnsafeMkEff
-
-effIOExample :: IO ()
-effIOExample = runEff $ \io -> do
-  effIO io (putStrLn "Hello world!")
+effIO MkIOE = UnsafeMkEff
 
 -- | Run an 'Eff' whose only unhandled effect is 'IO'.
 --
@@ -779,36 +740,7 @@ runEff ::
   (forall e effs. IOE e -> Eff (e :& effs) a) ->
   -- | ͘
   IO a
-runEff eff = unsafeUnEff (eff IOE)
-
-countPositivesNegatives :: [Int] -> String
-countPositivesNegatives is = runPureEff $
-  evalState (0 :: Int) $ \positives -> do
-    r <- try $ \ex ->
-      evalState (0 :: Int) $ \negatives -> do
-        for_ is $ \i -> do
-          case compare i 0 of
-            GT -> modify positives (+ 1)
-            EQ -> throw ex ()
-            LT -> modify negatives (+ 1)
-
-        p <- get positives
-        n <- get negatives
-
-        pure $
-          "Positives: "
-            ++ show p
-            ++ ", negatives "
-            ++ show n
-
-    case r of
-      Right r' -> pure r'
-      Left () -> do
-        p <- get positives
-        pure $
-          "We saw a zero, but before that there were "
-            ++ show p
-            ++ " positives"
+runEff eff = unsafeUnEff (eff MkIOE)
 
 connect ::
   (forall e1. Coroutine a b e1 -> Eff (e1 :& effs) r1) ->
@@ -840,57 +772,3 @@ head' c = do
     Right r' -> Right r'
     Left (l, _) -> Left l
 
-example1_ :: (Int, Int)
-example1_ =
-  let example1 :: Int -> Int
-      example1 n = runPureEff $ evalState n $ \st -> do
-        n' <- get st
-        when (n' < 10) $
-          put st (n' + 10)
-        get st
-   in (example1 5, example1 12)
-
-example2_ :: ((Int, Int), (Int, Int))
-example2_ =
-  let example2 :: (Int, Int) -> (Int, Int)
-      example2 (m, n) = runPureEff $
-        evalState m $ \sm -> do
-          evalState n $ \sn -> do
-            do
-              n' <- get sn
-              m' <- get sm
-
-              if n' < m'
-                then put sn (n' + 10)
-                else put sm (m' + 10)
-
-            n' <- get sn
-            m' <- get sm
-
-            pure (n', m')
-   in (example2 (5, 10), example2 (12, 5))
-
-example3_ :: IO ()
-example3_ = runEff $ \io -> do
-  let getLineUntilStop y = withJump $ \stop -> forever $ do
-        line <- effIO io getLine
-        when (line == "STOP") $
-          jumpTo stop
-        yield y line
-
-      nonEmptyLines =
-        mapMaybe
-          ( \case
-              "" -> Nothing
-              line -> Just line
-          )
-          getLineUntilStop
-
-      enumeratedLines = enumerateFrom 1 nonEmptyLines
-
-      formattedLines =
-        mapStream
-          (\(i, line) -> show i ++ ". Hello! You said " ++ line)
-          enumeratedLines
-
-  forEach formattedLines $ \line -> effIO io (putStrLn line)

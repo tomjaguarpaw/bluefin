@@ -73,9 +73,13 @@ library
     build-depends:
       base >= 4.12 && < 4.20,
       unliftio-core,
-      transformers
+      transformers,
+      transformers-base,
+      monad-control
     ghc-options: -Wall
-    exposed-modules: Bluefin.Internal
+    exposed-modules:
+      Bluefin.Internal,
+      Bluefin.Internal.Examples
 
 test-suite bluefin-test
     import:           defaults

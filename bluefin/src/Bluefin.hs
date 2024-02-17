@@ -45,11 +45,16 @@ module Bluefin
     --
     -- The handle @st@ is used in much the same way as an
     -- 'Data.STRef.STRef' or 'Data.IORef.IORef'.
-    --
-    -- A benefit of value-level effect handles is that it's simple to
-    -- have multiple effects of the same type in scope at the same
-    -- time, which is not simple with existing effect systems.  Here
-    -- is an example with two mutable @Int@ state effects in scope.
+
+    -- ** Multiple effects of the same type
+
+    -- | A benefit of value-level effect handles is that it's simple
+    -- to have multiple effects of the same type in scope at the same
+    -- time.  It's easy to disambiguate them because they are distinct
+    -- values!  It is not simple with existing effect systems because
+    -- they require the disambiguation to occur at the type level.
+    -- Here is an example with two mutable @Int@ state effects in
+    -- scope.
     --
     -- @
     -- -- Compare two values and add 10
@@ -75,8 +80,8 @@ module Bluefin
     -- @
     -- >>> example2 (5, 10)
     -- (15, 10)
-    -- >>> example2 (30, 0)
-    -- (30, 10)
+    -- >>> example2 (30, 3)
+    -- (30, 13)
     -- @
 
     -- ** Effect scoping
@@ -97,10 +102,12 @@ module Bluefin
     -- | "/Why not just implement this as an alternative API on top of/
     -- /Effectful?/"
     --
-    -- That would be great!  But there are two Bluefin features that I
-    -- don't know to implement in terms of Effectful:
-    -- 'Bluefin.Bluefin.Compound' effects and
-    -- 'Bluefin.Bluefin.Coroutine's.
+    -- That would be great!  Effectful is the inspiration for a huge
+    -- amount of Bluefin.  It would be great to share code between the
+    -- two projects.  But there are two Bluefin features that I don't
+    -- know to implement in terms of Effectful:
+    -- 'Bluefin.Bluefin.Coroutine's and 'Bluefin.Bluefin.Compound'
+    -- effects.
 
     -- * Implementation
 
