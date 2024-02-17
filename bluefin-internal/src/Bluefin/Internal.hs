@@ -68,7 +68,7 @@ instance (e :> effs) => MonadUnliftIO (EffReader (IOE e) effs) where
             )
       )
 
-instance e :> effs => MonadFail (EffReader (Exception String e) effs) where
+instance (e :> effs) => MonadFail (EffReader (Exception String e) effs) where
   fail = MkEffReader . flip throw
 
 hoistReader ::
@@ -84,6 +84,9 @@ hoistReader f = Reader.ReaderT . (\m -> f . Reader.runReaderT m)
 --       putStrLn "Hello world!"
 -- Hello, world!
 -- @
+
+-- This is not really any better than just running the action in
+-- `IO`.
 withMonadIO ::
   (e :> effs) =>
   IOE e ->
@@ -98,6 +101,17 @@ monadIOExample = runEff $ \io -> withMonadIO io $ liftIO $ do
   name <- readLn
   putStrLn ("Hello " ++ name)
 
+-- | Run 'MonadFail' operations in 'Eff'.
+--
+-- @
+-- >>> runPureEff $ try $ \e ->
+--       when (2 > 1) $
+--         withMonadFail e (fail "2 was bigger than 1")
+-- Left "2 was bigger than 1"
+-- @
+
+-- This is not really any better than just running the action in
+-- `Either String` and then applying `either (throw f) pure`.
 withMonadFail ::
   (e :> effs) =>
   -- | @Exception@ to @throw@ on @fail@
@@ -107,6 +121,11 @@ withMonadFail ::
   -- | @MonadFail@ operation run in @Eff@
   Eff effs r
 withMonadFail f m = unEffReader m f
+
+monadFailExample :: Either String ()
+monadFailExample = runPureEff $ try $ \e ->
+  when ((2 :: Int) > 1) $
+    withMonadFail e (fail "2 was bigger than 1")
 
 unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
 unsafeRemoveEff = UnsafeMkEff . unsafeUnEff
