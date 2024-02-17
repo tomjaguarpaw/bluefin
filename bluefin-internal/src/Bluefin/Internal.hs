@@ -68,6 +68,9 @@ instance (e :> effs) => MonadUnliftIO (EffReader (IOE e) effs) where
             )
       )
 
+instance e :> effs => MonadFail (EffReader (Exception String e) effs) where
+  fail = MkEffReader . flip throw
+
 hoistReader ::
   (forall b. m b -> n b) ->
   Reader.ReaderT r m a ->
@@ -94,6 +97,16 @@ monadIOExample :: IO ()
 monadIOExample = runEff $ \io -> withMonadIO io $ liftIO $ do
   name <- readLn
   putStrLn ("Hello " ++ name)
+
+withMonadFail ::
+  (e :> effs) =>
+  -- | @Exception@ to @throw@ on @fail@
+  Exception String e ->
+  -- | 'MonadFail' operation
+  (forall m. (MonadFail m) => m r) ->
+  -- | @MonadFail@ operation run in @Eff@
+  Eff effs r
+withMonadFail f m = unEffReader m f
 
 unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
 unsafeRemoveEff = UnsafeMkEff . unsafeUnEff

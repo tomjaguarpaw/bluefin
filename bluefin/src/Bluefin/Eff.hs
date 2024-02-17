@@ -4,6 +4,9 @@ module Bluefin.Eff
     -- * Run an 'Eff'
     runPureEff,
     runEff,
+    -- * Type classes
+    withMonadIO,
+    withMonadFail,
     -- * Effect tracking
     Effects,
     (:>),
