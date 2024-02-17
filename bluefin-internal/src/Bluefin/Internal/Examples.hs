@@ -101,6 +101,8 @@ example2_ =
             pure (n', m')
    in (example2 (5, 10), example2 (12, 5))
 
+-- Count non-empty lines from stdin, and print a friendly message,
+-- until we see "STOP".
 example3_ :: IO ()
 example3_ = runEff $ \io -> do
   let getLineUntilStop y = withJump $ \stop -> forever $ do
@@ -126,6 +128,9 @@ example3_ = runEff $ \io -> do
 
   forEach formattedLines $ \line -> effIO io (putStrLn line)
 
+-- Count the number of (strictly) positives and (strictly) negatives
+-- in a list, unless we see a zero, in which case we bail with an
+-- error message.
 countPositivesNegatives :: [Int] -> String
 countPositivesNegatives is = runPureEff $
   evalState (0 :: Int) $ \positives -> do
@@ -154,6 +159,8 @@ countPositivesNegatives is = runPureEff $
           "We saw a zero, but before that there were "
             ++ show p
             ++ " positives"
+
+-- How to make compound effects
 
 type MyHandle = Compound (State Int) (Exception String)
 
