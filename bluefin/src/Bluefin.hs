@@ -99,7 +99,12 @@ module Bluefin
     -- Haddock seems to have trouble with italic sections spanning
     -- lines :(
 
-    -- | "/Why not just implement this as an alternative API on top of/
+    -- | If Effectful can be described as a well-typed implementation
+    -- of the @ReaderT@ @IO@ pattern then Bluefin can be described as
+    -- a well-typed implementation of the functions-that-return-@IO@
+    -- pattern.
+    --
+    -- "/Why not just implement this as an alternative API on top of/
     -- /Effectful?/"
     --
     -- That would be great!  Effectful is the inspiration for a huge
@@ -122,11 +127,12 @@ module Bluefin
     -- newtype 'Bluefin.State.State' s (st :: Effects) = 'Bluefin.Internal.UnsafeMkState' (IORef s)
     -- @
     --
-    -- Types of kind 'Bluefin.Eff.Effects' track which effects can be
-    -- used in an operation. Bluefin uses them to ensure that effects
-    -- cannot escape the scope of their handler, in the same way that
-    -- the type parameter to the 'Control.Monad.ST.ST' monad ensures
-    -- that mutable state references cannot escape
+    -- The type parameters of kind 'Bluefin.Eff.Effects' are phantom
+    -- type parameters which track which effects can be used in an
+    -- operation. Bluefin uses them to ensure that effects cannot
+    -- escape the scope of their handler, in the same way that the
+    -- type parameter to the 'Control.Monad.ST.ST' monad ensures that
+    -- mutable state references cannot escape
     -- 'Control.Monad.ST.runST'.  When the type system indicates that
     -- there are no unhandled effects it is safe to run the underlying
     -- @IO@ action using 'System.IO.Unsafe.unsafePerformIO', which is
