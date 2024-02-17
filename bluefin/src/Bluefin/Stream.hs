@@ -6,6 +6,7 @@ module Bluefin.Stream
     yieldToList,
     yieldToReverseList,
     enumerate,
+    enumerateFrom,
     mapMaybe,
     catMaybes,
     -- * Effectful operations

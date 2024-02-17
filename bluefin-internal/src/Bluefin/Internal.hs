@@ -459,10 +459,27 @@ enumerate ::
   (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
   Stream (Int, a) e2 ->
   Eff effs r
-enumerate ss st = evalState 0 $ \i -> forEach (insertSecond . ss) $ \s -> do
-  ii <- get i
-  yield st (ii, s)
-  put i (ii + 1)
+enumerate s = enumerateFrom 0 s
+
+-- | Pair each element in the stream with an increasing index,
+-- starting from an inital value.
+--
+-- @
+-- >>> runEff $ yieldToList $ enumerateFrom1 (inFoldable [\"A\", \"B\", \"C\"])
+-- ([(1, \"A\"), (2, \"B\"), (3, \"C\")], ())
+-- @
+enumerateFrom ::
+  (e2 :> effs) =>
+  -- | Initial value
+  Int ->
+  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
+  Stream (Int, a) e2 ->
+  Eff effs r
+enumerateFrom n ss st =
+  evalState n $ \i -> forEach (insertSecond . ss) $ \s -> do
+    ii <- get i
+    yield st (ii, s)
+    put i (ii + 1)
 
 enumerateExample :: ([(Int, String)], ())
 enumerateExample = runEff $ yieldToList $ enumerate (inFoldable ["A", "B", "C"])
@@ -836,15 +853,6 @@ example3_ = runEffIO $ \io -> do
               line -> Just line
           )
           getLineUntilStop
-
-      enumerateFrom ::
-        e2 :> effs =>
-        Int ->
-        (forall e1 e4. Stream a e1 -> Eff (e1 :& e4 :& effs) r) ->
-        Stream (Int, a) e2 ->
-        Eff effs r
-      enumerateFrom n s y = forEach (enumerate s) $ \(i, x) -> do
-        yield y (i + n, x)
 
       enumeratedLines = enumerateFrom 1 nonEmptyLines
 
