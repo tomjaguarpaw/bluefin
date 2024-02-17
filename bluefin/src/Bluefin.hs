@@ -43,13 +43,13 @@ module Bluefin
     -- 12
     -- @
     --
-    -- The handle @st@ is used in much the same way as an @STRef@ or
-    -- @IORef@.
+    -- The handle @st@ is used in much the same way as an
+    -- 'Data.STRef.STRef' or 'Data.IORef.IORef'.
     --
     -- A benefit of value-level effect handles is that it's simple to
     -- have multiple effects of the same type in scope at the same
     -- time, which is not simple with existing effect systems.  Here
-    -- is an example with two @Int@ mutable state effects in scope.
+    -- is an example with two mutable @Int@ state effects in scope.
     --
     -- @
     -- -- Compare two values and add 10
@@ -119,11 +119,11 @@ module Bluefin
     -- used in an operation. Bluefin uses them to ensure that effects
     -- cannot escape the scope of their handler, in the same way that
     -- the type parameter to the 'Control.Monad.ST.ST' monad ensures
-    -- that state references cannot escape 'Control.Monad.ST.runST'.
-    -- When the type system indicates that there are no unhandled
-    -- effects it is safe to run the underlying @IO@ action using
-    -- 'System.IO.Unsafe.unsafePerformIO', which is the approach taken
-    -- to implement 'Bluefin.Eff.runPureEff'.
+    -- that mutable state references cannot escape
+    -- 'Control.Monad.ST.runST'.  When the type system indicates that
+    -- there are no unhandled effects it is safe to run the underlying
+    -- @IO@ action using 'System.IO.Unsafe.unsafePerformIO', which is
+    -- the approach taken to implement 'Bluefin.Eff.runPureEff'.
 
     -- * Tips
 
