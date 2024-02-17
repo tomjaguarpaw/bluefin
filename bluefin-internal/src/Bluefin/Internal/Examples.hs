@@ -172,3 +172,9 @@ runMyHandle f =
   try $ \e -> do
     runState 0 $ \s -> do
       runCompound s e f
+
+compoundExample :: Either String (a, Int)
+compoundExample = runPureEff $ runMyHandle $ \h -> do
+  myInc h
+  myInc h
+  myBail h
