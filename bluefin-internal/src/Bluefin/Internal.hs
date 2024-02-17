@@ -104,7 +104,7 @@ monadIOExample = runEff $ \io -> withMonadIO io $ liftIO $ do
 -- | Run 'MonadFail' operations in 'Eff'.
 --
 -- @
--- >>> runPureEff $ try $ \e ->
+-- >>> runPureEff $ try $ \\e ->
 --       when (2 > 1) $
 --         withMonadFail e (fail "2 was bigger than 1")
 -- Left "2 was bigger than 1"
