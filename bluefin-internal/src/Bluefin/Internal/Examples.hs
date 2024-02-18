@@ -164,17 +164,17 @@ countPositivesNegatives is = runPureEff $
 
 type MyHandle = Compound (State Int) (Exception String)
 
-myInc :: (e :> effs) => MyHandle e -> Eff effs ()
+myInc :: (e :> es) => MyHandle e -> Eff es ()
 myInc h = withCompound h (\s _ -> modify s (+ 1))
 
-myBail :: (e :> effs) => MyHandle e -> Eff effs r
+myBail :: (e :> es) => MyHandle e -> Eff es r
 myBail h = withCompound h $ \s e -> do
   i <- get s
   throw e ("Current state was: " ++ show i)
 
 runMyHandle ::
-  (forall e. MyHandle e -> Eff (e :& effs) a) ->
-  Eff effs (Either String (a, Int))
+  (forall e. MyHandle e -> Eff (e :& es) a) ->
+  Eff es (Either String (a, Int))
 runMyHandle f =
   try $ \e -> do
     runState 0 $ \s -> do

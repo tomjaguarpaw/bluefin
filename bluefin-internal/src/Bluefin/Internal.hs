@@ -40,33 +40,33 @@ newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: IO a}
 -- | Because doing 'IO' operations inside 'Eff' requires a value-level
 -- argument we can't give @IO@-related instances to @Eff@ directly.
 -- Instead we wrap it in @EffReader@.
-newtype EffReader r effs a = MkEffReader {unEffReader :: r -> Eff effs a}
-  deriving (Functor, Applicative, Monad) via (Reader.ReaderT r (Eff effs))
+newtype EffReader r es a = MkEffReader {unEffReader :: r -> Eff es a}
+  deriving (Functor, Applicative, Monad) via (Reader.ReaderT r (Eff es))
 
-instance (e :> effs) => MonadIO (EffReader (IOE e) effs) where
+instance (e :> es) => MonadIO (EffReader (IOE e) es) where
   liftIO = MkEffReader . flip effIO
 
-effReader :: (r -> Eff effs a) -> EffReader r effs a
+effReader :: (r -> Eff es a) -> EffReader r es a
 effReader = MkEffReader
 
-runEffReader :: r -> EffReader r effs a -> Eff effs a
+runEffReader :: r -> EffReader r es a -> Eff es a
 runEffReader r (MkEffReader m) = m r
 
 -- This is possibly what @withRunInIO@ should morally be.
 withEffToIO ::
-  (e2 :> effs) =>
+  (e2 :> es) =>
   -- | Continuation with the unlifting function in scope.
-  ((forall r. (forall e1. IOE e1 -> Eff (e1 :& effs) r) -> IO r) -> IO a) ->
+  ((forall r. (forall e1. IOE e1 -> Eff (e1 :& es) r) -> IO r) -> IO a) ->
   IOE e2 ->
-  Eff effs a
+  Eff es a
 withEffToIO k io = effIO io (k (\f -> unsafeUnEff (f MkIOE)))
 
 -- We don't try to do anything sophisticated here.  I haven't thought
 -- through all the consequences.
-instance (e :> effs) => MonadUnliftIO (EffReader (IOE e) effs) where
+instance (e :> es) => MonadUnliftIO (EffReader (IOE e) es) where
   withRunInIO ::
-    ((forall a. EffReader (IOE e) effs a -> IO a) -> IO b) ->
-    EffReader (IOE e) effs b
+    ((forall a. EffReader (IOE e) es a -> IO a) -> IO b) ->
+    EffReader (IOE e) es b
   withRunInIO k =
     MkEffReader
       ( UnsafeMkEff
@@ -83,15 +83,15 @@ instance (e :> effs) => MonadUnliftIO (EffReader (IOE e) effs) where
             )
       )
 
-instance (e :> effs) => MonadBase IO (EffReader (IOE e) effs) where
+instance (e :> es) => MonadBase IO (EffReader (IOE e) es) where
   liftBase = liftIO
 
-instance (e :> effs) => MonadBaseControl IO (EffReader (IOE e) effs) where
-  type StM (EffReader (IOE e) effs) a = a
+instance (e :> es) => MonadBaseControl IO (EffReader (IOE e) es) where
+  type StM (EffReader (IOE e) es) a = a
   liftBaseWith = withRunInIO
   restoreM = pure
 
-instance (e :> effs) => MonadFail (EffReader (Exception String e) effs) where
+instance (e :> es) => MonadFail (EffReader (Exception String e) es) where
   fail = MkEffReader . flip throw
 
 hoistReader ::
@@ -111,12 +111,12 @@ hoistReader f = Reader.ReaderT . (\m -> f . Reader.runReaderT m)
 -- This is not really any better than just running the action in
 -- `IO`.
 withMonadIO ::
-  (e :> effs) =>
+  (e :> es) =>
   IOE e ->
   -- | 'MonadIO' operation
   (forall m. (MonadIO m) => m r) ->
   -- | @MonadIO@ operation run in @Eff@
-  Eff effs r
+  Eff es r
 withMonadIO io m = unEffReader m io
 
 -- | Run 'MonadFail' operations in 'Eff'.
@@ -131,13 +131,13 @@ withMonadIO io m = unEffReader m io
 -- This is not really any better than just running the action in
 -- `Either String` and then applying `either (throw f) pure`.
 withMonadFail ::
-  (e :> effs) =>
+  (e :> es) =>
   -- | @Exception@ to @throw@ on @fail@
   Exception String e ->
   -- | 'MonadFail' operation
   (forall m. (MonadFail m) => m r) ->
   -- | @MonadFail@ operation run in @Eff@
-  Eff effs r
+  Eff es r
 withMonadFail f m = unEffReader m f
 
 unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
@@ -216,7 +216,7 @@ b :: (a `In` b) -> (c :& a) `In` (c :& b)
 b = bimap (eq (# #))
 
 -- | Effect subset constraint
-class (effs1 :: Effects) :> (effs2 :: Effects)
+class (es1 :: Effects) :> (es2 :: Effects)
 
 -- | A set of effects @e@ is a subset of itself
 instance {-# INCOHERENT #-} e :> e
@@ -247,11 +247,11 @@ instance {-# INCOHERENT #-} e :> (e :& es)
 -- Right "No exception thrown"
 -- @
 throw ::
-  (ex :> effs) =>
+  (ex :> es) =>
   Exception e ex ->
   -- | Value to throw
   e ->
-  Eff effs a
+  Eff es a
 throw (Exception throw_) e = UnsafeMkEff (throw_ e)
 
 has :: forall a b. (a :> b) => a `In` b
@@ -272,10 +272,10 @@ have = unsafeCoerce (Dict @(a :> (a :& b)))
 -- Left 42
 -- @
 try ::
-  forall e (effs :: Effects) a.
-  (forall ex. Exception e ex -> Eff (ex :& effs) a) ->
+  forall e (es :: Effects) a.
+  (forall ex. Exception e ex -> Eff (ex :& es) a) ->
   -- | @Left@ if the exception was thrown, @Right@ otherwise
-  Eff effs (Either e a)
+  Eff es (Either e a)
 try f =
   UnsafeMkEff $ withScopedException_ (\throw_ -> unsafeUnEff (f (Exception throw_)))
 
@@ -288,22 +288,22 @@ try f =
 -- "42"
 -- @
 handle ::
-  forall e (effs :: Effects) a.
+  forall e (es :: Effects) a.
   -- | If the exception is thrown, apply this handler
-  (e -> Eff effs a) ->
-  (forall ex. Exception e ex -> Eff (ex :& effs) a) ->
-  Eff effs a
+  (e -> Eff es a) ->
+  (forall ex. Exception e ex -> Eff (ex :& es) a) ->
+  Eff es a
 handle h f =
   try f >>= \case
     Left e -> h e
     Right a -> pure a
 
 catch ::
-  forall e (effs :: Effects) a.
-  (forall ex. Exception e ex -> Eff (ex :& effs) a) ->
+  forall e (es :: Effects) a.
+  (forall ex. Exception e ex -> Eff (ex :& es) a) ->
   -- | If the exception is thrown, apply this handler
-  (e -> Eff effs a) ->
-  Eff effs a
+  (e -> Eff es a) ->
+  Eff es a
 catch f h = handle h f
 
 -- |
@@ -314,10 +314,10 @@ catch f h = handle h f
 -- (20,10)
 -- @
 get ::
-  (st :> effs) =>
+  (st :> es) =>
   State s st ->
   -- | The current value of the state
-  Eff effs s
+  Eff es s
 get (UnsafeMkState r) = UnsafeMkEff (readIORef r)
 
 -- | Set the value of the state
@@ -328,12 +328,12 @@ get (UnsafeMkState r) = UnsafeMkEff (readIORef r)
 -- ((), 30)
 -- @
 put ::
-  (st :> effs) =>
+  (st :> es) =>
   State s st ->
   -- | The new value of the state.  The new value is forced before
   -- writing it to the state.
   s ->
-  Eff effs ()
+  Eff es ()
 put (UnsafeMkState r) s = UnsafeMkEff (writeIORef r $! s)
 
 -- |
@@ -343,12 +343,12 @@ put (UnsafeMkState r) s = UnsafeMkEff (writeIORef r $! s)
 -- ((), 20)
 -- @
 modify ::
-  (st :> effs) =>
+  (st :> es) =>
   State s st ->
   -- | Apply this function to the state.  The new value of the state
   -- is forced before writing it to the state.
   (s -> s) ->
-  Eff effs ()
+  Eff es ()
 modify state f = do
   s <- get state
   put state (f s)
@@ -382,9 +382,9 @@ runState ::
   -- | Initial state
   s ->
   -- | Stateful computation
-  (forall st. State s st -> Eff (st :& effs) a) ->
+  (forall st. State s st -> Eff (st :& es) a) ->
   -- | Result and final state
-  Eff effs (a, s)
+  Eff es (a, s)
 runState s f = do
   state <- UnsafeMkEff (fmap UnsafeMkState (newIORef s))
   unsafeRemoveEff $ do
@@ -393,11 +393,11 @@ runState s f = do
     pure (a, s')
 
 yieldCoroutine ::
-  (e1 :> effs) =>
+  (e1 :> es) =>
   Coroutine a b e1 ->
   -- | ͘
   a ->
-  Eff effs b
+  Eff es b
 yieldCoroutine (Coroutine f) a = UnsafeMkEff (f a)
 
 -- |
@@ -409,18 +409,18 @@ yieldCoroutine (Coroutine f) a = UnsafeMkEff (f a)
 -- ([1,2,100], ())
 -- @
 yield ::
-  (e1 :> effs) =>
+  (e1 :> es) =>
   Stream a e1 ->
   -- | Yield this value from the stream
   a ->
-  Eff effs ()
+  Eff es ()
 yield = yieldCoroutine
 
 handleCoroutine ::
-  (a -> Eff effs b) ->
-  (z -> Eff effs r) ->
-  (forall e1. Coroutine a b e1 -> Eff (e1 :& effs) z) ->
-  Eff effs r
+  (a -> Eff es b) ->
+  (z -> Eff es r) ->
+  (forall e1. Coroutine a b e1 -> Eff (e1 :& es) z) ->
+  Eff es r
 handleCoroutine update finish f = do
   z <- forEach f update
   finish z
@@ -434,10 +434,10 @@ handleCoroutine update finish f = do
 -- ([0, 0, 1, 10, 2, 20, 3, 30], ())
 -- @
 forEach ::
-  (forall e1. Coroutine a b e1 -> Eff (e1 :& effs) r) ->
+  (forall e1. Coroutine a b e1 -> Eff (e1 :& es) r) ->
   -- | Apply this effectful function for each element of the coroutine
-  (a -> Eff effs b) ->
-  Eff effs r
+  (a -> Eff es b) ->
+  Eff es r
 forEach f h = unsafeRemoveEff (f (Coroutine (unsafeUnEff . h)))
 
 -- |
@@ -446,11 +446,11 @@ forEach f h = unsafeRemoveEff (f (Coroutine (unsafeUnEff . h)))
 -- ([1, 2, 100], ())
 -- @
 inFoldable ::
-  (Foldable t, e1 :> effs) =>
+  (Foldable t, e1 :> es) =>
   -- | Yield all these values from the stream
   t a ->
   Stream a e1 ->
-  Eff effs ()
+  Eff es ()
 inFoldable t = for_ t . yield
 
 -- | Pair each element in the stream with an increasing index,
@@ -461,11 +461,11 @@ inFoldable t = for_ t . yield
 -- ([(0, \"A\"), (1, \"B\"), (2, \"C\")], ())
 -- @
 enumerate ::
-  (e2 :> effs) =>
+  (e2 :> es) =>
   -- | ͘
-  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
+  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
   Stream (Int, a) e2 ->
-  Eff effs r
+  Eff es r
 enumerate s = enumerateFrom 0 s
 
 -- | Pair each element in the stream with an increasing index,
@@ -476,12 +476,12 @@ enumerate s = enumerateFrom 0 s
 -- ([(1, \"A\"), (2, \"B\"), (3, \"C\")], ())
 -- @
 enumerateFrom ::
-  (e2 :> effs) =>
+  (e2 :> es) =>
   -- | Initial value
   Int ->
-  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
+  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
   Stream (Int, a) e2 ->
-  Eff effs r
+  Eff es r
 enumerateFrom n ss st =
   evalState n $ \i -> forEach (insertSecond . ss) $ \s -> do
     ii <- get i
@@ -503,9 +503,9 @@ type EarlyReturn = Exception
 -- "Returned early with 5"
 -- @
 withEarlyReturn ::
-  (forall er. EarlyReturn r er -> Eff (er :& effs) r) ->
+  (forall er. EarlyReturn r er -> Eff (er :& es) r) ->
   -- | ͘
-  Eff effs r
+  Eff es r
 withEarlyReturn = handle pure
 
 -- |
@@ -518,11 +518,11 @@ withEarlyReturn = handle pure
 -- "Returned early with 5"
 -- @
 returnEarly ::
-  (er :> effs) =>
+  (er :> es) =>
   EarlyReturn r er ->
   -- | Return early to the handler, with this value.
   r ->
-  Eff effs a
+  Eff es a
 returnEarly = throw
 
 -- |
@@ -536,9 +536,9 @@ evalState ::
   -- | Initial state
   s ->
   -- | Stateful computation
-  (forall st. State s st -> Eff (st :& effs) a) ->
+  (forall st. State s st -> Eff (st :& es) a) ->
   -- | Result
-  Eff effs a
+  Eff es a
 evalState s f = fmap fst (runState s f)
 
 -- |
@@ -552,9 +552,9 @@ withState ::
   -- | Initial state
   s ->
   -- | Stateful computation
-  (forall st. State s st -> Eff (st :& effs) (s -> a)) ->
+  (forall st. State s st -> Eff (st :& es) (s -> a)) ->
   -- | Result
-  Eff effs a
+  Eff es a
 withState s f = do
   (g, s') <- runState s f
   pure (g s')
@@ -578,16 +578,16 @@ inComp :: forall a b c r. (a :> b) => (b :> c) => ((a :> c) => r) -> r
 inComp k = case have (cmp (has @a @b) (has @b @c)) of Dict -> k
 
 withCompound ::
-  forall h1 h2 e effs r.
-  (e :> effs) =>
+  forall h1 h2 e es r.
+  (e :> es) =>
   Compound h1 h2 e ->
   -- | ͘
-  (forall e1 e2. (e1 :> effs, e2 :> effs) => h1 e1 -> h2 e2 -> Eff effs r) ->
-  Eff effs r
+  (forall e1 e2. (e1 :> es, e2 :> es) => h1 e1 -> h2 e2 -> Eff es r) ->
+  Eff es r
 withCompound c f =
   case c of
     Compound (_ :: Proxy# st) (_ :: Proxy# st') h i ->
-      inComp @st @e @effs (inComp @st' @e @effs (f h i))
+      inComp @st @e @es (inComp @st' @e @es (f h i))
 
 withC1 ::
   forall e1 e2 ss es r.
@@ -616,7 +616,7 @@ runCompound ::
   e1 s1 ->
   -- | ͘
   e2 s2 ->
-  (forall ss. Compound e1 e2 ss -> Eff (ss :& es) r) ->
+  (forall es'. Compound e1 e2 es' -> Eff (es' :& es) r) ->
   Eff (s1 :& (s2 :& es)) r
 runCompound e1 e2 k = assoc1Eff (k (compound e1 e2))
 
@@ -629,9 +629,9 @@ runCompound e1 e2 k = assoc1Eff (k (compound e1 e2))
 -- ([1,2,100], ())
 -- @
 yieldToList ::
-  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
+  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
   -- | Yielded elements and final result
-  Eff effs ([a], r)
+  Eff es ([a], r)
 yieldToList f = do
   (as, r) <- yieldToReverseList f
   pure (reverse as, r)
@@ -648,9 +648,9 @@ yieldToList f = do
 -- ([100,2,1], ())
 -- @
 yieldToReverseList ::
-  (forall e. Stream a e -> Eff (e :& effs) r) ->
+  (forall e. Stream a e -> Eff (e :& es) r) ->
   -- | Yielded elements in reverse order, and final result
-  Eff effs ([a], r)
+  Eff es ([a], r)
 yieldToReverseList f = do
   evalState [] $ \(s :: State lo st) -> do
     r <- forEach (insertSecond . f) $ \i ->
@@ -659,24 +659,24 @@ yieldToReverseList f = do
     pure (as, r)
 
 mapStream ::
-  (e2 :> effs) =>
+  (e2 :> es) =>
   -- | Apply this function to all elements of the input stream.
   (a -> b) ->
   -- | Input stream
-  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
+  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
   Stream b e2 ->
-  Eff effs r
+  Eff es r
 mapStream f = mapMaybe (Just . f)
 
 mapMaybe ::
-  (e2 :> effs) =>
+  (e2 :> es) =>
   -- | Yield from the output stream all of the elemnts of the input
   -- stream for which this function returns @Just@
   (a -> Maybe b) ->
   -- | Input stream
-  (forall e1. Stream a e1 -> Eff (e1 :& effs) r) ->
+  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
   Stream b e2 ->
-  Eff effs r
+  Eff es r
 mapMaybe f s y = forEach s $ \a -> do
   case f a of
     Nothing -> pure ()
@@ -684,29 +684,29 @@ mapMaybe f s y = forEach s $ \a -> do
 
 -- | Remove 'Nothing' elements from a stream.
 catMaybes ::
-  (e2 :> effs) =>
+  (e2 :> es) =>
   -- | Input stream
-  (forall e1. Stream (Maybe a) e1 -> Eff (e1 :& effs) r) ->
+  (forall e1. Stream (Maybe a) e1 -> Eff (e1 :& es) r) ->
   Stream a e2 ->
-  Eff effs r
+  Eff es r
 catMaybes s y = mapMaybe id s y
 
 type Jump = EarlyReturn ()
 
 withJump ::
-  (forall j. Jump j -> Eff (j :& effs) ()) ->
+  (forall j. Jump j -> Eff (j :& es) ()) ->
   -- | ͘
-  Eff effs ()
+  Eff es ()
 withJump = withEarlyReturn
 
 jumpTo ::
-  (j :> effs) =>
+  (j :> es) =>
   Jump j ->
   -- | ͘
-  Eff effs a
+  Eff es a
 jumpTo tag = throw tag ()
 
-unwrap :: (j :> effs) => Jump j -> Maybe a -> Eff effs a
+unwrap :: (j :> es) => Jump j -> Maybe a -> Eff es a
 unwrap j = \case
   Nothing -> jumpTo j
   Just a -> pure a
@@ -722,11 +722,11 @@ data IOE (e :: Effects) = MkIOE
 -- Hello, world!
 -- @
 effIO ::
-  (e :> effs) =>
+  (e :> es) =>
   IOE e ->
   IO a ->
   -- | ͘
-  Eff effs a
+  Eff es a
 effIO MkIOE = UnsafeMkEff
 
 -- | Run an 'Eff' whose only unhandled effect is 'IO'.
@@ -737,38 +737,37 @@ effIO MkIOE = UnsafeMkEff
 -- Hello, world!
 -- @
 runEff ::
-  (forall e effs. IOE e -> Eff (e :& effs) a) ->
+  (forall e es. IOE e -> Eff (e :& es) a) ->
   -- | ͘
   IO a
 runEff eff = unsafeUnEff (eff MkIOE)
 
 connect ::
-  (forall e1. Coroutine a b e1 -> Eff (e1 :& effs) r1) ->
-  (forall e2. a -> Coroutine b a e2 -> Eff (e2 :& effs) r2) ->
+  (forall e1. Coroutine a b e1 -> Eff (e1 :& es) r1) ->
+  (forall e2. a -> Coroutine b a e2 -> Eff (e2 :& es) r2) ->
   forall e1 e2.
-  (e1 :> effs, e2 :> effs) =>
+  (e1 :> es, e2 :> es) =>
   Eff
-    effs
+    es
     ( Either
-        (r1, a -> Coroutine b a e2 -> Eff effs r2)
-        (r2, b -> Coroutine a b e1 -> Eff effs r1)
+        (r1, a -> Coroutine b a e2 -> Eff es r2)
+        (r2, b -> Coroutine a b e1 -> Eff es r1)
     )
 connect _ _ = error "connect unimplemented, sorry"
 
 head' ::
-  forall a b r effs.
-  (forall e. Coroutine a b e -> Eff (e :& effs) r) ->
+  forall a b r es.
+  (forall e. Coroutine a b e -> Eff (e :& es) r) ->
   forall e.
-  (e :> effs) =>
+  (e :> es) =>
   Eff
-    effs
+    es
     ( Either
         r
-        (a, b -> Coroutine a b e -> Eff effs r)
+        (a, b -> Coroutine a b e -> Eff es r)
     )
 head' c = do
-  r <- connect c (\a _ -> pure a) @_ @effs
+  r <- connect c (\a _ -> pure a) @_ @es
   pure $ case r of
     Right r' -> Right r'
     Left (l, _) -> Left l
-

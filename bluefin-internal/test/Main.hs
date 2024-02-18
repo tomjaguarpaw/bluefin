@@ -52,7 +52,7 @@ type SpecH = Stream (String, Maybe (SpecInfo ()))
 -- but then we've coupled the order of the handlers to the effectful
 -- operation, which is antithetical to the point of Bluefin.
 assertEqual ::
-  (e :> effs, Eq a, Show a) => SpecH e -> String -> a -> a -> Eff effs ()
+  (e :> es, Eq a, Show a) => SpecH e -> String -> a -> a -> Eff es ()
 assertEqual y n c1 c2 =
   yield
     y
@@ -67,26 +67,26 @@ assertEqual y n c1 c2 =
 type SpecInfo = Forall (Nest (Stream String) Eff)
 
 withSpecInfo ::
-  (forall e effs. (e :> effs) => Stream String e -> Eff effs r) ->
+  (forall e es. (e :> es) => Stream String e -> Eff es r) ->
   SpecInfo r
 withSpecInfo x = Forall (Nest x)
 
-newtype Nest h t effs r = Nest
+newtype Nest h t es r = Nest
   { unNest ::
       forall e.
-      (e :> effs) =>
+      (e :> es) =>
       h e ->
-      t effs r
+      t es r
   }
 
-newtype Forall t r = Forall {unForall :: forall effs. t effs r}
+newtype Forall t r = Forall {unForall :: forall es. t es r}
 
 runTests ::
-  forall effs e3.
-  (e3 :> effs) =>
-  (forall e1 e2. SpecH e1 -> Eff (e1 :& e2 :& effs) ()) ->
+  forall es e3.
+  (e3 :> es) =>
+  (forall e1 e2. SpecH e1 -> Eff (e1 :& e2 :& es) ()) ->
   Stream String e3 ->
-  Eff effs Bool
+  Eff es Bool
 runTests f y = do
   evalState True $ \(passedAllSoFar :: State Bool e2) -> do
     forEach f $ \(name, passedThisOne) -> do
@@ -103,7 +103,7 @@ runTests f y = do
       case passedThisOne of
         Nothing -> pure ()
         Just n -> do
-          yield y "" :: Eff (e2 :& effs) ()
+          yield y "" :: Eff (e2 :& es) ()
           _ <- forEach (unNest (unForall n)) $ \entry -> do
             yield y ("    " ++ entry)
           yield y ""
@@ -111,7 +111,7 @@ runTests f y = do
     get passedAllSoFar
 
 allTrue ::
-  (forall e1 effs. SpecH e1 -> Eff (e1 :& effs) ()) ->
+  (forall e1 es. SpecH e1 -> Eff (e1 :& es) ()) ->
   IO ()
 allTrue f = runEff $ \ioe -> do
   passed <- forEach (runTests f) $ \text ->
@@ -146,13 +146,13 @@ oddsUntilFirstGreaterThan5 =
                 jumpTo break
 
 -- | Inverse to 'try'
-eitherEff :: (e1 :> effs) => Either e r -> Exception e e1 -> Eff effs r
+eitherEff :: (e1 :> es) => Either e r -> Exception e e1 -> Eff es r
 eitherEff eith ex = case eith of
   Left e -> throw ex e
   Right r -> pure r
 
 -- | Inverse to 'runState'
-stateEff :: (e1 :> effs) => (s -> (a, s)) -> State s e1 -> Eff effs a
+stateEff :: (e1 :> es) => (s -> (a, s)) -> State s e1 -> Eff es a
 stateEff f st = do
   s <- get st
   let (a, s') = f s
@@ -160,7 +160,7 @@ stateEff f st = do
   pure a
 
 -- | Inverse to 'yieldToList'
-listEff :: (e1 :> effs) => ([a], r) -> Stream a e1 -> Eff effs r
+listEff :: (e1 :> es) => ([a], r) -> Stream a e1 -> Eff es r
 listEff (as, r) y = do
   for_ as (yield y)
   pure r
