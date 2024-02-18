@@ -44,7 +44,7 @@ module Bluefin
     -- 12
     -- @
     --
-    -- The handle @st@ is used in much the same way as an
+    -- The handle @sn@ is used in much the same way as an
     -- 'Data.STRef.STRef' or 'Data.IORef.IORef'.
 
     -- ** Multiple effects of the same type
