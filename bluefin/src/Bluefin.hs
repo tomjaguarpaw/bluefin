@@ -1,8 +1,9 @@
 module Bluefin
   ( -- * In brief
 
-    -- | Bluefin is an effect system which allows you to freely mix a
-    -- variety of effects, including
+    -- | Bluefin is an effect system which allows you, though
+    -- value-level handles, to freely mix a variety of effects
+    -- including
     --
     --  * "Bluefin.EarlyReturn", for early return
     --  * "Bluefin.Exception", for exceptions
@@ -94,37 +95,52 @@ module Bluefin
 
     -- * Comparison to other effect systems
 
-    -- ** Effectful
+    -- ** Everything except effectful
+
+    -- | The design of Bluefin is strongly inspired by and based on
+    -- effectful.  All the points in [effectful's comparison of itself
+    -- to other effect
+    -- systems](https://github.com/haskell-effectful/effectful?tab=readme-ov-file#motivation)
+    -- apply to Bluefin too.
+
+    -- ** effectful
+
+    -- | The major difference between Bluefin and effectful is that in
+    -- Bluefin effects are represented as value-level handles whereas
+    -- in effectful they are represented only at the type level.
+    -- effectful could be described as "a well-typed implementation of
+    -- the @ReaderT@ @IO@ pattern", and Bluefin could be described as
+    -- a well-typed implementation of something even simpler: "the
+    -- functions-that-return-@IO@ pattern".  The aim of the Bluefin
+    -- style of value-level effect tracking is to make it even easier
+    -- to mix effects, especially effects of the same type. Only time
+    -- will tell which approach is preferable in practice.
 
     -- Haddock seems to have trouble with italic sections spanning
     -- lines :(
 
-    -- | If Effectful can be described as a well-typed implementation
-    -- of the @ReaderT@ @IO@ pattern then Bluefin can be described as
-    -- a well-typed implementation of the functions-that-return-@IO@
-    -- pattern.
+    -- | "/Why not just implement Bluefin as an alternative API on/
+    -- /top of effectful?/"
     --
-    -- "/Why not just implement this as an alternative API on top of/
-    -- /Effectful?/"
-    --
-    -- That would be great!  Effectful is the inspiration for a huge
-    -- amount of Bluefin.  It would be great to share code between the
-    -- two projects.  But there are two Bluefin features that I don't
-    -- know to implement in terms of Effectful:
-    -- 'Bluefin.Bluefin.Coroutine's and 'Bluefin.Bluefin.Compound'
-    -- effects.
+    -- It would be great to share code between the two projects!  But
+    -- there are two Bluefin features that I don't know to implement
+    -- in terms of effectful: 'Bluefin.Bluefin.Coroutine's and
+    -- 'Bluefin.Bluefin.Compound' effects.
 
     -- * Implementation
 
-    -- | Bluefin has a similar implementation style to Effectful.
+    -- | Bluefin has a similar implementation style to effectful.
     -- 'Bluefin.Eff.Eff' is an opaque wrapper around 'IO',
     -- 'Bluefin.State.State' is an opaque wrapper around
     -- 'Data.IORef.IORef', and 'Bluefin.Exception.throw' throws an
-    -- actual @IO@ exception.
+    -- actual @IO@ exception.  'Bluefin.Coroutine.Coroutine', which
+    -- doesn't exist in effectful, is implemented simply as a
+    -- function.
     --
     -- @
     -- newtype 'Bluefin.Eff.Eff' (es :: 'Bluefin.Eff.Effects') a = 'Bluefin.Internal.UnsafeMkEff' (IO a)
     -- newtype 'Bluefin.State.State' s (st :: Effects) = 'Bluefin.Internal.UnsafeMkState' (IORef s)
+    -- newtype 'Bluefin.Coroutine.Coroutine' a b (s :: Effects) = 'Bluefin.Internal.UnsafeMkCoroutine' (a -> IO b)
     -- @
     --
     -- The type parameters of kind 'Bluefin.Eff.Effects' are phantom

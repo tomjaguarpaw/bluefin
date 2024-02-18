@@ -170,7 +170,7 @@ newtype State s (st :: Effects) = UnsafeMkState (IORef s)
 
 -- | A handle to a coroutine that expects values of type @a@ and then
 -- yields values of type @b@.
-newtype Coroutine a b (s :: Effects) = Coroutine (a -> IO b)
+newtype Coroutine a b (s :: Effects) = UnsafeMkCoroutine (a -> IO b)
 
 -- | A handle to a stream that yields values of type @a@.  It is
 -- implemented as a handle to a coroutine that expects values of type
@@ -398,7 +398,7 @@ yieldCoroutine ::
   -- | ͘
   a ->
   Eff es b
-yieldCoroutine (Coroutine f) a = UnsafeMkEff (f a)
+yieldCoroutine (UnsafeMkCoroutine f) a = UnsafeMkEff (f a)
 
 -- |
 -- @
@@ -438,7 +438,7 @@ forEach ::
   -- | Apply this effectful function for each element of the coroutine
   (a -> Eff es b) ->
   Eff es r
-forEach f h = unsafeRemoveEff (f (Coroutine (unsafeUnEff . h)))
+forEach f h = unsafeRemoveEff (f (UnsafeMkCoroutine (unsafeUnEff . h)))
 
 -- |
 -- @
