@@ -24,3 +24,6 @@
 * Francois Pottier for "Wandering through linear types, capabilities,
   and regions"
   <http://pauillac.inria.fr/~fpottier/slides/fpottier-2007-05-linear-bestiary.pdf>
+
+* Jasper vd J for writing up the handle pattern
+  <https://jaspervdj.be/posts/2018-03-08-handle-pattern.html#fnref2>

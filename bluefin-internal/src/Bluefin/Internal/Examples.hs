@@ -7,7 +7,7 @@ import Bluefin.Internal
 import Control.Monad (forever, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
-import Prelude hiding (drop, head, read, return)
+import Prelude hiding (break, drop, head, read, return)
 
 monadIOExample :: IO ()
 monadIOExample = runEff $ \io -> withMonadIO io $ liftIO $ do
@@ -185,3 +185,12 @@ compoundExample = runPureEff $ runMyHandle $ \h -> do
   myInc h
   myInc h
   myBail h
+
+countExample :: IO ()
+countExample = runEff $ \io -> do
+  evalState @Int 0 $ \sn -> do
+    withJump $ \break -> forever $ do
+      n <- get sn
+      when (n >= 10) (jumpTo break)
+      effIO io (print n)
+      modify sn (+ 1)
