@@ -71,13 +71,7 @@ withSpecInfo ::
   SpecInfo r
 withSpecInfo x = Forall (Nest x)
 
-newtype Nest h t es r = Nest
-  { unNest ::
-      forall e.
-      (e :> es) =>
-      h e ->
-      t es r
-  }
+newtype Nest h t es r = Nest {unNest :: forall e. (e :> es) => h e -> t es r}
 
 newtype Forall t r = Forall {unForall :: forall es. t es r}
 
