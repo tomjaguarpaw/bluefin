@@ -39,18 +39,6 @@ main = do
 --   (name, Maybe (stream of error text))
 type SpecH = Stream (String, Maybe (SpecInfo ()))
 
--- I'm still not convinced that this scheme is practical for calling
--- outer effects from the inner.  The problem is that at the time of
--- interpretation some outer effects are unavailable because they have
--- already been handled (for example some state which the test cases
--- use) or, in the case of the Stream effect itself, because they are
--- currently being handled (we can't yield more results to the Stream
--- whilst we're handling it).
---
--- It seems likely that with a lot of awkwardness we can arrange for
--- the type parameters to be compatible with the order of handling,
--- but then we've coupled the order of the handlers to the effectful
--- operation, which is antithetical to the point of Bluefin.
 assertEqual ::
   (e :> es, Eq a, Show a) => SpecH e -> String -> a -> a -> Eff es ()
 assertEqual y n c1 c2 =
