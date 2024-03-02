@@ -1,3 +1,4 @@
+{-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
@@ -420,6 +421,32 @@ compoundExample = runPureEff $ runMyHandle $ \h -> do
   myInc h
   myInc h
   myBail h
+
+throwI ::
+  (e1 :> es) =>
+  (?ex :: Exception e e1) =>
+  -- | Value to throw
+  e ->
+  Eff es a
+throwI = throw ?ex
+
+modifyI ::
+  forall st s es.
+  (st :> es) =>
+  (?st  :: State s st) =>
+  -- | Apply this function to the state.  The new value of the state
+  -- is forced before writing it to the state.
+  (s -> s) ->
+  Eff es ()
+modifyI = modify ?st
+
+getI ::
+  forall st s es.
+  (st :> es) =>
+  (?st :: State s st) =>
+  -- | The current value of the state
+  Eff es s
+getI = get ?st
 
 countExample :: IO ()
 countExample = runEff $ \io -> do
@@ -1060,3 +1087,51 @@ runDynamicReader r k =
         { askLRImpl = ask h,
           localLRImpl = \f k' -> makeOp (local h f (useImpl k'))
         }
+
+-- welltypedwitch raised the intriguing possibility of using
+-- ImplicitParams to avoid having to pass effect handles explicitly.
+-- Unfortunately I've been snagged on two issues:
+--
+-- 1. It doesn't seem possible to bind an implicit parameter in a
+--    lambda.  (See
+--    https://discourse.haskell.org/t/why-cant-an-implicitparam-be-bound-by-a-lambda/8936/2)
+--
+-- 2. Type inference gets stuck. I don't understand why.
+countExampleI :: IO ()
+countExampleI = runEff $ ((\io -> do
+  evalState @Int 0 $ ((\st -> do
+    let ?st = st
+    withJump $ \break -> forever $ do
+      n <- getI @st
+      when (n >= 10) (jumpTo break)
+      effIO io (print n)
+      modifyI @st (+ 1))
+      :: forall st. State Int st -> Eff (st :& e :& es) ()))
+  :: forall e es. IOE e -> Eff (e :& es) ())
+
+-- We might want to resolve 1 by putting the ImplicitParam as an
+-- argument to the handler, but I can't work out how to get that to
+-- type check at all
+evalStateI ::
+  -- | Initial state
+  s ->
+  -- | Stateful computation
+  (forall st. (?st :: State s st) => Eff (st :& es) a) ->
+  -- | Result
+  Eff es a
+evalStateI s f = evalState s (\x -> let ?st = x in f)
+
+-- This just doesn't work.  Have a made a silly mistake?
+
+{-
+countExampleI2 :: IO ()
+countExampleI2 = runEff $ ((\io -> do
+  evalStateI @Int 0 $ (do
+    withJump $ \break -> forever $ do
+      n <- getI @st
+      when (n >= 10) (jumpTo break)
+      effIO io (print n)
+      modifyI @st (+ 1))
+      :: forall st. (?st :: State Int st) => Eff (st :& e :& effes) ())
+  :: forall e effes. IOE e -> Eff (e :& effes) ())
+-}
