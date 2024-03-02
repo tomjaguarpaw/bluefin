@@ -28,6 +28,7 @@ library
       Bluefin.IO,
       Bluefin.State,
       Bluefin.Stream,
+      Bluefin.Writer,
     build-depends:
       bluefin-internal < 0.1
     hs-source-dirs:   src

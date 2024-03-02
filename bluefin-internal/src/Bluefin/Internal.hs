@@ -770,3 +770,22 @@ head' c = do
   pure $ case r of
     Right r' -> Right r'
     Left (l, _) -> Left l
+
+newtype Writer w e = Writer (Coroutine w () e)
+
+runWriter ::
+  Monoid w =>
+  -- | ͘
+  (forall e. Writer w e -> Eff (e :& es) r) ->
+  Eff es (r, w)
+runWriter f = runState mempty $ \st -> do
+  forEach (insertSecond . f . Writer) $ \ww -> do
+    modify st (<> ww)
+
+tell ::
+  e :> es =>
+  Writer w e ->
+  -- | ͘
+  w ->
+  Eff es ()
+tell (Writer y) = yield y
