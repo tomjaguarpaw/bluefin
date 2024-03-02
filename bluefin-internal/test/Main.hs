@@ -70,7 +70,7 @@ runTests ::
   Stream String e3 ->
   Eff es Bool
 runTests f y = do
-  evalState True $ \(passedAllSoFar :: State Bool e2) -> do
+  evalState True $ \passedAllSoFar -> do
     forEach f $ \(name, passedThisOne) -> do
       case passedThisOne of
         Just _ -> put passedAllSoFar False
