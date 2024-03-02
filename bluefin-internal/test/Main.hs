@@ -5,6 +5,7 @@ module Main (main) where
 
 import Bluefin.Internal
 import Control.Monad (when)
+import Data.Monoid (All (All))
 import Data.Foldable (for_)
 import System.Exit (ExitCode (ExitFailure), exitWith)
 import Prelude hiding (break, read)
@@ -70,10 +71,10 @@ runTests ::
   Stream String e3 ->
   Eff es Bool
 runTests f y = do
-  evalState True $ \passedAllSoFar -> do
+  ((), All passedAll) <- runWriter $ \passedAllSoFar -> do
     forEach f $ \(name, passedThisOne) -> do
       case passedThisOne of
-        Just _ -> put passedAllSoFar False
+        Just _ -> tell passedAllSoFar (All False)
         Nothing -> pure ()
 
       let mark = case passedThisOne of
@@ -90,7 +91,7 @@ runTests f y = do
             yield y ("    " ++ entry)
           yield y ""
 
-    get passedAllSoFar
+  pure passedAll
 
 runSpecH ::
   (forall e1 es. SpecH e1 -> Eff (e1 :& es) ()) ->
