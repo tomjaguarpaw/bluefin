@@ -72,18 +72,18 @@ runTests ::
   Eff es Bool
 runTests f y = do
   ((), All passedAll) <- runWriter $ \passedAllSoFar -> do
-    forEach f $ \(name, passedThisOne) -> do
-      case passedThisOne of
+    forEach f $ \(name, mFailure) -> do
+      case mFailure of
         Just _ -> tell passedAllSoFar (All False)
         Nothing -> pure ()
 
-      let mark = case passedThisOne of
+      let mark = case mFailure of
             Nothing -> "✓"
             Just _ -> "✗"
 
       yield y (mark ++ " " ++ name)
 
-      case passedThisOne of
+      case mFailure of
         Nothing -> pure ()
         Just n -> do
           yield y "" :: Eff (e2 :& es) ()
