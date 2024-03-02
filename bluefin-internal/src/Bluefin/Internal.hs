@@ -774,7 +774,7 @@ head' c = do
 newtype Writer w e = Writer (Coroutine w () e)
 
 runWriter ::
-  Monoid w =>
+  (Monoid w) =>
   -- | ͘
   (forall e. Writer w e -> Eff (e :& es) r) ->
   Eff es (r, w)
@@ -783,7 +783,7 @@ runWriter f = runState mempty $ \st -> do
     modify st (<> ww)
 
 tell ::
-  e :> es =>
+  (e :> es) =>
   Writer w e ->
   -- | ͘
   w ->
