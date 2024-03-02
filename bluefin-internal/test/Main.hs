@@ -11,7 +11,7 @@ import Prelude hiding (break, read)
 
 main :: IO ()
 main = do
-  allTrue $ \y -> do
+  runSpecH $ \y -> do
     let assertEqual' = assertEqual y
 
     assertEqual' "oddsUntilFirstGreaterThan5" oddsUntilFirstGreaterThan5 [1, 3, 5, 7]
@@ -92,10 +92,10 @@ runTests f y = do
 
     get passedAllSoFar
 
-allTrue ::
+runSpecH ::
   (forall e1 es. SpecH e1 -> Eff (e1 :& es) ()) ->
   IO ()
-allTrue f = runEff $ \ioe -> do
+runSpecH f = runEff $ \ioe -> do
   passed <- forEach (runTests f) $ \text ->
     effIO ioe (putStrLn text)
 
