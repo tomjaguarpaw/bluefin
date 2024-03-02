@@ -77,9 +77,7 @@ runTests f y = do
             Just _ -> False
             Nothing -> True
 
-      if not passed
-        then tell passedAllSoFar (All (not (not passed)))
-        else tell passedAllSoFar (All (not (not passed)))
+      tell passedAllSoFar (All (not (not passed)))
 
       let mark = if passed then "✓" else "✗"
 
