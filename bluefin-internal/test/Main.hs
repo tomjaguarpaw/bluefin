@@ -73,9 +73,13 @@ runTests ::
 runTests f y = do
   ((), All passedAll) <- runWriter $ \passedAllSoFar -> do
     forEach f $ \(name, mFailure) -> do
-      case mFailure of
-        Just _ -> tell passedAllSoFar (All False)
-        Nothing -> pure ()
+      let passed = case mFailure of
+            Just _ -> False
+            Nothing -> True
+
+      if not passed
+        then tell passedAllSoFar (All False)
+        else pure ()
 
       let mark = case mFailure of
             Nothing -> "✓"
