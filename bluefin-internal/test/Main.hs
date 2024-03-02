@@ -81,9 +81,7 @@ runTests f y = do
         then tell passedAllSoFar (All False)
         else pure ()
 
-      let mark = case mFailure of
-            Nothing -> "✓"
-            Just _ -> "✗"
+      let mark = if passed then "✓" else "✗"
 
       yield y (mark ++ " " ++ name)
 
