@@ -5,8 +5,8 @@ module Main (main) where
 
 import Bluefin.Internal
 import Control.Monad (when)
-import Data.Monoid (All (All))
 import Data.Foldable (for_)
+import Data.Monoid (All (All))
 import System.Exit (ExitCode (ExitFailure), exitWith)
 import Prelude hiding (break, read)
 
