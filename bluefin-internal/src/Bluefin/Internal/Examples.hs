@@ -1,6 +1,3 @@
-{-# LANGUAGE NoMonoLocalBinds #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
-
 module Bluefin.Internal.Examples where
 
 import Bluefin.Internal
@@ -106,26 +103,69 @@ example2_ =
 example3_ :: IO ()
 example3_ = runEff $ \io -> do
   let getLineUntilStop y = withJump $ \stop -> forever $ do
+        -- MonoLocalBinds/MonomorphismRestriction
+        --
+        -- Ambiguous type variable ‘es0’ arisiprevents the constraint
+        -- ‘(e :> es0)’ from being solved.
         line <- effIO io getLine
         when (line == "STOP") $
           jumpTo stop
+        -- MonoLocalBinds/MonomorphismRestriction
+        --
+        -- Ambiguous type variables ‘e10’, ‘es0’ arising from a use of
+        -- ‘yield’ prevents the constraint ‘(e10 :> es0)’ from being
+        -- solved.
         yield y line
 
       nonEmptyLines =
+        -- MonoLocalBinds/MonomorphismRestriction
+        --
+        -- Ambiguous type variables ‘e20’,‘es1’ arising from a use of
+        -- ‘mapMaybe’ prevents the constraint ‘(e20 :> es1)’ from
+        -- being solved.
         mapMaybe
           ( \case
               "" -> Nothing
               line -> Just line
           )
+          -- MonoLocalBinds/MonomorphismRestriction
+          --
+          -- Couldn't match type ‘es0’ with ‘e3 :& es1’
+          -- Expected: Stream String e3 -> Eff (e3 :& es1) ()
+          -- Actual: Coroutine String () e10 -> Eff es0 ()
           getLineUntilStop
 
+      -- MonoLocalBinds/MonomorphismRestriction
+      --
+      -- Ambiguous type variables ‘e1’, ‘es2’ arising from a use of
+      -- ‘enumerateFrom’ prevents the constraint ‘(e1 :> es2)’ from
+      -- being solved.
+      --
+      -- Couldn't match type ‘es1’ with ‘e3 :& es2’
+      -- Expected: Stream String e3 -> Eff (e3 :& es2) ()
+      -- Actual: Stream String e20 -> Eff es1 ()
       enumeratedLines = enumerateFrom 1 nonEmptyLines
 
       formattedLines =
+        -- MonoLocalBinds/MonomorphismRestriction
+        --
+        -- Ambiguous type variables ‘e2’,
+        --  ‘es3’ arising from a use of ‘mapStream’
+        -- prevents the constraint ‘(e2 :> es3)’ from being solved.
         mapStream
           (\(i, line) -> show i ++ ". Hello! You said " ++ line)
+          -- MonoLocalBinds/MonomorphismRestriction
+          --
+          -- Couldn't match type ‘es2’ with ‘e3 :& es3’
+          -- Expected: Stream (Int, [Char]) e3 -> Eff (e3 :& es3) ()
+          -- Actual: Stream (Int, String) e1 -> Eff es2 ()
           enumeratedLines
 
+  -- MonoLocalBinds/MonomorphismRestriction
+  --
+  -- Couldn't match type ‘es3’ with ‘e3 :& (e :& es)’
+  -- Expected: Coroutine String () e3 -> Eff (e3 :& (e :& es)) ()
+  -- Actual: Stream [Char] e2 -> Eff es3 ()
   forEach formattedLines $ \line -> effIO io (putStrLn line)
 
 -- Count the number of (strictly) positives and (strictly) negatives
