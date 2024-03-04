@@ -771,7 +771,7 @@ head' c = do
     Right r' -> Right r'
     Left (l, _) -> Left l
 
-newtype Writer w e = Writer (Coroutine w () e)
+newtype Writer w e = Writer (Stream w e)
 
 runWriter ::
   (Monoid w) =>
