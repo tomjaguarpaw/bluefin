@@ -9,6 +9,8 @@ build-type:         Simple
 extra-doc-files:    CHANGELOG.md
 description:        The Bluefin effect system
 synopsis:           The Bluefin effect system
+homepage:           https://github.com/tomjaguarpaw/bluefin
+bug-reports:        https://github.com/tomjaguarpaw/bluefin/issues
 
 common warnings
     ghc-options: -Wall
