@@ -782,6 +782,13 @@ runWriter f = runState mempty $ \st -> do
   forEach (insertSecond . f . Writer) $ \ww -> do
     modify st (<> ww)
 
+execWriter ::
+  (Monoid w) =>
+  -- | ͘
+  (forall e. Writer w e -> Eff (e :& es) r) ->
+  Eff es w
+execWriter f = fmap snd (runWriter f)
+
 tell ::
   (e :> es) =>
   Writer w e ->
