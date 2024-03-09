@@ -773,6 +773,13 @@ head' c = do
 
 newtype Writer w e = Writer (Stream w e)
 
+-- |
+-- @
+-- >>> 'Data.Monoid.getAny' $ snd $ runPureEff $ runWriter $ \\w -> do
+--       -- Non-empty list (the tell event does happen)
+--       for_ [1 .. 10] $ \\_ -> tell w ('Data.Monoid.Any' True)
+-- True
+-- @
 runWriter ::
   (Monoid w) =>
   -- | ͘
@@ -782,6 +789,20 @@ runWriter f = runState mempty $ \st -> do
   forEach (insertSecond . f . Writer) $ \ww -> do
     modify st (<> ww)
 
+-- |
+-- @
+-- >>> 'Data.Monoid.getAny' $ runPureEff $ execWriter $ \\w -> do
+--       -- Non-empty list (the tell event does happen)
+--       for_ [1 .. 10] $ \\_ -> tell w ('Data.Monoid.Any' True)
+-- True
+-- @
+--
+-- @
+-- >>> 'Data.Monoid.getAny' $ runPureEff $ execWriter $ \\w -> do
+--       -- Empty list (the tell event does not happen)
+--       for_ [] $ \\_ -> tell w ('Data.Monoid.Any' True)
+-- False
+-- @
 execWriter ::
   (Monoid w) =>
   -- | ͘
@@ -789,6 +810,13 @@ execWriter ::
   Eff es w
 execWriter f = fmap snd (runWriter f)
 
+-- |
+-- @
+-- >>> 'Data.Monoid.getAny' $ runPureEff $ execWriter $ \\w -> do
+--       -- Non-empty list (the tell event does happen)
+--       for_ [1 .. 10] $ \\_ -> tell w ('Data.Monoid.Any' True)
+-- True
+-- @
 tell ::
   (e :> es) =>
   Writer w e ->

@@ -3,10 +3,11 @@
 
 module Bluefin.Internal.Examples where
 
-import Bluefin.Internal
+import Bluefin.Internal hiding (w)
 import Control.Monad (forever, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
+import Data.Monoid (Any (Any, getAny))
 import Prelude hiding (break, drop, head, read, return)
 
 monadIOExample :: IO ()
@@ -194,3 +195,11 @@ countExample = runEff $ \io -> do
       when (n >= 10) (jumpTo break)
       effIO io (print n)
       modify sn (+ 1)
+
+writerExample1 :: Bool
+writerExample1 = getAny $ runPureEff $ execWriter $ \w -> do
+  for_ [] $ \_ -> tell w (Any True)
+
+writerExample2 :: Bool
+writerExample2 = getAny $ runPureEff $ execWriter $ \w -> do
+  for_ [1 .. 10] $ \_ -> tell w (Any True)
