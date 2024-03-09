@@ -124,8 +124,8 @@ module Bluefin
     --
     -- It would be great to share code between the two projects!  But
     -- there are two Bluefin features that I don't know to implement
-    -- in terms of effectful: 'Bluefin.Coroutine.Coroutine's and
-    -- 'Bluefin.Compound.Compound' effects.
+    -- in terms of effectful: "Bluefin.Coroutine"s and
+    -- "Bluefin.Compound" effects.
 
     -- * Implementation
 
