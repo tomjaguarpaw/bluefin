@@ -130,20 +130,20 @@ module Bluefin
     -- * Implementation
 
     -- | Bluefin has a similar implementation style to effectful.
-    -- 'Bluefin.Eff.Eff' is an opaque wrapper around 'IO',
-    -- 'Bluefin.State.State' is an opaque wrapper around
+    -- t'Bluefin.Eff.Eff' is an opaque wrapper around 'IO',
+    -- t'Bluefin.State.State' is an opaque wrapper around
     -- 'Data.IORef.IORef', and 'Bluefin.Exception.throw' throws an
-    -- actual @IO@ exception.  'Bluefin.Coroutine.Coroutine', which
+    -- actual @IO@ exception.  t'Bluefin.Coroutine.Coroutine', which
     -- doesn't exist in effectful, is implemented simply as a
     -- function.
     --
     -- @
-    -- newtype 'Bluefin.Eff.Eff' (es :: 'Bluefin.Eff.Effects') a = 'Bluefin.Internal.UnsafeMkEff' (IO a)
-    -- newtype 'Bluefin.State.State' s (st :: Effects) = 'Bluefin.Internal.UnsafeMkState' (IORef s)
-    -- newtype 'Bluefin.Coroutine.Coroutine' a b (s :: Effects) = 'Bluefin.Internal.UnsafeMkCoroutine' (a -> IO b)
+    -- newtype t'Bluefin.Eff.Eff' (es :: 'Bluefin.Eff.Effects') a = 'Bluefin.Internal.UnsafeMkEff' (IO a)
+    -- newtype t'Bluefin.State.State' s (st :: Effects) = 'Bluefin.Internal.UnsafeMkState' (IORef s)
+    -- newtype t'Bluefin.Coroutine.Coroutine' a b (s :: Effects) = 'Bluefin.Internal.UnsafeMkCoroutine' (a -> IO b)
     -- @
     --
-    -- The type parameters of kind 'Bluefin.Eff.Effects' are phantom
+    -- The type parameters of kind t'Bluefin.Eff.Effects' are phantom
     -- type parameters which track which effects can be used in an
     -- operation. Bluefin uses them to ensure that effects cannot
     -- escape the scope of their handler, in the same way that the
