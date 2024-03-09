@@ -157,7 +157,8 @@ module Bluefin
     -- * Tips
 
     -- | * Use @NoMonoLocalBinds@ and @NoMonomorphismRestriction@ for
-    -- better type inference.
+    -- better type inference.  (You can always change back to the
+    -- default after adding inferred type signatures.)
     --
     -- * Writing a handler often requires an explicit type signature.
 
