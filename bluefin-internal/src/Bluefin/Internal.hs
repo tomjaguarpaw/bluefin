@@ -1,9 +1,12 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UnliftedNewtypes #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
@@ -22,6 +25,7 @@ import qualified Control.Monad.Trans.Reader as Reader
 import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
+import Data.Proxy (Proxy (Proxy))
 import qualified Data.Unique
 import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
@@ -29,6 +33,46 @@ import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
 
 data Effects = Union Effects Effects
+
+{- ORMOLU_DISABLE -}
+#if __GLASGOW_HASKELL__ >= 811
+# define INLINE_UNSAFE_COERCE INLINE
+#else
+# define INLINE_UNSAFE_COERCE NOINLINE
+#endif
+{- ORMOLU_ENABLE -}
+
+class Has t (s :: Effects) where
+  haveIt' :: t s
+
+instance Has t s1 => Has t (s1 :& s) where
+  -- FIXME: Should use some internal notion of coercible
+  haveIt' = unsafeCoerce (haveIt' @t @s1)
+
+haveIt :: (Has t s) => Proxy s -> t s
+haveIt _ = haveIt'
+
+haveItt ::
+  forall es t r.
+  (forall e. (e :> es) => t e -> Eff es r) ->
+  (Has t es) => Eff es r
+haveItt op = op @es haveIt'
+
+newtype Magic t r = Magic (forall (s :: Effects). (Has t s) => Proxy s -> r)
+
+-- | Reify a value at the type level, to be recovered with 'reflect'.
+reify :: forall t s0 r. t s0 -> (forall (s :: Effects). (Has t s) => Proxy s -> r) -> r
+reify a k = unsafeCoerce (Magic k :: Magic t r) a Proxy
+
+{-
+data Dict c where
+  Dict :: c => Dict c
+
+dictIt :: t s -> Dict (Has s t)
+dictIt
+-}
+
+{-# INLINE_UNSAFE_COERCE reify #-}
 
 -- | @type (:&) :: Effects -> Effects -> Effects@
 --
@@ -229,7 +273,7 @@ withMonadFail ::
   Eff es r
 withMonadFail f m = unEffReader m f
 
-unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
+unsafeRemoveEff :: forall e es a. Eff (e :& es) a -> Eff es a
 unsafeRemoveEff = UnsafeMkEff . unsafeUnEff
 
 -- | Run an 'Eff' that doesn't contain any unhandled effects.
@@ -704,6 +748,37 @@ runState s f = do
     a <- f state
     s' <- get state
     pure (a, s')
+
+runStateH ::
+  forall s es a.
+  s ->
+  (forall st. (Has (State s) st) => Eff (st :& es) a) ->
+  -- | Result and final state
+  Eff es (a, s)
+runStateH s f = do
+  state :: State s sxx <- UnsafeMkEff (fmap UnsafeMkState (newIORef s))
+  reify state $ \(p :: Proxy ss) -> unsafeRemoveEff $ do
+    a <- f @ss
+    let state' = haveIt p
+    s' <- get state'
+    pure (a, s')
+
+evalStateH ::
+  forall s es a.
+  s ->
+  (forall st. (Has (State s) st) => Eff (st :& es) a) ->
+  -- | Result and final state
+  Eff es a
+evalStateH s f = fmap fst (runStateH s f)
+
+runStateHH ::
+  -- | Initial state
+  s ->
+  -- | Stateful computation
+  (forall st. State s st -> Eff (st :& es) a) ->
+  -- | Result and final state
+  Eff es (a, s)
+runStateHH s f = runStateH s (f haveIt')
 
 yieldCoroutine ::
   (e1 :> es) =>

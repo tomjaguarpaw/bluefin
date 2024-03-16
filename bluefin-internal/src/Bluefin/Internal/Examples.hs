@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
@@ -898,3 +899,12 @@ rethrowIOExample = runEff $ \io -> do
   effIO io $ putStrLn $ case r of
     Left e -> "Caught IOException:\n" ++ show e
     Right contents -> contents
+
+implicit :: (Has (State Bool) es, Has (State Int) es) => Eff es Int
+implicit = do
+  n <- haveItt get
+  haveItt (flip put (n + 1))
+  pure (n + 100)
+
+runImplicit :: Int
+runImplicit = runPureEff $ evalStateH @Bool True $ evalStateH @Int 0 implicit
