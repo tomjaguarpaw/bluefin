@@ -900,11 +900,12 @@ rethrowIOExample = runEff $ \io -> do
     Left e -> "Caught IOException:\n" ++ show e
     Right contents -> contents
 
-implicit :: (Has (State Bool) es, Has (State Int) es) => Eff es Int
+implicit :: (Hos (State Int) es, Hos (State ()) es) => Eff es Int
 implicit = do
-  n <- haveItt get
-  haveItt (flip put (n + 1))
-  pure (n + 100)
+  n <- haveIttt get
+  haveIttt (flip put (n + 1 :: Int))
+  haveIttt (flip put ())
+  pure n
 
-runImplicit :: Int
-runImplicit = runPureEff $ evalStateH @Bool True $ evalStateH @Int 0 implicit
+-- runImplicit :: (Hos (State ()) (st :& es)) => Eff es Int
+-- runImplicit = evalStateHos @Int 0 implicit

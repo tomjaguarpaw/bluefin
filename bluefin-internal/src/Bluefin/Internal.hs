@@ -45,7 +45,13 @@ data Effects = Union Effects Effects
 class Has t (s :: Effects) where
   haveIt' :: t s
 
-instance Has t s1 => Has t (s1 :& s) where
+data HosDict t es where
+  MkHosDict :: (Has t e, e :> es) => Proxy e -> HosDict t es
+
+class Hos t (es :: Effects) where
+  hos :: HosDict t es
+
+instance (Has t s1) => Has t (s1 :& s) where
   -- FIXME: Should use some internal notion of coercible
   haveIt' = unsafeCoerce (haveIt' @t @s1)
 
@@ -57,6 +63,14 @@ haveItt ::
   (forall e. (e :> es) => t e -> Eff es r) ->
   (Has t es) => Eff es r
 haveItt op = op @es haveIt'
+
+haveIttt ::
+  forall t es r.
+  (forall e. (e :> es) => t e -> Eff es r) ->
+  (Hos t es) =>
+  Eff es r
+haveIttt op = case hos @t @es of
+  MkHosDict (_ :: Proxy e) -> op (haveIt' @t @e)
 
 newtype Magic t r = Magic (forall (s :: Effects). (Has t s) => Proxy s -> r)
 
@@ -770,6 +784,14 @@ evalStateH ::
   -- | Result and final state
   Eff es a
 evalStateH s f = fmap fst (runStateH s f)
+
+evalStateHos ::
+  forall s es a.
+  s ->
+  (forall st. (Hos (State s) (st :& es)) => Eff (st :& es) a) ->
+  -- | Result and final state
+  Eff es a
+evalStateHos _ _ = undefined
 
 runStateHH ::
   -- | Initial state
