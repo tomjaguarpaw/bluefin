@@ -1,0 +1,28 @@
+This approach is hard to make work. The key element is to make sure
+that the constraints you get from applying a handler decay naturally.
+For example if you have
+
+    (e1 :> effs, e2 :> effs) => State s e1 -> Exception s e2 -> Eff effs r
+
+and then apply the state handler, we instantiate effs to (e1 :& effs)
+so we end up with
+
+    (e1 :> e1 :& effs, e2 :> e1 :& effs) => State s e1 -> Exception s e2 -> Eff (e1 :& effs) r
+
+and the contraints decay to
+
+    (e2 :> effs)
+
+because (e1 :> e1 :& effs) is immediately solved and, because e1 is
+universally quantified, (e2 :> e1 :& effs) decays to (e2 :> effs)
+(using the incoherent instance).
+
+With the "Has" stuff, trying to pass values in a constraint, I haven't
+found a way to make the constraints decay properly.  The effectful
+setup does make the constraints decay propertly, but it takes a
+different approach.  The Bluefin approach is to use the incoherent
+instance to skip past a universal type variable.  The effectful
+approach is to use an overlapping instance to skip past a known type,
+that is, the handler is:
+
+    evalStateLocal :: s -> Eff (State s ': es) a -> Eff es a
