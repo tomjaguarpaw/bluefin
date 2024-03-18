@@ -1,5 +1,5 @@
-{-# LANGUAGE NoMonoLocalBinds #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
+-- {-# LANGUAGE NoMonoLocalBinds #-}
+-- {-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Bluefin.Internal.Examples where
 
@@ -106,13 +106,15 @@ example2_ =
 -- Count non-empty lines from stdin, and print a friendly message,
 -- until we see "STOP".
 example3_ :: IO ()
-example3_ = runEff $ \io -> do
-  let getLineUntilStop y = withJump $ \stop -> forever $ do
+example3_ = runEff $ \(io :: IOE ioe) -> do
+  let getLineUntilStop :: (ioe :> es, e :> es) => Coroutine String () e -> Eff es ()
+      getLineUntilStop y = withJump $ \stop -> forever $ do
         line <- effIO io getLine
         when (line == "STOP") $
           jumpTo stop
         yield y line
 
+      nonEmptyLines :: (ioe :> es, e :> es) => Stream String e -> Eff es ()
       nonEmptyLines =
         mapMaybe
           ( \case
@@ -121,8 +123,10 @@ example3_ = runEff $ \io -> do
           )
           getLineUntilStop
 
+      enumeratedLines :: (ioe :> es, e :> es) => Stream (Int, String) e -> Eff es ()
       enumeratedLines = enumerateFrom 1 nonEmptyLines
 
+      formattedLines :: (ioe :> es, e :> es) => Stream [Char] e -> Eff es ()
       formattedLines =
         mapStream
           (\(i, line) -> show i ++ ". Hello! You said " ++ line)
