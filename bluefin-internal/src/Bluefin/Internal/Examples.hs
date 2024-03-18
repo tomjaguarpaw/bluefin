@@ -4,7 +4,7 @@
 module Bluefin.Internal.Examples where
 
 import Bluefin.Internal hiding (w)
-import Control.Monad (forever, when)
+import Control.Monad (forever, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
 import Data.Monoid (Any (Any, getAny))
@@ -203,3 +203,11 @@ writerExample1 = getAny $ runPureEff $ execWriter $ \w -> do
 writerExample2 :: Bool
 writerExample2 = getAny $ runPureEff $ execWriter $ \w -> do
   for_ [1 .. 10] $ \_ -> tell w (Any True)
+
+while :: Eff es Bool -> Eff es a -> Eff es ()
+while condM body =
+  withJump $ \break_ -> do
+    forever $ do
+      cond <- insertFirst condM
+      unless cond (jumpTo break_)
+      insertFirst body
