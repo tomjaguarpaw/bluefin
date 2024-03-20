@@ -29,6 +29,7 @@ library
       Bluefin.Jump,
       Bluefin.IO,
       Bluefin.State,
+      Bluefin.StateSource,
       Bluefin.Stream,
       Bluefin.Writer,
     build-depends:

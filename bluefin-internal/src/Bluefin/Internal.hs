@@ -373,12 +373,48 @@ withScopedException_ f = do
       -- unsafeCoerce is very unpleasant
       if tag == fresh then Just (unsafeCoerce e) else Nothing
 
+-- |
+-- @
+-- runPureEff $ withStateSource $ \\source -> do
+--   n <- newState source 5
+--   total <- newState source 0
+--
+--   'Bluefin.Jump.withJump' $ \\done -> forever $ do
+--     n' <- 'Bluefin.State.get' n
+--     'Bluefin.State.modify' total (+ n')
+--     when (n' == 0) $ 'Bluefin.Jump.jumpTo' done
+--     modify n (subtract 1)
+--
+--   get total
+-- 15
+-- @
 withStateSource ::
   (forall e. StateSource e -> Eff (e :& es) a) ->
+  -- | ͘
   Eff es a
 withStateSource f = unsafeRemoveEff (f StateSource)
 
-newState :: StateSource e -> s -> Eff es (State s e)
+-- |
+-- @
+-- runPureEff $ withStateSource $ \\source -> do
+--   n <- newState source 5
+--   total <- newState source 0
+--
+--   'Bluefin.Jump.withJump' $ \\done -> forever $ do
+--     n' <- 'Bluefin.State.get' n
+--     'Bluefin.State.modify' total (+ n')
+--     when (n' == 0) $ 'Bluefin.Jump.jumpTo' done
+--     modify n (subtract 1)
+--
+--   get total
+-- 15
+-- @
+newState ::
+  StateSource e ->
+  -- | The initial value for the state handle
+  s ->
+  -- | A new state handle
+  Eff es (State s e)
 newState StateSource s = UnsafeMkEff (fmap UnsafeMkState (newIORef s))
 
 -- |

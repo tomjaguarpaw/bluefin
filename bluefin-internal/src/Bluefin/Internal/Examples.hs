@@ -211,3 +211,16 @@ while condM body =
       cond <- insertFirst condM
       unless cond (jumpTo break_)
       insertFirst body
+
+stateSourceExample :: Int
+stateSourceExample = runPureEff $ withStateSource $ \source -> do
+  n <- newState source 5
+  total <- newState source 0
+
+  withJump $ \done -> forever $ do
+    n' <- get n
+    modify total (+ n')
+    when (n' == 0) $ jumpTo done
+    modify n (subtract 1)
+
+  get total
