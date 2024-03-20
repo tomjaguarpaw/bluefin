@@ -161,6 +161,9 @@ assoc1Eff = weakenEff (assoc1 (# #))
 pushFirst :: Eff a r -> Eff (a :& b) r
 pushFirst = weakenEff (fstI (# #))
 
+-- | Handle to a capability to create strict mutable state handles
+data StateSource (st :: Effects) = StateSource
+
 -- | Handle to an exception of type @e@
 newtype Exception e (ex :: Effects) = Exception (forall a. e -> IO a)
 
@@ -370,6 +373,14 @@ withScopedException_ f = do
       -- unsafeCoerce is very unpleasant
       if tag == fresh then Just (unsafeCoerce e) else Nothing
 
+withStateSource ::
+  (forall e. StateSource e -> Eff (e :& es) a) ->
+  Eff es a
+withStateSource f = unsafeRemoveEff (f StateSource)
+
+newState :: StateSource e -> s -> Eff es (State s e)
+newState StateSource s = UnsafeMkEff (fmap UnsafeMkState (newIORef s))
+
 -- |
 -- @
 -- >>> runPureEff $ runState 10 $ \\st -> do
@@ -385,8 +396,8 @@ runState ::
   -- | Result and final state
   Eff es (a, s)
 runState s f = do
-  state <- UnsafeMkEff (fmap UnsafeMkState (newIORef s))
-  unsafeRemoveEff $ do
+  withStateSource $ \source -> do
+    state <- newState source s
     a <- f state
     s' <- get state
     pure (a, s')
