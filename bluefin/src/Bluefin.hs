@@ -153,6 +153,9 @@ module Bluefin
     -- there are no unhandled effects it is safe to run the underlying
     -- @IO@ action using 'System.IO.Unsafe.unsafePerformIO', which is
     -- the approach taken to implement 'Bluefin.Eff.runPureEff'.
+    -- Consequently, it is impossible for a pure value retured from
+    -- `runPureEff` to access any Bluefin internal state or throw a
+    -- Bluefin internal exception.
 
     -- * Tips
 
