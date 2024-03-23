@@ -144,7 +144,7 @@ module Bluefin
     -- incrementReadLine state exception io = do
     --   'Bluefin.Jump.withJump' $ \\break -> 'Control.Monad.forever' $ do
     --     line <- 'Bluefin.IO.effIO' io getLine
-    --     i <- case 'Text.Maybe.readMaybe' line of
+    --     i <- case 'Text.Read.readMaybe' line of
     --       Nothing ->
     --         'Bluefin.Exception.throw' exception ("Couldn't read: " ++ line)
     --       Just i ->
