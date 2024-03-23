@@ -88,7 +88,7 @@ module Bluefin
     -- ** Effect scoping
 
     -- | Bluefin's use of the type system is very similar to
-    -- 'Control.Monad.ST': it ensures that a handle can never escape
+    -- "Control.Monad.ST": it ensures that a handle can never escape
     -- the scope of its handler.  That is, once the handler has
     -- finished running there is no way you can use the handle
     -- anymore.
