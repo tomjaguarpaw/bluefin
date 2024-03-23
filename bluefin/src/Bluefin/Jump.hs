@@ -1,5 +1,5 @@
 module Bluefin.Jump
-  ( -- | Jump allows you to jump back to a previously-set location.
+  ( -- | 'Jump' allows you to jump back to a previously-set location.
     -- It is not documented yet.
 
     -- * Handle
