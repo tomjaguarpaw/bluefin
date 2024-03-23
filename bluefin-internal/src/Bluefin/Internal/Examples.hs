@@ -8,6 +8,7 @@ import Control.Monad (forever, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
 import Data.Monoid (Any (Any, getAny))
+import Text.Read (readMaybe)
 import Prelude hiding (break, drop, head, read, return)
 
 monadIOExample :: IO ()
@@ -224,3 +225,30 @@ stateSourceExample = runPureEff $ withStateSource $ \source -> do
     modify n (subtract 1)
 
   get total
+
+incrementReadLine ::
+  (e1 :> es, e2 :> es, e3 :> es) =>
+  State Int e1 ->
+  Exception String e2 ->
+  IOE e3 ->
+  Eff es ()
+incrementReadLine state exception io = do
+  withJump $ \break -> forever $ do
+    line <- effIO io getLine
+    i <- case readMaybe line of
+      Nothing ->
+        throw exception ("Couldn't read: " ++ line)
+      Just i ->
+        pure i
+
+    when (i == 0) $
+      jumpTo break
+
+    modify state (+ i)
+
+runIncrementReadLine :: IO (Either String Int)
+runIncrementReadLine = runEff $ \io -> do
+  try $ \exception -> do
+    ((), r) <- runState 0 $ \state -> do
+      incrementReadLine state exception io
+    pure r

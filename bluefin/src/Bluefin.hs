@@ -93,6 +93,97 @@ module Bluefin
     -- finished running there is no way you can use the handle
     -- anymore.
 
+    -- ** Type signatures
+
+    -- | Bluefin type signatures follow a common pattern which looks
+    -- like
+    --
+    -- @
+    -- (e1 :> es, ...) -> \<Handle\> e1 -> ... -> Eff es r
+    -- @
+    --
+    --
+    -- Consider the example below, @incrementReadLine@, which reads
+    -- integers from standard input and accumulates them into a state.
+    -- It returns when it reads the input integer @0@ and it throws an
+    -- exception if it encounters an input line it cannot parse.
+    --
+    -- Firstly, let's look at the arguments, which are all handles to
+    -- Bluefin effects.  There is a state handle, an exception handle,
+    -- and an IO handle, which allow modification of an @Int@ state,
+    -- throwing a @String@ exception, and performing @IO@ operations
+    -- respectively.  They are each tagged with a different effect
+    -- type, @e1@, @e2@ and @e3@ respectively, which are always kept
+    -- polymorphic.
+    --
+    -- Secondly, let's look at the return value, @Eff es ()@.  This
+    -- means the computation is performed in the t'Bluefin.Eff.Eff'
+    -- monad and the resulting value produced is of type @()@.  @Eff@
+    -- is tagged with the effect type @es@, which is also always kept
+    -- polymorphic.
+    --
+    -- Finally, let's look at the constraints.  They are what tie
+    -- together the effect tags of the arguments to the effect tag of
+    -- the result.  For every argument effect tag @en@ we have a
+    -- constraint @en :> es@.  That tells us the that effect handle
+    -- with tag @en@ is allowed to be used within the effectful
+    -- computation.  If we didn't have the @e1 :> es@ constraint, for
+    -- example, that would tell us that the @State Int e1@ isn't
+    -- actually used anywhere in the computation.
+    --
+    -- GHC and editor tools like HLS do a good job of inferring these
+    -- type signatures.
+    --
+    -- @
+    -- incrementReadLine ::
+    --   (e1 :> es, e2 :> es, e3 :> es) =>
+    --   State Int e1  ->
+    --   Exception String e2  ->
+    --   IOE e3 ->
+    --   Eff es ()
+    -- incrementReadLine state exception io = do
+    --   'Bluefin.Jump.withJump' $ \\break -> 'Control.Monad.forever' $ do
+    --     line <- 'Bluefin.IO.effIO' io getLine
+    --     i <- case 'Text.Maybe.readMaybe' line of
+    --       Nothing ->
+    --         'Bluefin.Exception.throw' exception ("Couldn't read: " ++ line)
+    --       Just i ->
+    --         pure i
+    --
+    --     when (i == 0) $
+    --       'Bluefin.Jump.jumpTo' break
+    --
+    --     'Bluefin.State.modify' state (+ i)
+    -- @
+    --
+    -- Now let's look at how we can run such a function.  Each effect
+    -- must be handled by a corresponding handler, for example
+    -- 'Bluefin.State.runState' for the state effect,
+    -- 'Bluefin.Exception.try' for the exception effect and
+    -- 'Bluefin.Eff.runEff' for the @IO@ effect.
+    --
+    -- @
+    -- runIncrementReadLine :: IO (Either String Int)
+    -- runIncrementReadLine = 'Bluefin.Eff.runEff' $ \\io -> do
+    --   'Bluefin.Exception.try' $ \\exception -> do
+    --     ((), r) \<- 'Bluefin.State.runState' 0 $ \\state -> do
+    --       incrementReadLine state exception io
+    --     pure r
+    --
+    -- >>> runIncrementReadLine
+    -- 1
+    -- 2
+    -- 3
+    -- 0
+    -- Right 6
+    -- >>>> runIncrementReadLine
+    -- 1
+    -- 2
+    -- 3
+    -- Hello
+    -- Left "Couldn't read: Hello"
+    -- @
+
     -- * Comparison to other effect systems
 
     -- ** Everything except effectful
