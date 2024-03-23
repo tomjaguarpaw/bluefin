@@ -28,6 +28,7 @@ library
       Bluefin.Exception,
       Bluefin.IO,
       Bluefin.Jump,
+      Bluefin.Reader,
       Bluefin.State,
       Bluefin.StateSource,
       Bluefin.Stream,

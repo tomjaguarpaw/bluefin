@@ -871,3 +871,19 @@ tell ::
   w ->
   Eff es ()
 tell (Writer y) = yield y
+
+newtype Reader r (e :: Effects) = MkReader r
+
+runReader ::
+  -- | ͘
+  r ->
+  (forall e. Reader r e -> Eff (e :& es) a) ->
+  Eff es a
+runReader r f = unsafeRemoveEff (f (MkReader r))
+
+ask ::
+  -- | ͘
+  (e :> es) =>
+  Reader r e ->
+  Eff es r
+ask (MkReader r) = pure r
