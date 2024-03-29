@@ -2,7 +2,8 @@ module Bluefin
   ( -- * In brief
 
     -- | Bluefin is an effect system which allows you to freely mix a
-    -- variety of effects, though value-level handles, including
+    -- variety of effects, accessed though value-level handles,
+    -- including
     --
     --  * "Bluefin.EarlyReturn", for early return
     --  * "Bluefin.Exception", for exceptions
