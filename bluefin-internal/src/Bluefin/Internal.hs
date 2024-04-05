@@ -162,6 +162,9 @@ assoc1Eff = weakenEff (assoc1 (# #))
 pushFirst :: Eff a r -> Eff (a :& b) r
 pushFirst = weakenEff (fstI (# #))
 
+mergeEff :: Eff (a :& a) r -> Eff a r
+mergeEff = weakenEff (merge (# #))
+
 -- | Handle to a capability to create strict mutable state handles
 data StateSource (st :: Effects) = StateSource
 
@@ -196,6 +199,9 @@ instance Handle (Writer w) where
   mapHandle (Writer wr) = Writer (mapHandle wr)
 
 newtype In (a :: Effects) (b :: Effects) = In# (# #)
+
+merge :: (# #) -> (a :& a) `In` a
+merge (# #) = In# (# #)
 
 eq :: (# #) -> a `In` a
 eq (# #) = In# (# #)
