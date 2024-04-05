@@ -882,8 +882,8 @@ runReader ::
 runReader r f = unsafeRemoveEff (f (MkReader r))
 
 ask ::
-  -- | ͘
   (e :> es) =>
+  -- | ͘
   Reader r e ->
   Eff es r
 ask (MkReader r) = pure r
