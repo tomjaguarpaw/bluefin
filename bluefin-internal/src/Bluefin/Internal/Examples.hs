@@ -9,7 +9,13 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
 import Data.Monoid (Any (Any, getAny))
 import Text.Read (readMaybe)
-import Prelude hiding (break, drop, head, read, return)
+import Prelude hiding
+  ( break,
+    drop,
+    head,
+    read,
+    return,
+  )
 
 monadIOExample :: IO ()
 monadIOExample = runEff $ \io -> withMonadIO io $ liftIO $ do
