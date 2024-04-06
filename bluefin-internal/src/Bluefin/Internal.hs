@@ -165,6 +165,9 @@ pushFirst = weakenEff (fstI (# #))
 mergeEff :: Eff (a :& a) r -> Eff a r
 mergeEff = weakenEff (merge (# #))
 
+inContext :: (e2 :> e1) => Eff (e1 :& e2) r -> Eff e1 r
+inContext = weakenEff (subsume1 has)
+
 -- | Handle to a capability to create strict mutable state handles
 data StateSource (st :: Effects) = StateSource
 
@@ -238,6 +241,9 @@ b2 h = bimap h (eq (# #))
 
 b :: (a `In` b) -> (c :& a) `In` (c :& b)
 b = bimap (eq (# #))
+
+subsume1 :: (e2 `In` e1) -> (e1 :& e2) `In` e1
+subsume1 i = cmp (bimap (eq (# #)) i) (merge (# #))
 
 -- | Effect subset constraint
 class (es1 :: Effects) :> (es2 :: Effects)
