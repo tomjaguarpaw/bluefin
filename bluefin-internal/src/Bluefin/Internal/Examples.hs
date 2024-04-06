@@ -4,6 +4,8 @@
 module Bluefin.Internal.Examples where
 
 import Bluefin.Internal hiding (w)
+import Control.Exception (IOException)
+import qualified Control.Exception
 import Control.Monad (forever, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
@@ -14,8 +16,11 @@ import Prelude hiding
     drop,
     head,
     read,
+    readFile,
     return,
+    writeFile,
   )
+import qualified Prelude
 
 monadIOExample :: IO ()
 monadIOExample = runEff $ \io -> withMonadIO io $ liftIO $ do
@@ -258,3 +263,316 @@ runIncrementReadLine = runEff $ \io -> do
     ((), r) <- runState 0 $ \state -> do
       incrementReadLine state exception io
     pure r
+
+-- Counter 1
+
+newtype Counter1 e = MkCounter1 (State Int e)
+
+incCounter1 :: (e :> es) => Counter1 e -> Eff es ()
+incCounter1 (MkCounter1 st) = modify st (+ 1)
+
+runCounter1 ::
+  (forall e. Counter1 e -> Eff (e :& es) r) ->
+  Eff es Int
+runCounter1 k =
+  evalState 0 $ \st -> do
+    _ <- k (MkCounter1 st)
+    get st
+
+exampleCounter1 :: Int
+exampleCounter1 = runPureEff $ runCounter1 $ \c -> do
+  incCounter1 c
+  incCounter1 c
+  incCounter1 c
+
+-- > exampeleCounter1
+-- 3
+
+-- Counter 2
+
+data Counter2 e1 e2 = MkCounter2 (State Int e1) (Exception () e2)
+
+incCounter2 :: (e1 :> es, e2 :> es) => Counter2 e1 e2 -> Eff es ()
+incCounter2 (MkCounter2 st ex) = do
+  count <- get st
+  when (count >= 10) $
+    throw ex ()
+  put st (count + 1)
+
+runCounter2 ::
+  (forall e1 e2. Counter2 e1 e2 -> Eff (e2 :& e1 :& es) r) ->
+  Eff es Int
+runCounter2 k =
+  evalState 0 $ \st -> do
+    _ <- try $ \ex -> do
+      k (MkCounter2 st ex)
+    get st
+
+exampleCounter2 :: Int
+exampleCounter2 = runPureEff $ runCounter2 $ \c ->
+  forever $
+    incCounter2 c
+
+-- > exampleCounter2
+-- 10
+
+-- Counter 3
+
+data Counter3 e = MkCounter3 (State Int e) (Exception () e)
+
+incCounter3 :: (e :> es) => Counter3 e -> Eff es ()
+incCounter3 (MkCounter3 st ex) = do
+  count <- get st
+  when (count >= 10) $
+    throw ex ()
+  put st (count + 1)
+
+runCounter3 ::
+  (forall e. Counter3 e -> Eff (e :& es) r) ->
+  Eff es Int
+runCounter3 k =
+  evalState 0 $ \st -> do
+    _ <- try $ \ex -> do
+      useImplIn k (MkCounter3 (mapHandle st) (mapHandle ex))
+    get st
+
+exampleCounter3 :: Int
+exampleCounter3 = runPureEff $ runCounter3 $ \c ->
+  forever $
+    incCounter3 c
+
+-- > exampleCounter3
+-- 10
+
+-- Counter 4
+
+data Counter4 e
+  = MkCounter4 (State Int e) (Exception () e) (Stream String e)
+
+incCounter4 :: (e :> es) => Counter4 e -> Eff es ()
+incCounter4 (MkCounter4 st ex y) = do
+  count <- get st
+
+  when (even count) $
+    yield y "Count was even"
+
+  when (count >= 10) $
+    throw ex ()
+
+  put st (count + 1)
+
+getCounter4 :: (e :> es) => Counter4 e -> String -> Eff es Int
+getCounter4 (MkCounter4 st _ y) msg = do
+  yield y msg
+  get st
+
+runCounter4 ::
+  (e1 :> es) =>
+  Stream String e1 ->
+  (forall e. Counter4 e -> Eff (e :& es) r) ->
+  Eff es Int
+runCounter4 y k =
+  evalState 0 $ \st -> do
+    _ <- try $ \ex -> do
+      useImplIn k (MkCounter4 (mapHandle st) (mapHandle ex) (mapHandle y))
+    get st
+
+exampleCounter4 :: ([String], Int)
+exampleCounter4 = runPureEff $ yieldToList $ \y -> do
+  runCounter4 y $ \c -> do
+    incCounter4 c
+    incCounter4 c
+    n <- getCounter4 c "I'm getting the counter"
+    when (n == 2) $
+      yield y "n was 2, as expected"
+
+-- > exampleCounter4
+-- (["Count was even","I'm getting the counter","n was 2, as expected"],2)
+
+-- Counter 5
+
+data Counter5 e = MkCounter5
+  { incCounter5Impl :: Eff e (),
+    getCounter5Impl :: String -> Eff e Int
+  }
+
+incCounter5 :: (e :> es) => Counter5 e -> Eff es ()
+incCounter5 e = useImpl (incCounter5Impl e)
+
+getCounter5 :: (e :> es) => Counter5 e -> String -> Eff es Int
+getCounter5 e msg = useImpl (getCounter5Impl e msg)
+
+runCounter5 ::
+  (e1 :> es) =>
+  Stream String e1 ->
+  (forall e. Counter5 e -> Eff (e :& es) r) ->
+  Eff es Int
+runCounter5 y k =
+  evalState 0 $ \st -> do
+    _ <- try $ \ex -> do
+      useImplIn
+        k
+        ( MkCounter5
+            { incCounter5Impl = do
+                count <- get st
+
+                when (even count) $
+                  yield y "Count was even"
+
+                when (count >= 10) $
+                  throw ex ()
+
+                put st (count + 1),
+              getCounter5Impl = \msg -> do
+                yield y msg
+                get st
+            }
+        )
+    get st
+
+exampleCounter5 :: ([String], Int)
+exampleCounter5 = runPureEff $ yieldToList $ \y -> do
+  runCounter5 y $ \c -> do
+    incCounter5 c
+    incCounter5 c
+    n <- getCounter5 c "I'm getting the counter"
+    when (n == 2) $
+      yield y "n was 2, as expected"
+
+-- > exampleCounter5
+-- (["Count was even","I'm getting the counter","n was 2, as expected"],2)
+
+-- Counter 6
+
+data Counter6 e = MkCounter6
+  { incCounter6Impl :: Eff e (),
+    counter6State :: State Int e,
+    counter6Stream :: Stream String e
+  }
+
+incCounter6 :: (e :> es) => Counter6 e -> Eff es ()
+incCounter6 e = useImpl (incCounter6Impl e)
+
+getCounter6 :: (e :> es) => Counter6 e -> String -> Eff es Int
+getCounter6 (MkCounter6 _ st y) msg = do
+  yield y msg
+  get st
+
+runCounter6 ::
+  (e1 :> es) =>
+  Stream String e1 ->
+  (forall e. Counter6 e -> Eff (e :& es) r) ->
+  Eff es Int
+runCounter6 y k =
+  evalState 0 $ \st -> do
+    _ <- try $ \ex -> do
+      useImplIn
+        k
+        ( MkCounter6
+            { incCounter6Impl = do
+                count <- get st
+
+                when (even count) $
+                  yield y "Count was even"
+
+                when (count >= 10) $
+                  throw ex ()
+
+                put st (count + 1),
+              counter6State = mapHandle st,
+              counter6Stream = mapHandle y
+            }
+        )
+    get st
+
+exampleCounter6 :: ([String], Int)
+exampleCounter6 = runPureEff $ yieldToList $ \y -> do
+  runCounter6 y $ \c -> do
+    incCounter6 c
+    incCounter6 c
+    n <- getCounter6 c "I'm getting the counter"
+    when (n == 2) $
+      yield y "n was 2, as expected"
+
+-- > exampleCounter6
+-- (["Count was even","I'm getting the counter","n was 2, as expected"],2)
+
+-- FileSystem
+
+data FileSystem es = MkFileSystem
+  { readFileImpl :: FilePath -> Eff es String,
+    writeFileImpl :: FilePath -> String -> Eff es ()
+  }
+
+readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
+readFile fs filepath = useImpl (readFileImpl fs filepath)
+
+writeFile :: (e :> es) => FileSystem e -> FilePath -> String -> Eff es ()
+writeFile fs filepath contents = useImpl (writeFileImpl fs filepath contents)
+
+runFileSystemPure ::
+  (e1 :> es) =>
+  Exception String e1 ->
+  [(FilePath, String)] ->
+  (forall e2. FileSystem e2 -> Eff (e2 :& es) r) ->
+  Eff es r
+runFileSystemPure ex fs0 k =
+  evalState fs0 $ \fs ->
+    useImplIn
+      k
+      MkFileSystem
+        { readFileImpl = \path -> do
+            fs' <- get fs
+            case lookup path fs' of
+              Nothing ->
+                throw ex ("File not found: " <> path)
+              Just s -> pure s,
+          writeFileImpl = \path contents ->
+            modify fs ((path, contents) :)
+        }
+
+runFileSystemIO ::
+  forall e1 e2 es r.
+  (e1 :> es, e2 :> es) =>
+  Exception String e1 ->
+  IOE e2 ->
+  (forall e. FileSystem e -> Eff (e :& es) r) ->
+  Eff es r
+runFileSystemIO ex io k =
+  useImplIn
+    k
+    MkFileSystem
+      { readFileImpl =
+          adapt . Prelude.readFile,
+        writeFileImpl =
+          \path -> adapt . Prelude.writeFile path
+      }
+  where
+    adapt :: (e1 :> ess, e2 :> ess) => IO a -> Eff ess a
+    adapt m =
+      effIO io (Control.Exception.try @IOException m) >>= \case
+        Left e -> throw ex (show e)
+        Right r -> pure r
+
+action :: (e :> es) => FileSystem e -> Eff es String
+action fs = do
+  file <- readFile fs "/dev/null"
+  when (length file == 0) $ do
+    writeFile fs "/tmp/bluefin" "Hello!\n"
+  readFile fs "/tmp/doesn't exist"
+
+exampleRunFileSystemPure :: Either String String
+exampleRunFileSystemPure = runPureEff $ try $ \ex ->
+  runFileSystemPure ex [("/dev/null", "")] action
+
+-- > exampleRunFileSystemPure
+-- Left "File not found: /tmp/doesn't exist"
+
+exampleRunFileSystemIO :: IO (Either String String)
+exampleRunFileSystemIO = runEff $ \io -> try $ \ex ->
+  runFileSystemIO ex io action
+
+-- > exampleRunFileSystemIO
+-- Left "/tmp/doesn't exist: openFile: does not exist (No such file or directory)"
+-- \$ cat /tmp/bluefin
+-- Hello!
