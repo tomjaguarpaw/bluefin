@@ -268,6 +268,10 @@ module Bluefin
     --
     -- * Writing a handler often requires an explicit type signature.
 
+    -- * Creating your own effects
+
+    -- | See "Bluefin.Compound".
+
     -- * Example
 
     -- |
