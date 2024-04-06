@@ -165,7 +165,7 @@ pushFirst = weakenEff (fstI (# #))
 data StateSource (st :: Effects) = StateSource
 
 -- | Handle to an exception of type @e@
-newtype Exception e (ex :: Effects) = Exception (forall a. e -> IO a)
+newtype Exception e (ex :: Effects) = UnsafeMkException (forall a. e -> IO a)
 
 -- | A handle to a strict mutable state of type @a@
 newtype State s (st :: Effects) = UnsafeMkState (IORef s)
@@ -254,7 +254,7 @@ throw ::
   -- | Value to throw
   e ->
   Eff es a
-throw (Exception throw_) e = UnsafeMkEff (throw_ e)
+throw (UnsafeMkException throw_) e = UnsafeMkEff (throw_ e)
 
 has :: forall a b. (a :> b) => a `In` b
 has = In# (# #)
@@ -279,7 +279,7 @@ try ::
   -- | @Left@ if the exception was thrown, @Right@ otherwise
   Eff es (Either e a)
 try f =
-  UnsafeMkEff $ withScopedException_ (\throw_ -> unsafeUnEff (f (Exception throw_)))
+  UnsafeMkEff $ withScopedException_ (\throw_ -> unsafeUnEff (f (UnsafeMkException throw_)))
 
 -- | 'handle', but with the argument order swapped
 --
