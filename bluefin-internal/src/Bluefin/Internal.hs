@@ -168,6 +168,10 @@ mergeEff = weakenEff (merge (# #))
 inContext :: (e2 :> e1) => Eff (e1 :& e2) r -> Eff e1 r
 inContext = weakenEff (subsume1 has)
 
+-- | Used to define dynamic effects.
+useImpl :: (e :> es) => Eff e r -> Eff es r
+useImpl = weakenEff has
+
 -- | Handle to a capability to create strict mutable state handles
 data StateSource (st :: Effects) = StateSource
 
