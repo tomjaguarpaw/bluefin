@@ -1,3 +1,7 @@
+## 0.0.4.0
+
+* Add functions for compound effects
+
 ## 0.0.3.0
 
 * Add `Bluefin.Internal.Reader`

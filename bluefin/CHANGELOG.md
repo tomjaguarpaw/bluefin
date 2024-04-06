@@ -1,3 +1,7 @@
+## 0.0.4.0
+
+* Add documentation and functions to `Bluefin.Compound`
+
 ## 0.0.3.0
 
 * Add `Bluefin.Reader`
