@@ -17,6 +17,7 @@ import Control.Monad.Trans.Control (MonadBaseControl, StM, liftBaseWith, restore
 import qualified Control.Monad.Trans.Reader as Reader
 import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
+import Data.Kind (Type)
 import qualified Data.Unique
 import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
@@ -178,6 +179,21 @@ newtype Coroutine a b (s :: Effects) = UnsafeMkCoroutine (a -> IO b)
 -- implemented as a handle to a coroutine that expects values of type
 -- @()@ and then yields values of type @a@.
 type Stream a = Coroutine a ()
+
+class Handle (h :: Effects -> Type) where
+  mapHandle :: (e :> es) => h e -> h es
+
+instance Handle (State s) where
+  mapHandle (UnsafeMkState s) = UnsafeMkState s
+
+instance Handle (Exception s) where
+  mapHandle (UnsafeMkException s) = UnsafeMkException s
+
+instance Handle (Coroutine a b) where
+  mapHandle (MkCoroutine f) = MkCoroutine (fmap useImpl f)
+
+instance Handle (Writer w) where
+  mapHandle (Writer wr) = Writer (mapHandle wr)
 
 newtype In (a :: Effects) (b :: Effects) = In# (# #)
 
