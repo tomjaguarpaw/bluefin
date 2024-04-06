@@ -172,6 +172,15 @@ inContext = weakenEff (subsume1 has)
 useImpl :: (e :> es) => Eff e r -> Eff es r
 useImpl = weakenEff has
 
+-- | Used to define handlers of compound effects.
+useImplIn ::
+  (e :> es) =>
+  (t -> Eff (es :& e) r) ->
+  t ->
+  -- | ͘
+  Eff es r
+useImplIn f h = inContext (f h)
+
 -- | Handle to a capability to create strict mutable state handles
 data StateSource (st :: Effects) = StateSource
 
