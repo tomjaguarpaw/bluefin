@@ -95,18 +95,19 @@ module Bluefin
 
     -- ** Type signatures
 
-    -- | Bluefin type signatures follow a common pattern which looks
-    -- like
+    -- | The type signatures of Bluefin functions follow a common
+    -- pattern which looks like
     --
     -- @
     -- (e1 :> es, ...) -> \<Handle\> e1 -> ... -> Eff es r
     -- @
     --
-    --
-    -- Consider the example below, @incrementReadLine@, which reads
-    -- integers from standard input and accumulates them into a state.
-    -- It returns when it reads the input integer @0@ and it throws an
-    -- exception if it encounters an input line it cannot parse.
+    -- Here @\<Handle\>@ could be, for example, @State Int@,
+    -- @Exception String@ or @IOE@.  Consider the example below,
+    -- @incrementReadLine@, which reads integers from standard input
+    -- and accumulates them into a state.  It returns when it reads
+    -- the input integer @0@ and it throws an exception if it
+    -- encounters an input line it cannot parse.
     --
     -- Firstly, let's look at the arguments, which are all handles to
     -- Bluefin effects.  There is a state handle, an exception handle,
@@ -160,7 +161,18 @@ module Bluefin
     -- must be handled by a corresponding handler, for example
     -- 'Bluefin.State.runState' for the state effect,
     -- 'Bluefin.Exception.try' for the exception effect and
-    -- 'Bluefin.Eff.runEff' for the @IO@ effect.
+    -- 'Bluefin.Eff.runEff' for the @IO@ effect.  The type signatures
+    -- of handlers also follow a common pattern, which looks like
+    --
+    -- @
+    -- (forall e. \<Handle\> e -> Eff (e :& es) a) -> Eff es r
+    -- @
+    --
+    -- This means that the effect @e@, corresponding to the handle
+    -- @\<Handle\> e@, has been handled and removed from the set of
+    -- remaining effects, @es@.  (The signatures for @runEff@ and
+    -- @runPureEff@ are slightly different because they remove all
+    -- effects.)
     --
     -- @
     -- runIncrementReadLine :: IO (Either String Int)
