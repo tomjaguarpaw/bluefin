@@ -1,6 +1,6 @@
 # Bluefin
 
-Bluefin is an effect system for Haskell which allows you, though
+Bluefin is an effect system for Haskell which allows you, through
 value-level handles, to freely mix a variety of effects
 including
 

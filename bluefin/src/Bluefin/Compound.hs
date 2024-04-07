@@ -37,7 +37,7 @@ module Bluefin.Compound
     -- @
     --
     -- @
-    -- >>> exampeleCounter1
+    -- >>> exampleCounter1
     -- 3
     -- @
 
