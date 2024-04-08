@@ -915,6 +915,9 @@ tell (Writer y) = yield y
 
 newtype Reader r (e :: Effects) = MkReader r
 
+instance Handle (Reader r) where
+  mapHandle (MkReader r) = MkReader r
+
 runReader ::
   -- | ͘
   r ->
