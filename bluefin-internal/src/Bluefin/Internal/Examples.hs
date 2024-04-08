@@ -576,3 +576,24 @@ exampleRunFileSystemIO = runEff $ \io -> try $ \ex ->
 -- Left "/tmp/doesn't exist: openFile: does not exist (No such file or directory)"
 -- \$ cat /tmp/bluefin
 -- Hello!
+
+-- instance Handle example
+
+data Application e = MkApplication
+  { queryDatabase :: String -> Int -> Eff e [String],
+    applicationState :: State (Int, Bool) e,
+    logger :: Stream String e
+  }
+
+instance Handle Application where
+  mapHandle
+    MkApplication
+      { queryDatabase = q,
+        applicationState = a,
+        logger = l
+      } =
+      MkApplication
+        { queryDatabase = (fmap . fmap) useImpl q,
+          applicationState = mapHandle a,
+          logger = mapHandle l
+        }

@@ -199,7 +199,46 @@ newtype Coroutine a b (s :: Effects) = MkCoroutine (a -> Eff s b)
 -- @()@ and then yields values of type @a@.
 type Stream a = Coroutine a ()
 
+-- | You can define a @Handle@ instance for your compound handles.  As
+-- an example, an "application" handle with a dynamic effect for
+-- database queries, a concrete effect for application state and a
+-- concrete effect for a logging effect might look like this:
+--
+-- @
+-- data Application e = MkApplication
+--   { queryDatabase :: String -> Int -> Eff e [String],
+--     applicationState :: State (Int, Bool) e,
+--     logger :: Stream String e
+--   }
+-- @
+--
+-- To define @mapHandle@ for @Application@ you should apply
+-- @mapHandle@ to all the fields that are themeselevs handles and
+-- apply @useImpl@ to all the fields that are dynamic effects:
+--
+-- @
+-- instance Handle Application where
+--   mapHandle
+--     MkApplication
+--       { queryDatabase = q,
+--         applicationState = a,
+--         logger = l
+--       } =
+--       MkApplication
+--         { queryDatabase = (fmap . fmap) useImpl q,
+--           applicationState = mapHandle a,
+--           logger = mapHandle l
+--         }
+-- @
+--
+-- Note that preceding @useImpl@ on the dynamic effect there is one
+-- fmap per @->@ that appears in type of the dynamic effect.  That is,
+-- @queryDatabase@ has type @String -> Int -> Eff e [String]@, which
+-- has two @->@, so there are two @fmap@s before @useImpl@.
+
 class Handle (h :: Effects -> Type) where
+  -- | Used to create compound effects, i.e. handles that contain
+  -- other handles.
   mapHandle :: (e :> es) => h e -> h es
 
 instance Handle (State s) where
