@@ -1,3 +1,7 @@
+## 0.0.4.1
+
+* Add documentation for `Handle`
+
 ## 0.0.4.0
 
 * Add documentation and functions to `Bluefin.Compound`
