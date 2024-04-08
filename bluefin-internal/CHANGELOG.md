@@ -1,3 +1,7 @@
+## 0.0.4.2
+
+* Add documentation for `Handle`
+
 ## 0.0.4.0
 
 * Add functions for compound effects

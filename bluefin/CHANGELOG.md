@@ -1,3 +1,8 @@
+## 0.0.4.2
+
+* Depend on `bluefin-internal >= 0.0.4.2` so that Hackage will show
+  the `Handle` documentation.
+
 ## 0.0.4.1
 
 * Add documentation for `Handle`
