@@ -140,6 +140,98 @@ withMonadFail ::
   Eff es r
 withMonadFail f m = unEffReader m f
 
+data Blah l where
+  NoBlah :: Blah '[]
+  MoreBlah :: (ImplicitBlah l) => Blah (a : l)
+
+class ImplicitBlah l where
+  implicitBlah :: Blah l
+
+instance ImplicitBlah '[] where
+  implicitBlah = NoBlah
+
+instance (ImplicitBlah l) => ImplicitBlah (a : l) where
+  implicitBlah = MoreBlah
+
+type family EffStackF (l :: [Type]) es r where
+  EffStackF '[] es r = Eff es r
+  EffStackF (a : l) es r = a -> EffStack l es r
+
+newtype EffStack l es r = MkEffStack (EffStackF l es r)
+
+liftEffStack :: forall l es r. (ImplicitBlah l) => Eff es r -> EffStack l es r
+liftEffStack e = case implicitBlah @l of
+  NoBlah -> MkEffStack e
+  MoreBlah -> MkEffStack (\_ -> liftEffStack e)
+
+instance (ImplicitBlah l) => Functor (EffStack l es) where
+  fmap f = case implicitBlah @l of
+    NoBlah -> \case
+      MkEffStack e -> MkEffStack (fmap f e)
+    MoreBlah -> \case
+      MkEffStack e -> MkEffStack ((fmap . fmap) f e)
+
+instance (ImplicitBlah l) => Applicative (EffStack l es) where
+  pure = case implicitBlah @l of
+    NoBlah -> MkEffStack . pure
+    MoreBlah -> MkEffStack . pure . pure
+
+  (<*>) = case implicitBlah @l of
+    NoBlah -> \case
+      MkEffStack f -> \case
+        MkEffStack x ->
+          MkEffStack (f <*> x)
+    MoreBlah -> \case
+      MkEffStack f -> \case
+        MkEffStack x ->
+          MkEffStack ((<*>) <$> f <*> x)
+
+instance (ImplicitBlah l) => Monad (EffStack l es) where
+  (>>=) = case implicitBlah @l of
+    NoBlah -> \case
+      MkEffStack m -> \f ->
+        MkEffStack (m >>= ((\case MkEffStack e -> e) . f))
+    MoreBlah -> \case
+      MkEffStack m -> \f ->
+        MkEffStack (\x -> m x >>= \y -> ((\case MkEffStack e -> e) . f) y x)
+
+instance
+  {-# OVERLAPPING #-}
+  (e :> es, ImplicitBlah l) =>
+  MonadIO (EffStack (IOE e : l) es)
+  where
+  liftIO e = MkEffStack (\ioe -> liftEffStack (effIO ioe e))
+
+instance
+  (ImplicitBlah l, MonadIO (EffStack l es)) =>
+  MonadIO (EffStack (a : l) es)
+  where
+  liftIO e = MkEffStack (\_ -> liftIO e)
+
+instance
+  {-# OVERLAPPING #-}
+  (e :> es, ImplicitBlah l) =>
+  MonadFail (EffStack (Exception String e : l) es)
+  where
+  fail e = MkEffStack (\ex -> liftEffStack (throw ex e))
+
+instance
+  (ImplicitBlah l, MonadFail (EffStack l es)) =>
+  MonadFail (EffStack (a : l) es)
+  where
+  fail e = MkEffStack (\_ -> fail e)
+
+runEffStack :: h -> EffStack (h : l) es r -> EffStack l es r
+runEffStack h (MkEffStack e) = e h
+
+unMkEffStack :: EffStack '[] es r -> Eff es r
+unMkEffStack (MkEffStack e) = e
+
+example :: (e1 :> es, e2 :> es) => IOE e1 -> Exception String e2 -> Eff es r
+example ioe ex = unMkEffStack $ runEffStack ioe $ runEffStack ex $ do
+  liftIO (putStrLn "Hello")
+  fail "Failed"
+
 unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
 unsafeRemoveEff = UnsafeMkEff . unsafeUnEff
 
@@ -235,7 +327,6 @@ type Stream a = Coroutine a ()
 -- fmap per @->@ that appears in type of the dynamic effect.  That is,
 -- @queryDatabase@ has type @String -> Int -> Eff e [String]@, which
 -- has two @->@, so there are two @fmap@s before @useImpl@.
-
 class Handle (h :: Effects -> Type) where
   -- | Used to create compound effects, i.e. handles that contain
   -- other handles.
