@@ -221,16 +221,57 @@ instance
   where
   fail e = MkEffStack (\_ -> fail e)
 
-runEffStack :: h -> EffStack (h : l) es r -> EffStack l es r
-runEffStack h (MkEffStack e) = e h
+instance
+  {-# OVERLAPPING #-}
+  (e :> es, ImplicitBlah l) =>
+  MonadWhatever (EffStack (State Int e : l) es)
+  where
+  setWhateverTo i = MkEffStack (\st -> liftEffStack (put st i))
+  incrementWhatever = MkEffStack (\st -> liftEffStack (modify st (+ 1)))
+  getWhatever = MkEffStack (\st -> liftEffStack (get st))
 
-unMkEffStack :: EffStack '[] es r -> Eff es r
-unMkEffStack (MkEffStack e) = e
+instance
+  (ImplicitBlah l, MonadWhatever (EffStack l es)) =>
+  MonadWhatever (EffStack (a : l) es)
+  where
+  setWhateverTo i = MkEffStack (\_ -> setWhateverTo i)
+  incrementWhatever = MkEffStack (\_ -> incrementWhatever)
+  getWhatever = MkEffStack (\_ -> getWhatever)
 
-example :: (e1 :> es, e2 :> es) => IOE e1 -> Exception String e2 -> Eff es r
-example ioe ex = unMkEffStack $ runEffStack ioe $ runEffStack ex $ do
-  liftIO (putStrLn "Hello")
-  fail "Failed"
+handleMTLWith :: h -> EffStack (h : l) es r -> EffStack l es r
+handleMTLWith h (MkEffStack e) = e h
+
+runMTLStyle :: EffStack '[] es r -> Eff es r
+runMTLStyle (MkEffStack e) = e
+
+class (Monad m) => MonadWhatever m where
+  setWhateverTo :: Int -> m ()
+  incrementWhatever :: m ()
+  getWhatever :: m Int
+
+exampleMTL ::
+  (e1 :> es, e2 :> es, e3 :> es) =>
+  IOE e1 ->
+  Exception String e2 ->
+  State Int e3 ->
+  Eff es r
+exampleMTL ioe ex st =
+  runMTLStyle $
+    handleMTLWith ioe $
+      handleMTLWith ex $
+        handleMTLWith st $ do
+          setWhateverTo 0
+          incrementWhatever
+          incrementWhatever
+          i <- getWhatever
+          liftIO (putStrLn $ "Whatever was " ++ show i ++ ". Now I will fail:")
+          fail "Failed"
+
+runExampleMTL :: IO (Either String a)
+runExampleMTL = runEff $ \ioe ->
+  evalState 0 $ \st ->
+    try $ \ex ->
+      exampleMTL ioe ex st
 
 unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
 unsafeRemoveEff = UnsafeMkEff . unsafeUnEff
