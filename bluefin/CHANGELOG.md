@@ -1,3 +1,7 @@
+## 0.0.4.3
+
+Improve documentation
+
 ## 0.0.4.2
 
 * Depend on `bluefin-internal >= 0.0.4.2` so that Hackage will show
