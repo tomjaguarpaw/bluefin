@@ -89,6 +89,48 @@ module Bluefin
     -- (30, 13)
     -- @
 
+    -- ** Exception handles
+
+    -- | Bluefin exceptions are accessed through
+    -- 'Bluefin.Exception.Exception' handles.  An @Exception@ handle
+    -- is introduced by a handler, such as 'Bluefin.Exception.try',
+    -- and that handler is where the exception, if thrown, will be
+    -- handled.  This arrangement differs from normal Haskell
+    -- exceptions in two ways.  Firstly, every Bluefin exception will
+    -- be handled – it is not possible to have an unhandled Bluefin
+    -- exception.  Secondly, a Bluefin exception can be handled in
+    -- only one place – normal Haskell exceptions can be handled in a
+    -- variety of places, and the closest handler of matching type on
+    -- the stack will be the one that will be chosen upon
+    -- 'Control.Exception.throw'.
+    --
+    -- @example3@ shows how to use Bluefin to calculate the sum of
+    -- numbers from 1 to @n@, but stop if the sum becomes bigger than
+    -- 20.  The exception handle, @ex@, which has type @Exception
+    -- String e@, cannot escape the scope of its handler, @try@.  If
+    -- thrown it will be handled at that @try@, and nowhere else.
+    --
+    -- @
+    -- example3 :: Int -> Either String Int
+    -- example3 n = 'Bluefin.Eff.runPureEff' $
+    --   'Bluefin.Exception.try' $ \\ex -> do
+    --     'Bluefin.State.evalState' 0 $ \\total -> do
+    --       for_ [1..n] $ \\i -> do
+    --          soFar <- 'Bluefin.State.get' total
+    --          when (soFar > 20) $ do
+    --            'Bluefin.Exception.throw' ex ("Became too big: " ++ show soFar)
+    --          'Bluefin.State.put' total (soFar + i)
+    --
+    --       'Bluefin.State.get' total
+    -- @
+    --
+    -- @
+    -- >>> example3 4
+    -- Right 10
+    -- >>> example3 10
+    -- Left "Became too big: 21"
+    -- @
+
     -- ** Effect scoping
 
     -- | Bluefin's use of the type system is very similar to

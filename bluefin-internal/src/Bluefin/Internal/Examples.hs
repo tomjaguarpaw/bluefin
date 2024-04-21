@@ -114,6 +114,18 @@ example2_ =
             pure (n', m')
    in (example2 (5, 10), example2 (12, 5))
 
+example3' :: Int -> Either String Int
+example3' n = runPureEff $
+  try $ \ex -> do
+    evalState 0 $ \total -> do
+      for_ [1..n] $ \i -> do
+         soFar <- get total
+         when (soFar > 20) $ do
+           throw ex ("Became too big: " ++ show soFar)
+         put total (soFar + i)
+
+      get total
+
 -- Count non-empty lines from stdin, and print a friendly message,
 -- until we see "STOP".
 example3_ :: IO ()
