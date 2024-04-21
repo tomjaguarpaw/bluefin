@@ -2,14 +2,16 @@ module Bluefin
   ( -- * In brief
 
     -- | Bluefin is an effect system which allows you to freely mix a
-    -- variety of effects, accessed though value-level handles,
-    -- including
+    -- variety of effects, including
     --
     --  * "Bluefin.EarlyReturn", for early return
     --  * "Bluefin.Exception", for exceptions
     --  * "Bluefin.IO", for I/O
     --  * "Bluefin.State", for mutable state
     --  * "Bluefin.Stream", for streams
+    --
+    -- Bluefin effects are accessed through explicitly though
+    -- value-level handles.
 
     -- * Introduction
 
@@ -51,11 +53,13 @@ module Bluefin
 
     -- | A benefit of value-level effect handles is that it's simple
     -- to have multiple effects of the same type in scope at the same
-    -- time.  It's easy to disambiguate them because they are distinct
-    -- values!  It is not simple with existing effect systems because
-    -- they require the disambiguation to occur at the type level.
-    -- Here is an example with two mutable @Int@ state effects in
-    -- scope.
+    -- time.  It is simple to disambiguate them, because they are
+    -- distinct values!  By contrast, existing effect systems require
+    -- the disambiguation to occur at the type level, which imposes
+    -- challenges.
+    --
+    -- Here is a Bluefin example with two mutable @Int@ state effects
+    -- in scope.
     --
     -- @
     -- -- Compare two values and add 10
@@ -103,11 +107,11 @@ module Bluefin
     -- @
     --
     -- Here @\<Handle\>@ could be, for example, @State Int@,
-    -- @Exception String@ or @IOE@.  Consider the example below,
-    -- @incrementReadLine@, which reads integers from standard input
-    -- and accumulates them into a state.  It returns when it reads
-    -- the input integer @0@ and it throws an exception if it
-    -- encounters an input line it cannot parse.
+    -- @Exception String@ or @IOE@.  Consider the function below,
+    -- @incrementReadLine@. It reads integers from standard input,
+    -- accumulates them into a state; it returns when it reads the
+    -- input integer @0@ and it throws an exception if it encounters
+    -- an input line it cannot parse.
     --
     -- Firstly, let's look at the arguments, which are all handles to
     -- Bluefin effects.  There is a state handle, an exception handle,
@@ -170,9 +174,10 @@ module Bluefin
     --
     -- This means that the effect @e@, corresponding to the handle
     -- @\<Handle\> e@, has been handled and removed from the set of
-    -- remaining effects, @es@.  (The signatures for @runEff@ and
-    -- @runPureEff@ are slightly different because they remove all
-    -- effects.)
+    -- remaining effects, @es@.  (The signatures for
+    -- 'Bluefin.Eff.runEff' and 'Bluefin.Eff.runPureEff' are slightly
+    -- different because they remove @Eff@ itself.)  Here, then, is
+    -- how we can run @incrementReadLine@:
     --
     -- @
     -- runIncrementReadLine :: IO (Either String Int)
@@ -213,11 +218,13 @@ module Bluefin
     -- in effectful they are represented only at the type level.
     -- effectful could be described as "a well-typed implementation of
     -- the @ReaderT@ @IO@ pattern", and Bluefin could be described as
-    -- a well-typed implementation of something even simpler: "the
-    -- functions-that-return-@IO@ pattern".  The aim of the Bluefin
-    -- style of value-level effect tracking is to make it even easier
-    -- to mix effects, especially effects of the same type. Only time
-    -- will tell which approach is preferable in practice.
+    -- a well-typed implementation of something even simpler: the
+    -- [Handle
+    -- pattern](https://jaspervdj.be/posts/2018-03-08-handle-pattern.html).
+    -- The aim of the Bluefin style of value-level effect tracking is
+    -- to make it even easier to mix effects, especially effects of
+    -- the same type. Only time will tell which approach is preferable
+    -- in practice.
 
     -- Haddock seems to have trouble with italic sections spanning
     -- lines :(
@@ -226,9 +233,8 @@ module Bluefin
     -- /top of effectful?/"
     --
     -- It would be great to share code between the two projects!  But
-    -- there are two Bluefin features that I don't know to implement
-    -- in terms of effectful: "Bluefin.Coroutine"s and
-    -- "Bluefin.Compound" effects.
+    --  I don't know to implement Bluefin's "Bluefin.Compound" effects
+    --  in effectful.
 
     -- * Implementation
 
@@ -236,9 +242,8 @@ module Bluefin
     -- t'Bluefin.Eff.Eff' is an opaque wrapper around 'IO',
     -- t'Bluefin.State.State' is an opaque wrapper around
     -- 'Data.IORef.IORef', and 'Bluefin.Exception.throw' throws an
-    -- actual @IO@ exception.  t'Bluefin.Coroutine.Coroutine', which
-    -- doesn't exist in effectful, is implemented simply as a
-    -- function.
+    -- actual @IO@ exception.  t'Bluefin.Coroutine.Coroutine' is
+    -- implemented simply as a function.
     --
     -- @
     -- newtype t'Bluefin.Eff.Eff' (es :: 'Bluefin.Eff.Effects') a = 'Bluefin.Internal.UnsafeMkEff' (IO a)
