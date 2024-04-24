@@ -609,3 +609,28 @@ instance Handle Application where
           applicationState = mapHandle a,
           logger = mapHandle l
         }
+
+interpret ::
+  (forall x. (h r -> Eff r x) -> Eff r x) ->
+  (forall e. h e -> Eff (e :& r) a) ->
+  Eff r a
+interpret q k = useImplIn k =<< q pure
+
+interpretExample ::
+  (e1 :> r, e2 :> r) =>
+  Exception String e1 ->
+  State [(FilePath, String)] e2 ->
+  (forall e. FileSystem e -> Eff (e :& r) a) ->
+  Eff r a
+interpretExample ex fs = interpret $ \k ->
+  k
+    MkFileSystem
+      { readFileImpl = \path -> do
+          fs' <- get fs
+          case lookup path fs' of
+            Nothing ->
+              throw ex ("File not found: " <> path)
+            Just s -> pure s,
+        writeFileImpl = \path contents ->
+          modify fs ((path, contents) :)
+      }
