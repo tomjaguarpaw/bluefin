@@ -118,11 +118,11 @@ example3' :: Int -> Either String Int
 example3' n = runPureEff $
   try $ \ex -> do
     evalState 0 $ \total -> do
-      for_ [1..n] $ \i -> do
-         soFar <- get total
-         when (soFar > 20) $ do
-           throw ex ("Became too big: " ++ show soFar)
-         put total (soFar + i)
+      for_ [1 .. n] $ \i -> do
+        soFar <- get total
+        when (soFar > 20) $ do
+          throw ex ("Became too big: " ++ show soFar)
+        put total (soFar + i)
 
       get total
 
