@@ -271,6 +271,28 @@ exampleMTL ioe ex st y =
           liftIO (putStrLn $ "Whatever was " ++ show i ++ ". Now I will fail:")
           fail "Failed"
 
+-- I don't think we need EffStack to implement this, actually.  A
+-- simpler implementation should be easy.
+mtl :: EffStack '[h] es r -> h -> Eff es r
+mtl m h = runMTLStyle (handleMTLWith h m)
+
+exampleMTL2 ::
+  (e1 :> es, e2 :> es, e3 :> es, e4 :> es) =>
+  IOE e1 ->
+  Exception String e2 ->
+  State Int e3 ->
+  Stream Int e4 ->
+  Eff es r
+exampleMTL2 ioe ex st y = do
+  mtl (setWhateverTo 0) st
+  mtl incrementWhatever st
+  mtl incrementWhatever st
+  i <- mtl getWhatever st
+  when (i >= 100) $
+    yield y i
+  mtl (liftIO (putStrLn $ "Whatever was " ++ show i ++ ". Now I will fail:")) ioe
+  mtl (fail "Failed") ex
+
 runExampleMTL :: IO (Either String ([Int], r))
 runExampleMTL = runEff $ \ioe ->
   evalState 0 $ \st ->
