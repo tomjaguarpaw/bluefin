@@ -23,6 +23,7 @@ import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
+import Control.Monad (when)
 
 data Effects = Union Effects Effects
 
@@ -250,12 +251,13 @@ class (Monad m) => MonadWhatever m where
   getWhatever :: m Int
 
 exampleMTL ::
-  (e1 :> es, e2 :> es, e3 :> es) =>
+  (e1 :> es, e2 :> es, e3 :> es, e4 :> es) =>
   IOE e1 ->
   Exception String e2 ->
   State Int e3 ->
+  Stream Int e4 ->
   Eff es r
-exampleMTL ioe ex st =
+exampleMTL ioe ex st y =
   runMTLStyle $
     handleMTLWith ioe $
       handleMTLWith ex $
@@ -264,14 +266,17 @@ exampleMTL ioe ex st =
           incrementWhatever
           incrementWhatever
           i <- getWhatever
+          when (i >= 100) $
+            liftEffStack (yield y i)
           liftIO (putStrLn $ "Whatever was " ++ show i ++ ". Now I will fail:")
           fail "Failed"
 
-runExampleMTL :: IO (Either String a)
+runExampleMTL :: IO (Either String ([Int], r))
 runExampleMTL = runEff $ \ioe ->
   evalState 0 $ \st ->
     try $ \ex ->
-      exampleMTL ioe ex st
+      yieldToList $ \j ->
+        exampleMTL ioe ex st j
 
 unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
 unsafeRemoveEff = UnsafeMkEff . unsafeUnEff
