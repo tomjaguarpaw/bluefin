@@ -10,6 +10,7 @@ module Bluefin.Internal where
 
 import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
+import Control.Monad (when)
 import Control.Monad.Base (MonadBase (liftBase))
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
@@ -23,7 +24,6 @@ import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
-import Control.Monad (when)
 
 data Effects = Union Effects Effects
 
