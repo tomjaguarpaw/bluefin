@@ -21,11 +21,15 @@ library
       NoImplicitPrelude
     exposed-modules:
       Bluefin,
+      Bluefin.Algae,
+      Bluefin.Algae.Cancellable,
       Bluefin.Compound,
       Bluefin.Coroutine,
+      Bluefin.DelCont,
       Bluefin.EarlyReturn,
       Bluefin.Eff,
       Bluefin.Exception,
+      Bluefin.Exception.Dynamic,
       Bluefin.IO,
       Bluefin.Jump,
       Bluefin.Reader,
