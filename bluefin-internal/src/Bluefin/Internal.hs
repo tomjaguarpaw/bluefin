@@ -834,12 +834,42 @@ catMaybes s y = mapMaybe id s y
 
 type Jump = EarlyReturn ()
 
+-- |
+-- @
+-- runPureEff $ 'withStateSource' $ \\source -> do
+--   n <- 'newState' source 5
+--   total <- newState source 0
+--
+--   'Bluefin.Jump.withJump' $ \\done -> forever $ do
+--     n' <- 'Bluefin.State.get' n
+--     'Bluefin.State.modify' total (+ n')
+--     when (n' == 0) $ 'Bluefin.Jump.jumpTo' done
+--     modify n (subtract 1)
+--
+--   get total
+-- 15
+-- @
 withJump ::
   (forall j. Jump j -> Eff (j :& es) ()) ->
   -- | ͘
   Eff es ()
 withJump = withEarlyReturn
 
+-- |
+-- @
+-- runPureEff $ 'withStateSource' $ \\source -> do
+--   n <- 'newState' source 5
+--   total <- newState source 0
+--
+--   'Bluefin.Jump.withJump' $ \\done -> forever $ do
+--     n' <- 'Bluefin.State.get' n
+--     'Bluefin.State.modify' total (+ n')
+--     when (n' == 0) $ 'Bluefin.Jump.jumpTo' done
+--     modify n (subtract 1)
+--
+--   get total
+-- 15
+-- @
 jumpTo ::
   (j :> es) =>
   Jump j ->
