@@ -777,6 +777,24 @@ yieldToList f = do
   (as, r) <- yieldToReverseList f
   pure (reverse as, r)
 
+-- |
+-- @
+-- >>> runPureEff $ withYieldToList $ \y -> do
+--   yield y 1
+--   yield y 2
+--   yield y 100
+--   pure length
+-- 3
+-- @
+withYieldToList ::
+  -- | Stream computation
+  (forall e. Stream a e -> Eff (e :& es) ([a] -> r)) ->
+  -- | Result
+  Eff es r
+withYieldToList f = do
+  (l, g) <- yieldToList f
+  pure (g l)
+
 -- | This is more efficient than 'yieldToList' because it gathers the
 -- elements into a stack in reverse order. @yieldToList@ then reverses
 -- that stack.

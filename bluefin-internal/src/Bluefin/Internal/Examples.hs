@@ -61,6 +61,13 @@ yieldExample = runPureEff $ yieldToList $ \y -> do
   yield y 2
   yield y 100
 
+withYieldToListExample :: Int
+withYieldToListExample = runPureEff $ withYieldToList $ \y -> do
+  yield y 1
+  yield y 2
+  yield y 100
+  pure length
+
 forEachExample :: ([Int], ())
 forEachExample = runPureEff $ yieldToList $ \y -> do
   forEach (inFoldable [0 .. 4]) $ \i -> do
