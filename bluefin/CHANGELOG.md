@@ -1,3 +1,7 @@
+## 0.0.6.0
+
+* Add `withYieldToList`
+
 ## 0.0.5.0
 
 * Fix roles on `Eff` (thanks to @Lysxia)
