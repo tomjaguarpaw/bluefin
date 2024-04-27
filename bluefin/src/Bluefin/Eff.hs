@@ -4,6 +4,8 @@ module Bluefin.Eff
     -- * Run an 'Eff'
     runPureEff,
     runEff,
+    -- * Resource management
+    bracket,
     -- * Type classes
 
     -- | See "Bluefin.Eff.IO" for the most direct way of doing I/O in
