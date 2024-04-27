@@ -10,6 +10,8 @@ module Bluefin
     --  * "Bluefin.State", for mutable state
     --  * "Bluefin.Stream", for streams
     --
+    -- and to create your own effects in terms of existing ones
+    -- ("Bluefin.Compound").
     -- Bluefin effects are accessed explicitly though
     -- value-level handles.
 
