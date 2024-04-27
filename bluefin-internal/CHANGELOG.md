@@ -4,6 +4,8 @@
 
 * Add `bracket` (thanks to @Lysxia)
 
+* Document `Jump`
+
 ## 0.0.4.2
 
 * Add documentation for `Handle`
