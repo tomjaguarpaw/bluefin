@@ -388,6 +388,20 @@ catch ::
   Eff es a
 catch f h = handle h f
 
+-- | @'bracket' acquire release thing@ : @acquire@ a resource, do a @thing@
+-- with it, and @release@ the resource even if @thing@ threw an exception.
+--
+-- For more details, see 'Control.Exception.bracket'.
+bracket ::
+  io :> es =>
+  IOE io ->
+  Eff es a ->
+  (a -> Eff es ()) ->
+  (a -> Eff es b) ->
+  Eff es b
+bracket _ before after thing = UnsafeMkEff $ Control.Exception.bracket
+  (unsafeUnEff before) (unsafeUnEff . after) (unsafeUnEff . thing)
+
 -- |
 -- @
 -- >>> runPureEff $ runState 10 $ \\st -> do

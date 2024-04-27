@@ -7,6 +7,8 @@ module Bluefin.Exception
     catch,
     -- * Effectful operations
     throw,
+    -- * Resource management
+    bracket,
   )
 where
 
