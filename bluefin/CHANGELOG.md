@@ -1,3 +1,11 @@
+## 0.0.5.0
+
+* Fix roles on `Eff` (thanks to @Lysxia)
+
+* Add `bracket` (thanks to @Lysxia)
+
+* Document `Jump`
+
 ## 0.0.4.3
 
 Improve documentation

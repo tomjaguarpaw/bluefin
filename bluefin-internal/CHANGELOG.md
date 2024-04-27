@@ -1,3 +1,9 @@
+## 0.0.5.0
+
+* Fix roles on `Eff` (thanks to @Lysxia)
+
+* Add `bracket` (thanks to @Lysxia)
+
 ## 0.0.4.2
 
 * Add documentation for `Handle`
