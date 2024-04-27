@@ -470,11 +470,11 @@ withScopedException_ f = do
 
 -- |
 -- @
--- runPureEff $ withStateSource $ \\source -> do
---   n <- newState source 5
+-- 'runPureEff' $ 'withStateSource' $ \\source -> do
+--   n <- 'newState' source 5
 --   total <- newState source 0
 --
---   'Bluefin.Jump.withJump' $ \\done -> forever $ do
+--   'withJump' $ \\done -> forever $ do
 --     n' <- 'Bluefin.State.get' n
 --     'Bluefin.State.modify' total (+ n')
 --     when (n' == 0) $ 'Bluefin.Jump.jumpTo' done
@@ -491,8 +491,8 @@ withStateSource f = unsafeRemoveEff (f StateSource)
 
 -- |
 -- @
--- runPureEff $ withStateSource $ \\source -> do
---   n <- newState source 5
+-- runPureEff $ 'withStateSource' $ \\source -> do
+--   n <- 'newState' source 5
 --   total <- newState source 0
 --
 --   'Bluefin.Jump.withJump' $ \\done -> forever $ do
