@@ -45,6 +45,9 @@ e4 = E.runError (E.throwError ())
 
 Bluefin infers the type with no problem
 
+```.hs
 -- Inferred:
 -- m :: Eff es (Either () a)
 m = B.try $ \ex -> B.throw ex ()
+```
+
