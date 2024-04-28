@@ -41,12 +41,22 @@ e4 :: E.Eff es (Either (E.CallStack, ()) a)
 e4 = E.runError (E.throwError ())
 ```
 
+Alternatively we can apply a type application to `runError`, to
+disambiguate. The type application plays a similar role to Bluefin's
+effect handle.
+
+```.hs
+-- Inferred:
+-- e5 :: E.Eff es (Either (E.CallStack, ()) a)
+e5 = E.runError @() (E.throwError ())
+```
+
 ### Bluefin
 
 Bluefin infers the type with no problem
 
 ```.hs
 -- Inferred:
--- m :: Eff es (Either () a)
-m = B.try $ \ex -> B.throw ex ()
+-- b :: Eff es (Either () a)
+b = B.try $ \ex -> B.throw ex ()
 ```
