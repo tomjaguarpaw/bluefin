@@ -50,4 +50,3 @@ Bluefin infers the type with no problem
 -- m :: Eff es (Either () a)
 m = B.try $ \ex -> B.throw ex ()
 ```
-
