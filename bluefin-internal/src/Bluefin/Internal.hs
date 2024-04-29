@@ -779,7 +779,7 @@ yieldToList f = do
 
 -- |
 -- @
--- >>> runPureEff $ withYieldToList $ \y -> do
+-- >>> runPureEff $ withYieldToList $ \\y -> do
 --   yield y 1
 --   yield y 2
 --   yield y 100
