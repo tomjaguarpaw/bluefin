@@ -12,7 +12,7 @@ module Bluefin
     --
     -- and to create your own effects in terms of existing ones
     -- ("Bluefin.Compound").
-    -- Bluefin effects are accessed explicitly though
+    -- Bluefin effects are accessed explicitly through
     -- value-level handles.
 
     -- * Introduction
