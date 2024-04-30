@@ -44,3 +44,9 @@ would not exist.
 
 * Jasper van de Jeugt, particularly for promoting the handle pattern
   <https://jaspervdj.be/posts/2018-03-08-handle-pattern.html#fnref2>
+
+* Michael Thompson, for his work on `streaming`
+
+* Ningning Xie and Daan Leijen, for their work on Koka
+
+* Andrej Bauer and Matija Pretnar, for their work on Eff
