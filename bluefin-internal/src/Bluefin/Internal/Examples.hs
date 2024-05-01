@@ -616,3 +616,33 @@ instance Handle Application where
           applicationState = mapHandle a,
           logger = mapHandle l
         }
+
+-- This example shows a case where we can use @bracket@ polymorphically
+-- in order to perform correct cleanup if @es@ is instantiated to a
+-- set of effects that includes exceptions.
+polymorphicBracket ::
+  (st :> es) =>
+  State (Integer, Bool) st ->
+  Eff es () ->
+  Eff es ()
+polymorphicBracket st act =
+  bracket
+    (pure ())
+    -- Always set the boolean indicating that we have terminated
+    (\_ -> modify st (\(c, b) -> (c, True)))
+    -- Perform the given effectful action, then increment the counter
+    (\_ -> do act; modify st (\(c, b) -> ((c + 1), b)))
+
+-- Results in (1, True)
+polymorphicBracketExample1 :: (Integer, Bool)
+polymorphicBracketExample1 =
+  runPureEff $ do
+    (_res, st) <- runState (0, False) $ \st -> polymorphicBracket st (pure ())
+    pure st
+
+-- Results in (0, True)
+polymorphicBracketExample2 :: (Integer, Bool)
+polymorphicBracketExample2 =
+  runPureEff $ do
+    (_res, st) <- runState (0, False) $ \st -> try $ \e -> polymorphicBracket st (throw e 42)
+    pure st

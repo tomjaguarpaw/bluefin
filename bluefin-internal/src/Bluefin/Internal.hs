@@ -238,7 +238,6 @@ type Stream a = Coroutine a ()
 -- fmap per @->@ that appears in type of the dynamic effect.  That is,
 -- @queryDatabase@ has type @String -> Int -> Eff e [String]@, which
 -- has two @->@, so there are two @fmap@s before @useImpl@.
-
 class Handle (h :: Effects -> Type) where
   -- | Used to create compound effects, i.e. handles that contain
   -- other handles.
@@ -396,13 +395,34 @@ catch f h = handle h f
 -- exception.  This is essentially the same as
 -- @Control.Exception.'Control.Exception.bracket'@, whose
 -- documentation you can inspect for further details.
+--
+-- @bracket@ has a very general type that does not require @es@ to
+-- contain an exception or IO effect. The reason that this is safe is:
+--
+--    * While @bracket@ does catch exceptions, this is unobservable,
+--      since the exception is re-thrown; the cleanup action happens
+--      unconditionally; and no part of it gets access to the thrown
+--      exception.
+--
+--    * 'Eff' itself is able to guarantee that any exceptions thrown
+--      in the body will be actually thrown before @bracket@
+--      exits. This is inherited from the fact that @Eff@ is a wrapper
+--      around 'IO'.
+--
+-- While it is usually the case that the cleanup action will in fact
+-- want to use @IO@ effects, this is not universally true, see the
+-- @polymorphicBracket@ example for an example.
 bracket ::
   Eff es a ->
   (a -> Eff es ()) ->
   (a -> Eff es b) ->
   Eff es b
-bracket before after body = UnsafeMkEff $ Control.Exception.bracket
-  (unsafeUnEff before) (unsafeUnEff . after) (unsafeUnEff . body)
+bracket before after body =
+  UnsafeMkEff $
+    Control.Exception.bracket
+      (unsafeUnEff before)
+      (unsafeUnEff . after)
+      (unsafeUnEff . body)
 
 -- |
 -- @
