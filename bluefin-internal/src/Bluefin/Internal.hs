@@ -413,9 +413,13 @@ catch f h = handle h f
 -- want to use @IO@ effects, this is not universally true, see the
 -- @polymorphicBracket@ example for an example.
 bracket ::
+  -- | Acquire the resource
   Eff es a ->
+  -- | Release the resource
   (a -> Eff es ()) ->
+  -- | Run the body
   (a -> Eff es b) ->
+  -- |
   Eff es b
 bracket before after body =
   UnsafeMkEff $
