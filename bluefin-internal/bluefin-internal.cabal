@@ -85,6 +85,7 @@ library
     ghc-options: -Wall
     exposed-modules:
       Bluefin.Internal,
+      Bluefin.Internal.Handle,
       Bluefin.Internal.Examples
 
 test-suite bluefin-test

@@ -26,6 +26,7 @@ library
       Bluefin.EarlyReturn,
       Bluefin.Eff,
       Bluefin.Exception,
+      Bluefin.Handle,
       Bluefin.IO,
       Bluefin.Jump,
       Bluefin.Reader,
