@@ -5,10 +5,8 @@
 module Bluefin.Handle
   ( -- * Effect signatures
     Sig
-  , CovariantSig(..)
 
     -- * Handle types
-  , HandleImpl
   , Handle
 
     -- * Handle creation

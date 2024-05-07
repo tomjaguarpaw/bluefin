@@ -523,6 +523,9 @@ data FileSystem es = MkFileSystem
     writeFileImpl :: FilePath -> String -> Eff es ()
   }
 
+instance IsHandle FileSystem where
+  mapHandle (MkFileSystem read write) = MkFileSystem (useImpl . read) (fmap useImpl . write)
+
 readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
 readFile fs filepath = useImpl (readFileImpl fs filepath)
 
@@ -596,7 +599,7 @@ exampleRunFileSystemIO = runEff $ \io -> try $ \ex ->
 -- \$ cat /tmp/bluefin
 -- Hello!
 
--- instance Handle example
+-- instance IsHandle example
 
 data Application e = MkApplication
   { queryDatabase :: String -> Int -> Eff e [String],
@@ -604,7 +607,7 @@ data Application e = MkApplication
     logger :: Stream String e
   }
 
-instance Handle Application where
+instance IsHandle Application where
   mapHandle
     MkApplication
       { queryDatabase = q,
