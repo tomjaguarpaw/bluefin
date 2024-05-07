@@ -34,9 +34,9 @@ import Bluefin.Internal (Eff, Effects, IsHandle(..), mergeEff, type (:&), type (
 --
 -- @
 -- type State :: Type -> 'Sig'
--- data State s m = MkState
---   { get :: m s
---   , put :: s -> m ()
+-- data State s e = MkState
+--   { get :: Eff e s
+--   , put :: s -> Eff e ()
 --   }
 -- @
 type Sig = Effects -> Type
