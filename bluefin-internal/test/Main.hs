@@ -4,7 +4,7 @@
 module Main (main) where
 
 import Bluefin.Internal
-import Bluefin.Internal.Handle (CovariantSig(..), with)
+import Bluefin.Internal.Handle (with)
 import qualified Bluefin.Internal.Handle as H
 import Control.Monad (when)
 import Data.Foldable (for_)
@@ -154,10 +154,10 @@ listEff (as, r) y = do
   pure r
 
 -- Test custom handles
-data MyReader r m = MkMyReader { myAsk :: m r }
+data MyReader r e = MkMyReader { myAsk :: Eff e r }
 
-instance CovariantSig (MyReader r) where
-  smap f h = MkMyReader { myAsk = f (myAsk h) }
+instance IsHandle (MyReader r) where
+  mapHandle h = MkMyReader { myAsk = useImpl (myAsk h) }
 
-runMyReader :: r -> (forall s0. H.Handle (MyReader r) s0 -> Eff (s0 :& s) a) -> Eff s a
+runMyReader :: r -> (forall e0. H.Handle (MyReader r) e0 -> Eff (e0 :& e) a) -> Eff e a
 runMyReader r = with (MkMyReader { myAsk = pure r })
