@@ -4,6 +4,7 @@ module Bluefin.State
     -- * Handlers
     evalState,
     runState,
+    withState,
     -- * Effectful operations
     get,
     put,
