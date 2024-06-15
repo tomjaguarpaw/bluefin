@@ -536,7 +536,7 @@ readFile ::
   Exception FileSystemError e1 ->
   FilePath ->
   Eff es String
-readFile = readFileImpl
+readFile fs ex fp = readFileImpl fs ex fp
 
 writeFile :: (e :> es) => FileSystem e -> FilePath -> String -> Eff es ()
 writeFile fs filepath contents = useImpl (writeFileImpl fs filepath contents)
