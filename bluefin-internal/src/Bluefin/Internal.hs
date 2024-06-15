@@ -299,6 +299,23 @@ b = bimap (eq (# #))
 subsume1 :: (e2 `In` e1) -> (e1 :& e2) `In` e1
 subsume1 i = cmp (bimap (eq (# #)) i) (merge (# #))
 
+useW ::
+  forall e1 e3 e2 eff r.
+  ((e1 :& e3) :> e2) =>
+  ((e1 :> e2) => eff e2 r) ->
+  eff e2 r
+useW r =
+  case have (w (has @(e1 :& e3) @e2)) of
+    Dict -> r
+
+useCmp ::
+  forall e1 e2 e3 eff r.
+  (e1 :> e2) =>
+  (e2 :> e3) =>
+  ((e1 :> e3) => eff e3 r) ->
+  eff e3 r
+useCmp = inComp @e1 @e2 @e3
+
 -- | Effect subset constraint
 class (es1 :: Effects) :> (es2 :: Effects)
 

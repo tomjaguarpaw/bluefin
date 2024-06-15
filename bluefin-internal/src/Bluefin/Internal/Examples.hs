@@ -518,37 +518,44 @@ exampleCounter6 = runPureEff $ yieldToList $ \y -> do
 
 -- FileSystem
 
+type FileSystemError = String
+
 data FileSystem es = MkFileSystem
-  { readFileImpl :: FilePath -> Eff es String,
+  { readFileImpl ::
+      forall e es'.
+      (es :> es', e :> es') =>
+      Exception FileSystemError e ->
+      FilePath ->
+      Eff es' String,
     writeFileImpl :: FilePath -> String -> Eff es ()
   }
 
 readFile ::
-  (e :> es) =>
+  (e :> es, e1 :> es) =>
   FileSystem e ->
+  Exception FileSystemError e1 ->
   FilePath ->
   Eff es String
-readFile fs filepath = useImpl (readFileImpl fs filepath)
+readFile = readFileImpl
 
 writeFile :: (e :> es) => FileSystem e -> FilePath -> String -> Eff es ()
 writeFile fs filepath contents = useImpl (writeFileImpl fs filepath contents)
 
 runFileSystemPure ::
-  (e1 :> es) =>
-  Exception String e1 ->
+  forall es r.
   [(FilePath, String)] ->
   (forall e2. FileSystem e2 -> Eff (e2 :& es) r) ->
   Eff es r
-runFileSystemPure ex fs0 k =
-  evalState fs0 $ \fs ->
+runFileSystemPure fs0 k =
+  evalState fs0 $ \(fs :: State [(FilePath, String)] st) ->
     useImplIn
       k
       MkFileSystem
-        { readFileImpl = \path -> do
-            fs' <- get fs
+        { readFileImpl = \ex' path -> do
+            fs' <- useW @st @es (get fs)
             case lookup path fs' of
               Nothing ->
-                throw ex ("File not found: " <> path)
+                throw ex' ("File not found: " <> path)
               Just s -> pure s,
           writeFileImpl = \path contents ->
             modify fs ((path, contents) :)
@@ -565,35 +572,41 @@ runFileSystemIO ex io k =
   useImplIn
     k
     MkFileSystem
-      { readFileImpl = \path ->
-          adapt (Prelude.readFile path),
+      { readFileImpl = \ex' path ->
+          useCmp @e2 @es (adapt ex' (Prelude.readFile path)),
         writeFileImpl =
-          \path -> adapt . Prelude.writeFile path
+          \path -> adapt ex . Prelude.writeFile path
       }
   where
-    adapt :: (e1 :> ess, e2 :> ess) => IO a -> Eff ess a
-    adapt m =
+    adapt :: (ex :> ess, e2 :> ess) => Exception String ex -> IO a -> Eff ess a
+    adapt ex' m =
       effIO io (Control.Exception.try @IOException m) >>= \case
-        Left e -> throw ex (show e)
+        Left e -> throw ex' (show e)
         Right r -> pure r
 
-action :: (e :> es) => FileSystem e -> Eff es String
-action fs = do
-  file <- readFile fs "/dev/null"
+action :: (e :> es, e1 :> es) => Exception FileSystemError e1 -> FileSystem e -> Eff es String
+action ex fs = do
+  eFile <- try $ \ex' -> do
+    readFile fs ex' "/dev/null"
+
+  file <- case eFile of
+    Left l -> error l
+    Right r -> pure r
+
   when (length file == 0) $ do
     writeFile fs "/tmp/bluefin" "Hello!\n"
-  readFile fs "/tmp/doesn't exist"
+  readFile fs ex "/tmp/doesn't exist"
 
 exampleRunFileSystemPure :: Either String String
 exampleRunFileSystemPure = runPureEff $ try $ \ex ->
-  runFileSystemPure ex [("/dev/null", "")] action
+  runFileSystemPure [("/dev/null", "")] (action ex)
 
 -- > exampleRunFileSystemPure
 -- Left "File not found: /tmp/doesn't exist"
 
 exampleRunFileSystemIO :: IO (Either String String)
 exampleRunFileSystemIO = runEff $ \io -> try $ \ex ->
-  runFileSystemIO ex io action
+  runFileSystemIO ex io (action ex)
 
 -- > exampleRunFileSystemIO
 -- Left "/tmp/doesn't exist: openFile: does not exist (No such file or directory)"
