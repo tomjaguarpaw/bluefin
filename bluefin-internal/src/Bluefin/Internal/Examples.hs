@@ -523,7 +523,11 @@ data FileSystem es = MkFileSystem
     writeFileImpl :: FilePath -> String -> Eff es ()
   }
 
-readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
+readFile ::
+  (e :> es) =>
+  FileSystem e ->
+  FilePath ->
+  Eff es String
 readFile fs filepath = useImpl (readFileImpl fs filepath)
 
 writeFile :: (e :> es) => FileSystem e -> FilePath -> String -> Eff es ()
