@@ -419,7 +419,7 @@ bracket ::
   (a -> Eff es ()) ->
   -- | Run the body
   (a -> Eff es b) ->
-  -- |
+  -- | ͘
   Eff es b
 bracket before after body =
   UnsafeMkEff $
