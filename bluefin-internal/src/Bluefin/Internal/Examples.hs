@@ -565,8 +565,8 @@ runFileSystemIO ex io k =
   useImplIn
     k
     MkFileSystem
-      { readFileImpl =
-          adapt . Prelude.readFile,
+      { readFileImpl = \path ->
+          adapt (Prelude.readFile path),
         writeFileImpl =
           \path -> adapt . Prelude.writeFile path
       }
