@@ -1,1 +1,3 @@
-packages: bluefin/bluefin.cabal bluefin-internal/bluefin-internal.cabal
+packages:
+  bluefin/bluefin.cabal
+  bluefin-internal/bluefin-internal.cabal
