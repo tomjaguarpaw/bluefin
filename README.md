@@ -15,6 +15,12 @@ including
 For an introduction to Bluefin, see the docs in the
 [`Bluefin`](bluefin/src/Bluefin.hs) module.
 
+## Examples
+
+There is an `bluefin-examples` package which you can see in this
+repository at
+[`bluefin-examples/src/Bluefin/Examples`](bluefin-examples/src/Bluefin/Examples).
+
 ## Acknowledgements
 
 Tom Ellis would like to thank many individuals for their work related
