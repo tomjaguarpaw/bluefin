@@ -541,18 +541,21 @@ runFileSystemPure ::
   Eff es r
 runFileSystemPure ex fs0 k =
   evalState fs0 $ \fs ->
-    useImplIn
-      k
-      MkFileSystem
-        { readFileImpl = \path -> do
-            fs' <- get fs
-            case lookup path fs' of
-              Nothing ->
-                throw ex ("File not found: " <> path)
-              Just s -> pure s,
-          writeFileImpl = \path contents ->
-            modify fs ((path, contents) :)
-        }
+    -- This extra handler confirms that we can create our handle in
+    -- the context of more than one handler
+    evalState () $ \_ ->
+      useImplIn
+        k
+        MkFileSystem
+          { readFileImpl = \path -> do
+              fs' <- get fs
+              case lookup path fs' of
+                Nothing ->
+                  throw ex ("File not found: " <> path)
+                Just s -> pure s,
+            writeFileImpl = \path contents ->
+              modify fs ((path, contents) :)
+          }
 
 runFileSystemIO ::
   forall e1 e2 es r.
