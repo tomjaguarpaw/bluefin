@@ -1,21 +1,21 @@
-{-# LANGUAGE
-  KindSignatures,
-  RankNTypes,
-  TypeOperators #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Bluefin.Internal.Handle
   ( -- * Effect signatures
-    Sig
+    Sig,
 
     -- * Handle usage
-  , Handle
+    Handle,
 
     -- * Handle creation
-  , with
-  ) where
+    with,
+  )
+where
 
+import Bluefin.Internal (Eff, Effects, IsHandle (..), mergeEff, type (:&), type (:>))
 import Data.Kind (Type)
-import Bluefin.Internal (Eff, Effects, IsHandle(..), mergeEff, type (:&), type (:>))
 
 -- | An effect signature declares a set of effectful operations.
 --
@@ -57,16 +57,19 @@ type Sig = Effects -> Type
 -- get :: e0 :> e => 'Handle' (State s) e0 -> 'Eff' e s
 -- put :: e0 :> e => 'Handle' (State s) e0 -> s -> 'Eff' e ()
 -- @
-type Handle f e = (forall e1. e :> e1 => f e1)
+type Handle f e = (forall e1. (e :> e1) => f e1)
 
 -- | Create a 'Handle' @h@ with signature @f@, using the given implementation @impl@.
 --
 -- @
 -- 'with' impl \\h -> ...
 -- @
-with :: IsHandle f =>
-  f e ->  -- ^ Implementation with effect @e@
+with ::
+  (IsHandle f) =>
+  -- | Implementation with effect @e@
+  f e ->
   (forall e0. Handle f e0 -> Eff (e0 :& e) a) ->
   Eff e a
 with handle action = mergeEff (action (mapHandle handle))
+
 -- Internally, we just instantiate e0 with e.
