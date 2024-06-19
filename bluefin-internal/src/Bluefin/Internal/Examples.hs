@@ -591,18 +591,18 @@ runFileSystemPure' ex fs0 k =
     -- This extra handler confirms that we can create our handle in
     -- the context of more than one handler
     evalState () $ \_ ->
-      let fsh0 =
-            MkFileSystem
-              { readFileImpl = \path -> do
-                  fs' <- get fs
-                  case lookup path fs' of
-                    Nothing ->
-                      throw ex ("File not found: " <> path)
-                    Just s -> pure s,
-                writeFileImpl = \path contents ->
-                  modify fs ((path, contents) :)
-              }
-       in within k fsh0
+      within
+        k
+        MkFileSystem
+          { readFileImpl = \path -> do
+              fs' <- get fs
+              case lookup path fs' of
+                Nothing ->
+                  throw ex ("File not found: " <> path)
+                Just s -> pure s,
+            writeFileImpl = \path contents ->
+              modify fs ((path, contents) :)
+          }
 
 action :: (e :> es) => FileSystem e -> Eff es String
 action fs = do
