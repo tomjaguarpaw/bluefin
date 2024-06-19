@@ -611,6 +611,13 @@ action fs = do
     writeFile fs "/tmp/bluefin" "Hello!\n"
   readFile fs "/tmp/doesn't exist"
 
+action' :: e :> es => Handle FileSystem e -> Eff es String
+action' fs = do
+  file <- readFileImpl fs "/dev/null"
+  when (length file == 0) $ do
+    writeFileImpl fs "/tmp/bluefin" "Hello!\n"
+  readFileImpl fs "/tmp/doesn't exist"
+
 exampleRunFileSystemPure :: Either String String
 exampleRunFileSystemPure = runPureEff $ try $ \ex ->
   runFileSystemPure ex [("/dev/null", "")] action
