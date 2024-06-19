@@ -14,7 +14,14 @@ module Bluefin.Internal.Handle
   )
 where
 
-import Bluefin.Internal (Eff, Effects, IsHandle (..), mergeEff, type (:&), type (:>))
+import Bluefin.Internal
+  ( Eff,
+    Effects,
+    IsHandle (..),
+    mergeEff,
+    type (:&),
+    type (:>),
+  )
 import Data.Kind (Type)
 
 -- | An effect signature declares a set of effectful operations.
