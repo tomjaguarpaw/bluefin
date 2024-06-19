@@ -623,6 +623,10 @@ exampleRunFileSystemPure :: Either String String
 exampleRunFileSystemPure = runPureEff $ try $ \ex ->
   runFileSystemPure ex [("/dev/null", "")] action
 
+-- exampleRunFileSystemPure' :: Either String String
+-- exampleRunFileSystemPure' = runPureEff $ try $ \ex ->
+--   runFileSystemPure' ex [("/dev/null", "")] action'
+
 -- > exampleRunFileSystemPure
 -- Left "File not found: /tmp/doesn't exist"
 
