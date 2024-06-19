@@ -11,6 +11,7 @@ module Bluefin.Internal.Handle
 
     -- * Handle creation
     with,
+    within,
   )
 where
 
@@ -18,6 +19,7 @@ import Bluefin.Internal
   ( Eff,
     Effects,
     IsHandle (..),
+    insertManySecond,
     mergeEff,
     type (:&),
     type (:>),
@@ -80,3 +82,18 @@ with ::
 with handle action = mergeEff (action (mapHandle handle))
 
 -- Internally, we just instantiate e0 with e.
+
+within ::
+  (IsHandle f, e :> es) =>
+  (forall e0. Handle f e0 -> Eff (e0 :& e) r) ->
+  f es ->
+  Eff es r
+within k fsh0 = with fsh0 (useImplWithin k)
+
+-- Like useImplIn
+useImplWithin ::
+  (e :> es) =>
+  (Handle f e1 -> Eff (e1 :& e) r) ->
+  Handle f e1 ->
+  Eff (e1 :& es) r
+useImplWithin k fsh = insertManySecond (k fsh)

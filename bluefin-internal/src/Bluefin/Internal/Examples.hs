@@ -4,7 +4,7 @@
 module Bluefin.Internal.Examples where
 
 import Bluefin.Internal hiding (w)
-import Bluefin.Internal.Handle (Handle, with)
+import Bluefin.Internal.Handle (Handle, within)
 import Control.Exception (IOException)
 import qualified Control.Exception
 import Control.Monad (forever, unless, when)
@@ -602,7 +602,7 @@ runFileSystemPure' ex fs0 k =
                 writeFileImpl = \path contents ->
                   modify fs ((path, contents) :)
               }
-       in with fsh0 $ \fsh -> insertSecond (insertSecond (k fsh))
+       in within k fsh0
 
 action :: (e :> es) => FileSystem e -> Eff es String
 action fs = do
