@@ -585,17 +585,18 @@ runFileSystemPure' ::
   Eff es r
 runFileSystemPure' ex fs0 k =
   evalState fs0 $ \fs ->
-    let fsh0 = MkFileSystem
-          { readFileImpl = \path -> do
-              fs' <- get fs
-              case lookup path fs' of
-                Nothing ->
-                  throw ex ("File not found: " <> path)
-                Just s -> pure s,
-            writeFileImpl = \path contents ->
-              modify fs ((path, contents) :)
-          }
-    in with fsh0 $ \fsh -> insertSecond (k fsh)
+    let fsh0 =
+          MkFileSystem
+            { readFileImpl = \path -> do
+                fs' <- get fs
+                case lookup path fs' of
+                  Nothing ->
+                    throw ex ("File not found: " <> path)
+                  Just s -> pure s,
+              writeFileImpl = \path contents ->
+                modify fs ((path, contents) :)
+            }
+     in with fsh0 $ \fsh -> insertSecond (k fsh)
 
 action :: (e :> es) => FileSystem e -> Eff es String
 action fs = do
