@@ -246,6 +246,11 @@ class IsHandle (h :: Effects -> Type) where
   -- other handles.
   mapHandle :: (e :> es) => h e -> h es
 
+class IsHandle1 (h :: Effects -> Effects -> Type) where
+  -- | Used to create compound effects, i.e. handles that contain
+  -- other handles.
+  mapHandle1 :: (e :> es) => h e' e -> h e' es
+
 instance IsHandle (State s) where
   mapHandle (UnsafeMkState s) = UnsafeMkState s
 

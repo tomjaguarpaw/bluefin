@@ -18,7 +18,7 @@ where
 import Bluefin.Internal
   ( Eff,
     Effects,
-    IsHandle (..),
+    IsHandle1 (..),
     insertManySecond,
     mergeEff,
     type (:&),
@@ -66,7 +66,7 @@ type Sig = Effects -> Type
 -- get :: e0 :> e => 'Handle' (State s) e0 -> 'Eff' e s
 -- put :: e0 :> e => 'Handle' (State s) e0 -> s -> 'Eff' e ()
 -- @
-type Handle f e = (forall e1. (e :> e1) => f e1)
+type Handle f e = (forall e1. (e :> e1) => f e e1)
 
 -- | Create a 'Handle' @h@ with signature @f@, using the given implementation @impl@.
 --
@@ -74,19 +74,19 @@ type Handle f e = (forall e1. (e :> e1) => f e1)
 -- 'with' impl \\h -> ...
 -- @
 with ::
-  (IsHandle f) =>
+  (IsHandle1 f) =>
   -- | Implementation with effect @e@
-  f e ->
+  f e e ->
   (forall e0. Handle f e0 -> Eff (e0 :& e) a) ->
   Eff e a
-with handle action = mergeEff (action (mapHandle handle))
+with handle action = mergeEff (action (mapHandle1 handle))
 
 -- Internally, we just instantiate e0 with e.
 
 within ::
-  (IsHandle f, e :> es) =>
+  (IsHandle1 f, e :> es) =>
   (forall e0. Handle f e0 -> Eff (e0 :& e) r) ->
-  f es ->
+  f es es ->
   Eff es r
 within k fsh0 = with fsh0 (useImplWithin k)
 
