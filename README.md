@@ -39,8 +39,8 @@ would not exist.
   continuations
 
 * David Feuer, particularly for [his observation about handlers and
-  rank-2 types](
-  https://www.reddit.com/r/haskell/comments/pywuqg/comment/hexo2uu/
+  rank-2
+  types](https://www.reddit.com/r/haskell/comments/pywuqg/comment/hexo2uu/)
 
 * Andrzej Rybczak for his work on effectful
 
