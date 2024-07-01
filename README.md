@@ -44,12 +44,12 @@ would not exist.
 
 * Andrzej Rybczak for his work on effectful
 
-* Francois Pottier for "Wandering through linear types, capabilities,
-  and regions"
-  <http://pauillac.inria.fr/~fpottier/slides/fpottier-2007-05-linear-bestiary.pdf>
+* Francois Pottier for "[Wandering through linear types, capabilities,
+  and
+  regions](http://pauillac.inria.fr/~fpottier/slides/fpottier-2007-05-linear-bestiary.pdf)"
 
-* Jasper van de Jeugt, particularly for promoting the handle pattern
-  <https://jaspervdj.be/posts/2018-03-08-handle-pattern.html#fnref2>
+* Jasper van de Jeugt, particularly for promoting [the handle
+  pattern](https://jaspervdj.be/posts/2018-03-08-handle-pattern.html#fnref2)
 
 * Michael Thompson, for his work on `streaming`
 
