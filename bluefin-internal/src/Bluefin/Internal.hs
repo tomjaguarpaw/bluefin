@@ -190,7 +190,7 @@ data StateSource (st :: Effects) = StateSource
 -- | Handle to an exception of type @e@
 newtype Exception e (ex :: Effects) = UnsafeMkException (forall a. e -> IO a)
 
--- | A handle to a strict mutable state of type @a@
+-- | A handle to a strict mutable state of type @s@
 newtype State s (st :: Effects) = UnsafeMkState (IORef s)
 
 -- | A handle to a coroutine that expects values of type @a@ and then
