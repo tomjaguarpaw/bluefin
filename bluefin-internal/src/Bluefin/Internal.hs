@@ -185,17 +185,17 @@ useImplIn ::
 useImplIn f h = inContext (f h)
 
 -- | Handle to a capability to create strict mutable state handles
-data StateSource (st :: Effects) = StateSource
+data StateSource (e :: Effects) = StateSource
 
--- | Handle to an exception of type @e@
-newtype Exception e (ex :: Effects) = UnsafeMkException (forall a. e -> IO a)
+-- | Handle to an exception of type @exn@
+newtype Exception exn (e :: Effects) = UnsafeMkException (forall a. exn -> IO a)
 
 -- | A handle to a strict mutable state of type @s@
-newtype State s (st :: Effects) = UnsafeMkState (IORef s)
+newtype State s (e :: Effects) = UnsafeMkState (IORef s)
 
 -- | A handle to a coroutine that expects values of type @a@ and then
 -- yields values of type @b@.
-newtype Coroutine a b (s :: Effects) = MkCoroutine (a -> Eff s b)
+newtype Coroutine a b (e :: Effects) = MkCoroutine (a -> Eff e b)
 
 -- | A handle to a stream that yields values of type @a@.  It is
 -- implemented as a handle to a coroutine that expects values of type
@@ -356,10 +356,10 @@ have = unsafeCoerce (Dict @(a :> (a :& b)))
 -- Left 42
 -- @
 try ::
-  forall e (es :: Effects) a.
-  (forall ex. Exception e ex -> Eff (ex :& es) a) ->
+  forall exn (es :: Effects) a.
+  (forall e. Exception exn e -> Eff (e :& es) a) ->
   -- | @Left@ if the exception was thrown, @Right@ otherwise
-  Eff es (Either e a)
+  Eff es (Either exn a)
 try f =
   UnsafeMkEff $ withScopedException_ (\throw_ -> unsafeUnEff (f (UnsafeMkException throw_)))
 
@@ -372,10 +372,10 @@ try f =
 -- "42"
 -- @
 handle ::
-  forall e (es :: Effects) a.
+  forall exn (es :: Effects) a.
   -- | If the exception is thrown, apply this handler
-  (e -> Eff es a) ->
-  (forall ex. Exception e ex -> Eff (ex :& es) a) ->
+  (exn -> Eff es a) ->
+  (forall e. Exception exn e -> Eff (e :& es) a) ->
   Eff es a
 handle h f =
   try f >>= \case
@@ -383,10 +383,10 @@ handle h f =
     Right a -> pure a
 
 catch ::
-  forall e (es :: Effects) a.
-  (forall ex. Exception e ex -> Eff (ex :& es) a) ->
+  forall exn (es :: Effects) a.
+  (forall e. Exception exn e -> Eff (e :& es) a) ->
   -- | If the exception is thrown, apply this handler
-  (e -> Eff es a) ->
+  (exn -> Eff es a) ->
   Eff es a
 catch f h = handle h f
 
@@ -436,8 +436,8 @@ bracket before after body =
 -- (20,10)
 -- @
 get ::
-  (st :> es) =>
-  State s st ->
+  (e :> es) =>
+  State s e ->
   -- | The current value of the state
   Eff es s
 get (UnsafeMkState r) = UnsafeMkEff (readIORef r)
@@ -450,8 +450,8 @@ get (UnsafeMkState r) = UnsafeMkEff (readIORef r)
 -- ((), 30)
 -- @
 put ::
-  (st :> es) =>
-  State s st ->
+  (e :> es) =>
+  State s e ->
   -- | The new value of the state.  The new value is forced before
   -- writing it to the state.
   s ->
@@ -465,8 +465,8 @@ put (UnsafeMkState r) s = UnsafeMkEff (writeIORef r $! s)
 -- ((), 20)
 -- @
 modify ::
-  (st :> es) =>
-  State s st ->
+  (e :> es) =>
+  State s e ->
   -- | Apply this function to the state.  The new value of the state
   -- is forced before writing it to the state.
   (s -> s) ->
@@ -548,7 +548,7 @@ runState ::
   -- | Initial state
   s ->
   -- | Stateful computation
-  (forall st. State s st -> Eff (st :& es) a) ->
+  (forall e. State s e -> Eff (e :& es) a) ->
   -- | Result and final state
   Eff es (a, s)
 runState s f = do
@@ -669,7 +669,7 @@ type EarlyReturn = Exception
 -- "Returned early with 5"
 -- @
 withEarlyReturn ::
-  (forall er. EarlyReturn r er -> Eff (er :& es) r) ->
+  (forall e. EarlyReturn r e -> Eff (e :& es) r) ->
   -- | ͘
   Eff es r
 withEarlyReturn = handle pure
@@ -684,8 +684,8 @@ withEarlyReturn = handle pure
 -- "Returned early with 5"
 -- @
 returnEarly ::
-  (er :> es) =>
-  EarlyReturn r er ->
+  (e :> es) =>
+  EarlyReturn r e ->
   -- | Return early to the handler, with this value.
   r ->
   Eff es a
@@ -702,7 +702,7 @@ evalState ::
   -- | Initial state
   s ->
   -- | Stateful computation
-  (forall st. State s st -> Eff (st :& es) a) ->
+  (forall e. State s e -> Eff (e :& es) a) ->
   -- | Result
   Eff es a
 evalState s f = fmap fst (runState s f)
@@ -893,7 +893,7 @@ type Jump = EarlyReturn ()
 -- 15
 -- @
 withJump ::
-  (forall j. Jump j -> Eff (j :& es) ()) ->
+  (forall e. Jump e -> Eff (e :& es) ()) ->
   -- | ͘
   Eff es ()
 withJump = withEarlyReturn
@@ -914,13 +914,13 @@ withJump = withEarlyReturn
 -- 15
 -- @
 jumpTo ::
-  (j :> es) =>
-  Jump j ->
+  (e :> es) =>
+  Jump e ->
   -- | ͘
   Eff es a
 jumpTo tag = throw tag ()
 
-unwrap :: (j :> es) => Jump j -> Maybe a -> Eff es a
+unwrap :: (e :> es) => Jump e -> Maybe a -> Eff es a
 unwrap j = \case
   Nothing -> jumpTo j
   Just a -> pure a
