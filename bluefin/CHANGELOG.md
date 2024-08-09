@@ -1,3 +1,7 @@
+## 0.0.6.1
+
+* Documentation improvements
+
 ## 0.0.6.0
 
 * Add `withYieldToList`
