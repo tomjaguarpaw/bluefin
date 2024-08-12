@@ -1,9 +1,11 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Bluefin.Internal.Examples where
 
 import Bluefin.Internal hiding (w)
+import Bluefin.Internal.Handle (Handle, within)
 import Control.Exception (IOException)
 import qualified Control.Exception
 import Control.Monad (forever, unless, when)
@@ -518,44 +520,50 @@ exampleCounter6 = runPureEff $ yieldToList $ \y -> do
 
 -- FileSystem
 
-data FileSystem es = MkFileSystem
+data FileSystem e es = MkFileSystem
   { readFileImpl :: FilePath -> Eff es String,
     writeFileImpl :: FilePath -> String -> Eff es ()
   }
 
-readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
+instance IsHandle1 FileSystem where
+  mapHandle1 (MkFileSystem read write) = MkFileSystem (useImpl . read) (fmap useImpl . write)
+
+readFile :: (e :> es) => FileSystem e' e -> FilePath -> Eff es String
 readFile fs filepath = useImpl (readFileImpl fs filepath)
 
-writeFile :: (e :> es) => FileSystem e -> FilePath -> String -> Eff es ()
+writeFile :: (e :> es) => FileSystem e' e -> FilePath -> String -> Eff es ()
 writeFile fs filepath contents = useImpl (writeFileImpl fs filepath contents)
 
 runFileSystemPure ::
   (e1 :> es) =>
   Exception String e1 ->
   [(FilePath, String)] ->
-  (forall e2. FileSystem e2 -> Eff (e2 :& es) r) ->
+  (forall e2. FileSystem e' e2 -> Eff (e2 :& es) r) ->
   Eff es r
 runFileSystemPure ex fs0 k =
   evalState fs0 $ \fs ->
-    useImplIn
-      k
-      MkFileSystem
-        { readFileImpl = \path -> do
-            fs' <- get fs
-            case lookup path fs' of
-              Nothing ->
-                throw ex ("File not found: " <> path)
-              Just s -> pure s,
-          writeFileImpl = \path contents ->
-            modify fs ((path, contents) :)
-        }
+    -- This extra handler confirms that we can create our handle in
+    -- the context of more than one handler
+    evalState () $ \_ ->
+      useImplIn
+        k
+        MkFileSystem
+          { readFileImpl = \path -> do
+              fs' <- get fs
+              case lookup path fs' of
+                Nothing ->
+                  throw ex ("File not found: " <> path)
+                Just s -> pure s,
+            writeFileImpl = \path contents ->
+              modify fs ((path, contents) :)
+          }
 
 runFileSystemIO ::
-  forall e1 e2 es r.
+  forall e1 e2 es r e'.
   (e1 :> es, e2 :> es) =>
   Exception String e1 ->
   IOE e2 ->
-  (forall e. FileSystem e -> Eff (e :& es) r) ->
+  (forall e. FileSystem e' e -> Eff (e :& es) r) ->
   Eff es r
 runFileSystemIO ex io k =
   useImplIn
@@ -573,16 +581,51 @@ runFileSystemIO ex io k =
         Left e -> throw ex (show e)
         Right r -> pure r
 
-action :: (e :> es) => FileSystem e -> Eff es String
+runFileSystemPure' ::
+  (e1 :> es) =>
+  Exception String e1 ->
+  [(FilePath, String)] ->
+  (forall e2. Handle FileSystem e2 -> Eff (e2 :& es) r) ->
+  Eff es r
+runFileSystemPure' ex fs0 k =
+  evalState fs0 $ \fs ->
+    -- This extra handler confirms that we can create our handle in
+    -- the context of more than one handler
+    evalState () $ \_ ->
+      within
+        k
+        MkFileSystem
+          { readFileImpl = \path -> do
+              fs' <- get fs
+              case lookup path fs' of
+                Nothing ->
+                  throw ex ("File not found: " <> path)
+                Just s -> pure s,
+            writeFileImpl = \path contents ->
+              modify fs ((path, contents) :)
+          }
+
+action :: (e :> es) => FileSystem e' e -> Eff es String
 action fs = do
   file <- readFile fs "/dev/null"
   when (length file == 0) $ do
     writeFile fs "/tmp/bluefin" "Hello!\n"
   readFile fs "/tmp/doesn't exist"
 
+action' :: e :> es => Handle FileSystem e -> Eff es String
+action' fs = do
+  file <- readFileImpl fs "/dev/null"
+  when (length file == 0) $ do
+    writeFileImpl fs "/tmp/bluefin" "Hello!\n"
+  readFileImpl fs "/tmp/doesn't exist"
+
 exampleRunFileSystemPure :: Either String String
 exampleRunFileSystemPure = runPureEff $ try $ \ex ->
   runFileSystemPure ex [("/dev/null", "")] action
+
+exampleRunFileSystemPure' :: Either String String
+exampleRunFileSystemPure' = runPureEff $ try $ \ex ->
+  runFileSystemPure' ex [("/dev/null", "")] action'
 
 -- > exampleRunFileSystemPure
 -- Left "File not found: /tmp/doesn't exist"
@@ -596,7 +639,7 @@ exampleRunFileSystemIO = runEff $ \io -> try $ \ex ->
 -- \$ cat /tmp/bluefin
 -- Hello!
 
--- instance Handle example
+-- instance IsHandle example
 
 data Application e = MkApplication
   { queryDatabase :: String -> Int -> Eff e [String],
@@ -604,7 +647,7 @@ data Application e = MkApplication
     logger :: Stream String e
   }
 
-instance Handle Application where
+instance IsHandle Application where
   mapHandle
     MkApplication
       { queryDatabase = q,

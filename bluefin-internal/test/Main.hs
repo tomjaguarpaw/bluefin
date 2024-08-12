@@ -4,6 +4,8 @@
 module Main (main) where
 
 import Bluefin.Internal
+import Bluefin.Internal.Handle (with)
+import qualified Bluefin.Internal.Handle as H
 import Control.Monad (when)
 import Data.Foldable (for_)
 import Data.Monoid (All (All))
@@ -34,6 +36,9 @@ main = do
       "List"
       (runPureEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
       ([20, 30, 40], "Hello")
+    assertEqual' "MyReader"
+      (runPureEff (runMyReader 42 (\h -> myAsk h)))
+      (42 :: Int)
 
 -- A SpecH yields pairs of
 --
@@ -147,3 +152,12 @@ listEff :: (e1 :> es) => ([a], r) -> Stream a e1 -> Eff es r
 listEff (as, r) y = do
   for_ as (yield y)
   pure r
+
+-- Test custom handles
+data MyReader r e = MkMyReader { myAsk :: Eff e r }
+
+instance IsHandle (MyReader r) where
+  mapHandle h = MkMyReader { myAsk = useImpl (myAsk h) }
+
+runMyReader :: r -> (forall e0. H.Handle (MyReader r) e0 -> Eff (e0 :& e) a) -> Eff e a
+runMyReader r = with (MkMyReader { myAsk = pure r })
