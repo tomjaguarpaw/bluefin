@@ -956,6 +956,12 @@ runEff ::
   IO a
 runEff eff = unsafeUnEff (eff MkIOE)
 
+unsafeProvideIO ::
+  (forall e. IOE e -> Eff (e :& es) a) ->
+  -- | ͘
+  Eff es a
+unsafeProvideIO eff = unsafeRemoveEff (eff MkIOE)
+
 connect ::
   (forall e1. Coroutine a b e1 -> Eff (e1 :& es) r1) ->
   (forall e2. a -> Coroutine b a e2 -> Eff (e2 :& es) r2) ->
