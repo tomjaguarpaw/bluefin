@@ -137,6 +137,12 @@ connectCoroutines m1 m2 = unsafeProvideIO $ \io -> do
 
   race (useImplWithin t1) (useImplWithin t2) io
 
+receiveStream ::
+  (forall e. Coroutine () a e -> Eff (e :& es) r) ->
+  (forall e. Stream a e -> Eff (e :& es) r) ->
+  Eff es r
+receiveStream r s = connectCoroutines r (\() -> s)
+
 instance (e :> es) => MonadBase IO (EffReader (IOE e) es) where
   liftBase = liftIO
 
