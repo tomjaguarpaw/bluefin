@@ -28,6 +28,8 @@ library
       Bluefin.Exception,
       Bluefin.IO,
       Bluefin.Jump,
+      Bluefin.Pipes,
+      Bluefin.Pipes.Prelude,
       Bluefin.Reader,
       Bluefin.State,
       Bluefin.StateSource,

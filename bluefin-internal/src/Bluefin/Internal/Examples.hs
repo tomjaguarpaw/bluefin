@@ -4,6 +4,15 @@
 module Bluefin.Internal.Examples where
 
 import Bluefin.Internal hiding (w)
+import Bluefin.Internal.Pipes
+  ( Producer,
+    runEffect,
+    stdinLn,
+    stdoutLn,
+    takeWhile',
+    (>->),
+  )
+import qualified Bluefin.Internal.Pipes as P
 import Control.Exception (IOException)
 import qualified Control.Exception
 import Control.Monad (forever, unless, when)
@@ -646,3 +655,13 @@ polymorphicBracketExample2 =
   runPureEff $ do
     (_res, st) <- runState (0, False) $ \st -> try $ \e -> polymorphicBracket st (throw e 42)
     pure st
+
+pipesExample1 :: IO ()
+pipesExample1 = runEff $ \io -> runEffect (count >-> P.print io)
+  where
+    count :: (e :> es) => Producer Int e -> Eff es ()
+    count p = for_ [1 .. 5] $ \i -> P.yield p i
+
+pipesExample2 :: IO String
+pipesExample2 = runEff $ \io -> runEffect $ do
+  stdinLn io >-> takeWhile' (/= "quit") >-> stdoutLn io
