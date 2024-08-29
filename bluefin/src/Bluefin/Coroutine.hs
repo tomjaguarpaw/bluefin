@@ -12,6 +12,7 @@ module Bluefin.Coroutine
 
     -- * Handlers
     forEach,
+    connectCoroutines,
 
     -- * Effectful operations
     yieldCoroutine,

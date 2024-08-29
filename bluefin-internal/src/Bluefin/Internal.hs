@@ -10,6 +10,7 @@
 module Bluefin.Internal where
 
 import qualified Control.Concurrent.Async as Async
+import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
 import Control.Monad.Base (MonadBase (liftBase))
@@ -108,6 +109,33 @@ race x y io = do
   pure $ case r of
     Left a -> a
     Right a -> a
+
+-- | Connect two coroutines.  Their execution is interleaved by
+-- exchanging @a@s and @b@s. When the first yields its first @a@ it
+-- starts the second (which is waiting to receive an @a@).
+connectCoroutines ::
+  forall es a b r.
+  (forall e. Coroutine a b e -> Eff (e :& es) r) ->
+  (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
+  -- | ͘
+  Eff es r
+connectCoroutines m1 m2 = unsafeProvideIO $ \io -> do
+  av <- effIO io newEmptyMVar
+  bv <- effIO io newEmptyMVar
+
+  let t1 :: forall e. IOE e -> Eff (e :& es) r
+      t1 io' = forEach (useImplWithin m1) $ \a -> effIO io' $ do
+        putMVar av a
+        takeMVar bv
+
+  let t2 :: forall e. IOE e -> Eff (e :& es) r
+      t2 io' = do
+        ainit <- effIO io' (takeMVar av)
+        forEach (useImplWithin (m2 ainit)) $ \b_ -> effIO io' $ do
+          putMVar bv b_
+          takeMVar av
+
+  race (useImplWithin t1) (useImplWithin t2) io
 
 instance (e :> es) => MonadBase IO (EffReader (IOE e) es) where
   liftBase = liftIO
