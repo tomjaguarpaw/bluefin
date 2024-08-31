@@ -1,4 +1,4 @@
--- | Reimplementation of the @pipes@ prelude ("Pipes.Prelude") in
+-- | Reimplementation of the @pipes@ prelude (@Pipes.Prelude@) in
 -- Bluefin.  See also "Bluefin.Pipes".
 --
 -- @
