@@ -187,6 +187,15 @@ useImplIn ::
   Eff es r
 useImplIn f h = inContext (f h)
 
+-- | Like 'useImplIn'
+useImplWithin ::
+  (e :> es) =>
+  (t -> Eff (e1 :& e) r) ->
+  t ->
+  -- | ͘
+  Eff (e1 :& es) r
+useImplWithin k fsh = insertManySecond (k fsh)
+
 -- | Handle to a capability to create strict mutable state handles
 data StateSource (e :: Effects) = StateSource
 
