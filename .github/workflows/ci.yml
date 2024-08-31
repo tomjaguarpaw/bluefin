@@ -33,6 +33,7 @@ jobs:
           - "9.4.7"
           - "9.6.3"
           - "9.8.1"
+          - "9.10.1"
 
     steps:
     - uses: actions/checkout@v4
