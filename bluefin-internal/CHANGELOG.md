@@ -1,3 +1,9 @@
+## 0.0.7.0
+
+Add `withEffToIO'`, `race`, `connectCoroutines`, `receiveStream`,
+`insertManySecond`, `useImplWithin`, `unsafeProvideIO`, and
+`Bluefin.Internal.Pipes`
+
 ## 0.0.6.1
 
 * Documentation improvements

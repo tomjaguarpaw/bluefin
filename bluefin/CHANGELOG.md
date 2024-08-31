@@ -1,3 +1,8 @@
+## 0.0.7.0
+
+Add `Bluefin.Pipes` and `Bluefin.Pipes.Prelude`, `connectCoroutines`
+and `useImplWithin`
+
 ## 0.0.6.1
 
 * Documentation improvements
