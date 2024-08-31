@@ -9,6 +9,7 @@
 
 module Bluefin.Internal where
 
+import qualified Control.Concurrent.Async as Async
 import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
 import Control.Monad.Base (MonadBase (liftBase))
@@ -93,6 +94,20 @@ instance (e :> es) => MonadUnliftIO (EffReader (IOE e) es) where
                 )
             )
       )
+
+race ::
+  (e2 :> es) =>
+  (forall e. IOE e -> Eff (e :& es) a) ->
+  (forall e. IOE e -> Eff (e :& es) a) ->
+  IOE e2 ->
+  Eff es a
+race x y io = do
+  r <- withEffToIO' io $ \toIO ->
+    Async.race (toIO x) (toIO y)
+
+  pure $ case r of
+    Left a -> a
+    Right a -> a
 
 instance (e :> es) => MonadBase IO (EffReader (IOE e) es) where
   liftBase = liftIO
