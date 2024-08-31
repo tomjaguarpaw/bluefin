@@ -198,8 +198,8 @@ newtype State s (e :: Effects) = UnsafeMkState (IORef s)
 newtype Coroutine a b (e :: Effects) = MkCoroutine (a -> Eff e b)
 
 -- | A handle to a stream that yields values of type @a@.  It is
--- implemented as a handle to a coroutine that expects values of type
--- @()@ and then yields values of type @a@.
+-- implemented as a handle to a coroutine that yields values of type
+-- @a@ and then expects values of type @()@.
 type Stream a = Coroutine a ()
 
 -- | You can define a @Handle@ instance for your compound handles.  As
