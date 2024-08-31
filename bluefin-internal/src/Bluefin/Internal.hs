@@ -64,6 +64,14 @@ withEffToIO ::
   Eff es a
 withEffToIO k io = effIO io (k (\f -> unsafeUnEff (f MkIOE)))
 
+withEffToIO' ::
+  (e2 :> es) =>
+  -- | Continuation with the unlifting function in scope.
+  IOE e2 ->
+  ((forall r. (forall e1. IOE e1 -> Eff (e1 :& es) r) -> IO r) -> IO a) ->
+  Eff es a
+withEffToIO' io k = withEffToIO k io
+
 -- We don't try to do anything sophisticated here.  I haven't thought
 -- through all the consequences.
 instance (e :> es) => MonadUnliftIO (EffReader (IOE e) es) where
