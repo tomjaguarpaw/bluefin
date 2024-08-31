@@ -1,4 +1,4 @@
--- | Reimplementation of the pipes ("Pipes") ecosystem in Bluefin.
+-- | Reimplementation of the @pipes@ ("Pipes") ecosystem in Bluefin.
 -- See also "Bluefin.Pipes.Prelude".
 module Bluefin.Pipes
   ( -- * The Proxy handle
