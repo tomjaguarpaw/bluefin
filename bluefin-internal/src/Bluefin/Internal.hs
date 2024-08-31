@@ -193,8 +193,8 @@ newtype Exception exn (e :: Effects) = UnsafeMkException (forall a. exn -> IO a)
 -- | A handle to a strict mutable state of type @s@
 newtype State s (e :: Effects) = UnsafeMkState (IORef s)
 
--- | A handle to a coroutine that expects values of type @a@ and then
--- yields values of type @b@.
+-- | A handle to a coroutine that yields values of type @a@ and then
+-- expects values of type @b@.
 newtype Coroutine a b (e :: Effects) = MkCoroutine (a -> Eff e b)
 
 -- | A handle to a stream that yields values of type @a@.  It is
