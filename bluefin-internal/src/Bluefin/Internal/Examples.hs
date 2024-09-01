@@ -1,12 +1,11 @@
 {-# LANGUAGE LinearTypes #-}
+{-# LANGUAGE QualifiedDo #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE QualifiedDo #-}
 {-# OPTIONS_GHC -Wno-typed-holes #-}
 
 module Bluefin.Internal.Examples where
 
-import qualified Control.Functor.Linear as L
 import Bluefin.Internal hiding (w)
 import Bluefin.Internal.Pipes
   ( Producer,
@@ -19,6 +18,7 @@ import Bluefin.Internal.Pipes
 import qualified Bluefin.Internal.Pipes as P
 import Control.Exception (IOException)
 import qualified Control.Exception
+import qualified Control.Functor.Linear as L
 import Control.Monad (forever, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
@@ -705,16 +705,25 @@ promptCoroutine = runEff $ \io -> do
 
 linearlyExample :: IO ()
 linearlyExample = runEff $ \io ->
-  linearly
-    (\() y -> for_ [1 .. 3] $ \i -> yield y i)
-    (myLoop io)
+  forEach
+    ( \out -> do
+        linearly
+          (\() y -> for_ [1 .. 3] $ \i -> yield y i)
+          (myLoop out io)
+    )
+    (\s -> effIO io (putStrLn s))
 
-myLoop :: (e :> es, e1 :> es) => IOE e1 -> Linearly () Int () e %1 -> LEff es ((), You'reDone e)
-myLoop io l =
+myLoop ::
+  (e :> es, e1 :> es, e2 :> es) =>
+  Stream String e2 ->
+  IOE e1 ->
+  Linearly () Int () e %1 ->
+  LEff es ((), You'reDone e)
+myLoop y io l =
   yieldLinearly l () L.>>= \case
     Right (Ur r, done) -> L.do
-      liftLEff (effIO io (putStrLn ("done: " <> show r)))
+      liftLEff (yield y ("done: " <> show r))
       lpure ((), done)
     Left (Ur s, l1) -> L.do
-      liftLEff (effIO io (putStrLn ("got: " <> show s)))
-      myLoop io l1
+      liftLEff (yield y ("got: " <> show s))
+      myLoop y io l1
