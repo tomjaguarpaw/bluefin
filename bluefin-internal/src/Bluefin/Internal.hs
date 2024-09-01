@@ -10,6 +10,7 @@
 
 module Bluefin.Internal where
 
+import qualified Data.Functor.Linear as DL
 import qualified Control.Functor.Linear as L
 import qualified Control.Concurrent.Async as Async
 import Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar, takeMVar)
@@ -165,6 +166,23 @@ yieldLinearly (UnsafeMkLinearly (Ur (av, bv))) a = MkLEff $ UnsafeMkEff $ do
     takeMVar bv >>= \case
       Left b_ -> pure (Left (Ur b_, UnsafeMkLinearly (Ur (av, bv))))
       Right r -> pure (Right (Ur r, MkYou'reDone))
+
+instance DL.Functor (LEff es) where
+  fmap = unsafeCoerce (fmap @IO)
+
+instance L.Functor (LEff es) where
+  fmap = unsafeCoerce (fmap @IO)
+
+instance DL.Applicative (LEff es) where
+  pure = unsafeCoerce (pure @IO)
+  (<*>) = unsafeCoerce ((<*>) @IO)
+
+instance L.Applicative (LEff es) where
+  pure = unsafeCoerce (pure @IO)
+  (<*>) = unsafeCoerce ((<*>) @IO)
+
+instance L.Monad (LEff es) where
+  (>>=) = unsafeCoerce ((>>=) @IO)
 
 newtype LEff es r = MkLEff { unLEff :: Eff es r }
 
