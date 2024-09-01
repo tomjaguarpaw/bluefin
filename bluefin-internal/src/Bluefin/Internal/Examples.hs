@@ -1,6 +1,7 @@
 {-# LANGUAGE LinearTypes #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# OPTIONS_GHC -Wno-typed-holes #-}
 
 module Bluefin.Internal.Examples where
 
@@ -910,14 +911,14 @@ linearlyExample = runEff $ \io ->
     (\() y -> for_ [1 .. 3] $ \i -> yield y i)
     (myLoop io)
 
-myLoop :: (e :> es, e1 :> es) => IOE e1 -> Linearly () Int () e %1 -> Eff es ((), You'reDone e)
+myLoop :: (e :> es, e1 :> es) => IOE e1 -> Linearly () Int () e %1 -> LEff es ((), You'reDone e)
 myLoop io l =
   yieldLinearly l () >>>= \case
-    Right (r, done) -> do
-      effIO io (putStrLn ("done: " <> show r))
-      pure ((), done)
-    Left (s, l1) -> do
-      effIO io (putStrLn ("got: " <> show s))
-      myLoop io l1
+    Right (Ur r, done) ->
+      liftLEff (effIO io (putStrLn ("done: " <> show r)))
+        >>> lpure ((), done)
+    Left (Ur s, l1) ->
+      liftLEff (effIO io (putStrLn ("got: " <> show s)))
+        >>> myLoop io l1
 
 -- go l1

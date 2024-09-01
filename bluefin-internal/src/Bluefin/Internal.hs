@@ -10,6 +10,7 @@
 
 module Bluefin.Internal where
 
+import qualified Control.Functor.Linear as L
 import qualified Control.Concurrent.Async as Async
 import Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar, takeMVar)
 import Control.Exception (throwIO, tryJust)
@@ -49,12 +50,6 @@ newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: IO a}
 -- Instead we wrap it in @EffReader@.
 newtype EffReader r es a = MkEffReader {unEffReader :: r -> Eff es a}
   deriving (Functor, Applicative, Monad) via (Reader.ReaderT r (Eff es))
-
-(>>>) :: Eff es a %1 -> Eff es b %1 -> Eff es b
-(>>>) = unsafeCoerce ((>>) @IO)
-
-(>>>=) :: Eff es a %1 -> (a -> Eff es b) %1 -> Eff es b
-(>>>=) = unsafeCoerce ((>>=) @IO)
 
 instance (e :> es) => MonadIO (EffReader (IOE e) es) where
   liftIO = MkEffReader . flip effIO
@@ -164,22 +159,31 @@ data Ur a where
   Ur :: a -> Ur a
 
 yieldLinearly ::
-  (e :> es) => Linearly a b r e %1 -> a -> Eff es (Either (b, Linearly a b r e) (r, You'reDone e))
-yieldLinearly (UnsafeMkLinearly (Ur (av, bv))) a = UnsafeMkEff $ do
+  (e :> es) => Linearly a b r e %1 -> a -> LEff es (Either (Ur b, Linearly a b r e) (Ur r, You'reDone e))
+yieldLinearly (UnsafeMkLinearly (Ur (av, bv))) a = MkLEff $ UnsafeMkEff $ do
     putMVar av a
     takeMVar bv >>= \case
-      Left b_ -> pure (Left (b_, UnsafeMkLinearly (Ur (av, bv))))
-      Right r -> pure (Right (r, MkYou'reDone))
+      Left b_ -> pure (Left (Ur b_, UnsafeMkLinearly (Ur (av, bv))))
+      Right r -> pure (Right (Ur r, MkYou'reDone))
 
-yoldLinearly ::
-  (e :> es) => Linearly a b r e %1 -> a -> Eff es ()
-yoldLinearly (UnsafeMkLinearly (Ur (av, bv))) a = UnsafeMkEff $ do
-  pure ()
+newtype LEff es r = MkLEff { unLEff :: Eff es r }
+
+(>>>) :: LEff es a %1 -> LEff es b %1 -> LEff es b
+(>>>) = unsafeCoerce ((>>) @IO)
+
+(>>>=) :: LEff es a %1 -> (a %1 -> LEff es b) %1 -> LEff es b
+(>>>=) = unsafeCoerce ((>>=) @IO)
+
+liftLEff :: Eff es r -> LEff es r
+liftLEff = MkLEff
+
+lpure :: r %1 -> LEff es r
+lpure = unsafeCoerce (pure @IO)
 
 linearly ::
   forall es a b r r'.
   (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
-  (forall e. Linearly a b r e %1 -> Eff (e :& es) (r', You'reDone e)) ->
+  (forall e. Linearly a b r e %1 -> LEff (e :& es) (r', You'reDone e)) ->
   Eff es r'
 linearly m1 m2 = unsafeProvideIO $ \io -> do
   av <- effIO io newEmptyMVar
@@ -197,7 +201,7 @@ linearly m1 m2 = unsafeProvideIO $ \io -> do
 
   let t2 :: forall e. IOE e -> Eff (e :& es) ()
       t2 io' = do
-        (r, MkYou'reDone) <- m2 (UnsafeMkLinearly (Ur (av, bv)))
+        (r, MkYou'reDone) <- unLEff $ m2 (UnsafeMkLinearly (Ur (av, bv)))
         effIO io' (putMVar rv r)
 
   concurrently_ (useImplWithin t1) (useImplWithin t2) io
