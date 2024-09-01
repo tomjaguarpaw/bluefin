@@ -10,12 +10,11 @@
 
 module Bluefin.Internal where
 
-import qualified Data.Functor.Linear as DL
-import qualified Control.Functor.Linear as L
 import qualified Control.Concurrent.Async as Async
 import Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar, takeMVar)
 import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
+import qualified Control.Functor.Linear as L
 import Control.Monad (forever)
 import Control.Monad.Base (MonadBase (liftBase))
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -23,12 +22,14 @@ import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
 import Control.Monad.Trans.Control (MonadBaseControl, StM, liftBaseWith, restoreM)
 import qualified Control.Monad.Trans.Reader as Reader
 import Data.Foldable (for_)
+import qualified Data.Functor.Linear as DL
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
 import qualified Data.Unique
 import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
+import qualified Unsafe.Linear
 import Prelude hiding (drop, head, read, return)
 
 data Effects = Union Effects Effects
@@ -159,13 +160,19 @@ data You'reDone (e :: Effects) = MkYou'reDone
 data Ur a where
   Ur :: a -> Ur a
 
+data Rr a where
+  Rr :: a %1 -> Rr a
+
 yieldLinearly ::
-  (e :> es) => Linearly a b r e %1 -> a -> LEff es (Either (Ur b, Linearly a b r e) (Ur r, You'reDone e))
+  (e :> es) =>
+  Linearly a b r e %1 ->
+  a ->
+  LEff es (Either (Ur b, Linearly a b r e) (Ur r, You'reDone e))
 yieldLinearly (UnsafeMkLinearly (Ur (av, bv))) a = MkLEff $ UnsafeMkEff $ do
-    putMVar av a
-    takeMVar bv >>= \case
-      Left b_ -> pure (Left (Ur b_, UnsafeMkLinearly (Ur (av, bv))))
-      Right r -> pure (Right (Ur r, MkYou'reDone))
+  putMVar av a
+  takeMVar bv >>= \case
+    Left b_ -> pure (Left (Ur b_, UnsafeMkLinearly (Ur (av, bv))))
+    Right r -> pure (Right (Ur r, MkYou'reDone))
 
 instance DL.Functor (LEff es) where
   fmap = unsafeCoerce (fmap @IO)
@@ -184,13 +191,7 @@ instance L.Applicative (LEff es) where
 instance L.Monad (LEff es) where
   (>>=) = unsafeCoerce ((>>=) @IO)
 
-newtype LEff es r = MkLEff { unLEff :: Eff es r }
-
-(>>>) :: LEff es a %1 -> LEff es b %1 -> LEff es b
-(>>>) = unsafeCoerce ((>>) @IO)
-
-(>>>=) :: LEff es a %1 -> (a %1 -> LEff es b) %1 -> LEff es b
-(>>>=) = unsafeCoerce ((>>=) @IO)
+newtype LEff es r = MkLEff {unLEff :: Eff es r}
 
 liftLEff :: Eff es r -> LEff es r
 liftLEff = MkLEff
@@ -198,12 +199,39 @@ liftLEff = MkLEff
 lpure :: r %1 -> LEff es r
 lpure = unsafeCoerce (pure @IO)
 
+newtype Wrap1 a b es r
+  = Wrap1 (forall e. a -> Coroutine b a e -> Eff (e :& es) r)
+
+newtype Wrap2 a b es r r'
+  = Wrap2 (forall e. Linearly a b r e %1 -> LEff (e :& es) (r', You'reDone e))
+
 linearly ::
   forall es a b r r'.
   (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
+  (forall e. Linearly a b r e %1 -> LEff (e :& es) (r', You'reDone e)) %1 ->
+  LEff es r'
+linearly x y = linearlyWrapL (Wrap1 x) (Wrap2 y)
+
+linearlyWrapL ::
+  forall es a b r r'.
+  Wrap1 a b es r ->
+  Wrap2 a b es r r' %1 ->
+  LEff es r'
+linearlyWrapL x = Unsafe.Linear.toLinear (linearlyWrap x)
+
+linearlyWrap ::
+  forall es a b r r'.
+  Wrap1 a b es r ->
+  Wrap2 a b es r r' ->
+  LEff es r'
+linearlyWrap (Wrap1 w1) (Wrap2 w2_) = linearlyImpl w1 w2_
+
+linearlyImpl ::
+  forall es a b r r'.
+  (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
   (forall e. Linearly a b r e %1 -> LEff (e :& es) (r', You'reDone e)) ->
-  Eff es r'
-linearly m1 m2 = unsafeProvideIO $ \io -> do
+  LEff es r'
+linearlyImpl m1 m2 = MkLEff $ unsafeProvideIO $ \io -> do
   av <- effIO io newEmptyMVar
   bv <- effIO io newEmptyMVar
   rv <- effIO io newEmptyMVar
