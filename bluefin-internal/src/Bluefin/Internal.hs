@@ -157,6 +157,15 @@ newtype Linearly a b r (e :: Effects)
 
 data You'reDone (e :: Effects) = MkYou'reDone
 
+mapYou'reDone :: e `In` es -> You'reDone es %1 -> You'reDone e
+mapYou'reDone _ MkYou'reDone = MkYou'reDone
+
+mergeYou'reDone :: You'reDone e1 %1 -> You'reDone e2 %1 -> You'reDone (e1 :& e2)
+mergeYou'reDone MkYou'reDone MkYou'reDone = MkYou'reDone
+
+splitYou'reDone :: You'reDone (e1 :& e2) %1 -> (You'reDone e1, You'reDone e2)
+splitYou'reDone MkYou'reDone = (MkYou'reDone, MkYou'reDone)
+
 data Ur a where
   Ur :: a -> Ur a
 

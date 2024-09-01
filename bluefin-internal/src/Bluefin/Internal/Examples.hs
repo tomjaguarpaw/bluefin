@@ -916,9 +916,10 @@ linearlyExample = runEff $ \io ->
             (\() y -> for_ ['A' .. 'F'] $ \i -> yield y i)
             ( \l1 ->
                 linearly
-                  (\() y -> for_ [1 .. 3] $ \i -> yield y i)
-                  ( \l2 ->
-                      (alternate out l1 l2)
+                  (\() y -> for_ [1 :: Int .. 3] $ \i -> yield y i)
+                  ( \l2 -> L.do
+                      (d1, d2) <- alternate out l1 l2
+                      L.pure (((), d1), d2)
                   )
             )
     )
@@ -929,12 +930,12 @@ alternate ::
   Stream String e3 ->
   Linearly () a1 () e1 %1 ->
   Linearly () a2 () e2 %1 ->
-  LEff es (((), You'reDone e1), You'reDone e2)
+  LEff es (You'reDone e1, You'reDone e2)
 alternate y l1 l2 =
   yieldLinearly l1 () L.>>= \case
     Right (Ur r, d1) -> L.do
       liftLEff (yield y ("done: " <> show r))
-      yieldAll y (\d2 -> (((), d1), d2)) l2
+      yieldAll y (\d2 -> (d1, d2)) l2
     Left (Ur s, l1') -> L.do
       liftLEff (yield y ("got: " <> show s))
       alternate1 y l2 l1'
@@ -944,12 +945,12 @@ alternate1 ::
   Stream String e3 ->
   Linearly () a1 () e1 %1 ->
   Linearly () a2 () e2 %1 ->
-  LEff es (((), You'reDone e2), You'reDone e1)
+  LEff es (You'reDone e2, You'reDone e1)
 alternate1 y l1 l2 =
   yieldLinearly l1 () L.>>= \case
     Right (Ur r, d1) -> L.do
       liftLEff (yield y ("done: " <> show r))
-      yieldAll y (\d2 -> (((), d2), d1)) l2
+      yieldAll y (\d2 -> (d2, d1)) l2
     Left (Ur s, l1') -> L.do
       liftLEff (yield y ("got: " <> show s))
       alternate y l2 l1'
