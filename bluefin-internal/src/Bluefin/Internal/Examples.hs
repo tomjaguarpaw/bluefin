@@ -971,7 +971,7 @@ polymorphicBracket st act =
     -- Always set the boolean indicating that we have terminated
     (\_ -> modify st (\(c, _b) -> (c, True)))
     -- Perform the given effectful action, then increment the counter
-    (\_ -> do act; modify st (\(c, b) -> ((c + 1), b)))
+    (\_ -> do act; modify st (\(c, b_) -> ((c + 1), b_)))
 
 -- Results in (1, True)
 polymorphicBracketExample1 :: (Integer, Bool)
