@@ -204,12 +204,12 @@ yieldLinearly ::
   (e :> es) =>
   Linearly a b r e %1 ->
   a ->
-  LEff es (Either (Ur b, Linearly a b r e) (Ur r, You'reDone e))
+  LEff es (Either (Ur b, Linearly a b r e) (Ur r))
 yieldLinearly (UnsafeMkLinearly (Ur (av, bv))) a = MkLEff $ UnsafeMkEff $ do
   putMVar av a
   takeMVar bv >>= \case
     Left b_ -> pure (Left (Ur b_, UnsafeMkLinearly (Ur (av, bv))))
-    Right r -> pure (Right (Ur r, MkYou'reDone))
+    Right r -> pure (Right (Ur r))
 
 instance DL.Functor (LEff es) where
   fmap = unsafeCoerce (fmap @IO)
@@ -240,12 +240,12 @@ newtype Wrap1 a b es r
   = Wrap1 (forall e. a -> Coroutine b a e -> Eff (e :& es) r)
 
 newtype Wrap2 a b es r r'
-  = Wrap2 (forall e. Linearly a b r e %1 -> Need e -> LEff (e :& es) r')
+  = Wrap2 (forall e. Linearly a b r e %1 -> LEff (e :& es) r')
 
 linearly ::
   forall es a b r r'.
   (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
-  (forall e. Linearly a b r e %1 -> Need e -> LEff (e :& es) r') %1 ->
+  (forall e. Linearly a b r e %1 -> LEff (e :& es) r') %1 ->
   LEff es r'
 linearly x y = linearlyWrapL (Wrap1 x) (Wrap2 y)
 
@@ -266,7 +266,7 @@ linearlyWrap (Wrap1 w1) (Wrap2 w2_) = linearlyImpl w1 w2_
 linearlyImpl ::
   forall es a b r r'.
   (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
-  (forall e. Linearly a b r e %1 -> Need e -> LEff (e :& es) r') ->
+  (forall e. Linearly a b r e %1 -> LEff (e :& es) r') ->
   LEff es r'
 linearlyImpl m1 m2 = MkLEff $ unsafeProvideIO $ \io -> do
   av <- effIO io newEmptyMVar
@@ -284,7 +284,7 @@ linearlyImpl m1 m2 = MkLEff $ unsafeProvideIO $ \io -> do
 
   let t2 :: forall e. IOE e -> Eff (e :& es) ()
       t2 io' = do
-        r <- unLEff $ m2 (UnsafeMkLinearly (Ur (av, bv))) MkNeed
+        r <- unLEff $ m2 (UnsafeMkLinearly (Ur (av, bv)))
         effIO io' (putMVar rv r)
 
   concurrently_ (useImplWithin t1) (useImplWithin t2) io
