@@ -707,14 +707,13 @@ linearlyExample :: IO ()
 linearlyExample = runEff $ \io ->
   forEach
     ( \out -> do
-        unLEff $
-          linearly
-            (\() y -> for_ ['A' .. 'H'] $ \i -> yield y i)
-            \l1 ->
-              linearly
-                (\() y -> for_ [1 :: Int .. 3] $ \i -> yield y i)
-                \l2 -> L.do
-                    alternate out l1 l2
+        linearly
+          (\() y -> for_ ['A' .. 'H'] $ \i -> yield y i)
+          \l1 ->
+            linearly
+              (\() y -> for_ [1 :: Int .. 3] $ \i -> yield y i)
+              \l2 -> L.do
+                alternate out l1 l2
     )
     (\s -> effIO io (putStrLn s))
 
