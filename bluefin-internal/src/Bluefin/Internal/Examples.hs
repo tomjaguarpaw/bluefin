@@ -76,7 +76,7 @@ yieldExample = runPureEff $ yieldToList $ \y -> do
 
 withYieldToListExample :: Int
 withYieldToListExample = runPureEff $ withYieldToList $ \y -> do
-  yield y 1
+  yield y (1 :: Int)
   yield y 2
   yield y 100
   pure length
@@ -250,7 +250,7 @@ writerExample1 = getAny $ runPureEff $ execWriter $ \w -> do
 
 writerExample2 :: Bool
 writerExample2 = getAny $ runPureEff $ execWriter $ \w -> do
-  for_ [1 .. 10] $ \_ -> tell w (Any True)
+  for_ [1 .. 10 :: Int] $ \_ -> tell w (Any True)
 
 while :: Eff es Bool -> Eff es a -> Eff es ()
 while condM body =
@@ -646,9 +646,9 @@ polymorphicBracket st act =
   bracket
     (pure ())
     -- Always set the boolean indicating that we have terminated
-    (\_ -> modify st (\(c, b) -> (c, True)))
+    (\_ -> modify st (\(c, _) -> (c, True)))
     -- Perform the given effectful action, then increment the counter
-    (\_ -> do act; modify st (\(c, b) -> ((c + 1), b)))
+    (\_ -> do act; modify st (\(c, b_) -> ((c + 1), b_)))
 
 -- Results in (1, True)
 polymorphicBracketExample1 :: (Integer, Bool)
@@ -661,7 +661,7 @@ polymorphicBracketExample1 =
 polymorphicBracketExample2 :: (Integer, Bool)
 polymorphicBracketExample2 =
   runPureEff $ do
-    (_res, st) <- runState (0, False) $ \st -> try $ \e -> polymorphicBracket st (throw e 42)
+    (_res, st) <- runState (0, False) $ \st -> try $ \e -> polymorphicBracket st (throw e (42 :: Int))
     pure st
 
 pipesExample1 :: IO ()
