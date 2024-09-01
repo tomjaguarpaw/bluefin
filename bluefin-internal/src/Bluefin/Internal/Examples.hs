@@ -898,3 +898,17 @@ rethrowIOExample = runEff $ \io -> do
   effIO io $ putStrLn $ case r of
     Left e -> "Caught IOException:\n" ++ show e
     Right contents -> contents
+
+linearlyExample :: IO ()
+linearlyExample = runEff $ \io ->
+  withJump $ \done ->
+    linearly
+      (\() y -> for_ [1 .. 3] $ \i -> yield y i)
+      ( let go l = do
+              yieldLinearly l () >>= \case
+                Right r -> effIO io (putStrLn ("done: " <> show r))
+                Left (s, l1) -> do
+                  effIO io (putStrLn ("got: " <> show s))
+                  go l1
+         in go
+      )
