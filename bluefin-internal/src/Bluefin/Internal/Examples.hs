@@ -1,3 +1,4 @@
+{-# LANGUAGE LinearTypes #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
@@ -142,6 +143,8 @@ example3' n = runPureEff $
 
       get total
 
+{-
+
 -- Count non-empty lines from stdin, and print a friendly message,
 -- until we see "STOP".
 example3_ :: IO ()
@@ -168,6 +171,8 @@ example3_ = runEff $ \io -> do
           enumeratedLines
 
   forEach formattedLines $ \line -> effIO io (putStrLn line)
+
+-}
 
 -- Count the number of (strictly) positives and (strictly) negatives
 -- in a list, unless we see a zero, in which case we bail with an
@@ -697,14 +702,18 @@ promptCoroutine = runEff $ \io -> do
 
 linearlyExample :: IO ()
 linearlyExample = runEff $ \io ->
-  withJump $ \done ->
-    linearly
-      (\() y -> for_ [1 .. 3] $ \i -> yield y i)
-      ( let go l = do
-              yieldLinearly l () >>= \case
-                Right r -> effIO io (putStrLn ("done: " <> show r))
-                Left (s, l1) -> do
-                  effIO io (putStrLn ("got: " <> show s))
-                  go l1
-         in go
-      )
+  linearly
+    (\() y -> for_ [1 .. 3] $ \i -> yield y i)
+    (myLoop io)
+
+myLoop :: (e :> es, e1 :> es) => IOE e1 -> Linearly () Int () e %1 -> Eff es ((), You'reDone e)
+myLoop io l =
+  yieldLinearly l () >>>= \case
+    Right (r, done) -> do
+      effIO io (putStrLn ("done: " <> show r))
+      pure ((), done)
+    Left (s, l1) -> do
+      effIO io (putStrLn ("got: " <> show s))
+      myLoop io l1
+
+-- go l1
