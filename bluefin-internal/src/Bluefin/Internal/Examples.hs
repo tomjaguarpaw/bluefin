@@ -1,10 +1,12 @@
 {-# LANGUAGE LinearTypes #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE QualifiedDo #-}
 {-# OPTIONS_GHC -Wno-typed-holes #-}
 
 module Bluefin.Internal.Examples where
 
+import qualified Control.Functor.Linear as L
 import Bluefin.Internal hiding (w)
 import Bluefin.Internal.Pipes
   ( Producer,
@@ -709,12 +711,10 @@ linearlyExample = runEff $ \io ->
 
 myLoop :: (e :> es, e1 :> es) => IOE e1 -> Linearly () Int () e %1 -> LEff es ((), You'reDone e)
 myLoop io l =
-  yieldLinearly l () >>>= \case
-    Right (Ur r, done) ->
+  yieldLinearly l () L.>>= \case
+    Right (Ur r, done) -> L.do
       liftLEff (effIO io (putStrLn ("done: " <> show r)))
-        >>> lpure ((), done)
-    Left (Ur s, l1) ->
+      lpure ((), done)
+    Left (Ur s, l1) -> L.do
       liftLEff (effIO io (putStrLn ("got: " <> show s)))
-        >>> myLoop io l1
-
--- go l1
+      myLoop io l1
