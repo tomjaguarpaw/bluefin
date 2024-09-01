@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE LinearTypes #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -10,7 +11,7 @@
 module Bluefin.Internal where
 
 import qualified Control.Concurrent.Async as Async
-import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
+import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar, MVar)
 import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
 import Control.Monad.Base (MonadBase (liftBase))
@@ -146,6 +147,47 @@ connectCoroutines m1 m2 = unsafeProvideIO $ \io -> do
           takeMVar av
 
   race (useImplWithin t1) (useImplWithin t2) io
+
+data Linearly a b r e =
+  UnsafeMkLinearly (MVar a) (MVar (Either b r))
+
+yieldLinearly ::
+  e :> es => Linearly a b r e {- %1 -} -> a -> Eff es (Either (b, Linearly a b r e) r)
+yieldLinearly u@(UnsafeMkLinearly av bv) a = UnsafeMkEff $ do
+  putMVar av a
+  takeMVar bv >>= \case
+    Left b_ -> pure (Left (b_, u))
+    Right r -> pure (Right r)
+
+linearly ::
+  forall es a b r r'.
+  (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
+  (forall e. Linearly a b r e {- %1 -} -> Eff (e :& es) r') ->
+  Eff es r'
+linearly m1 m2 = unsafeProvideIO $ \io -> do
+  av <- effIO io newEmptyMVar
+  bv <- effIO io newEmptyMVar
+  rv <- effIO io newEmptyMVar
+
+  let t1 :: forall e. IOE e -> Eff (e :& es) ()
+      t1 io' = do
+        ainit <- effIO io' (takeMVar av)
+        r <- forEach (useImplWithin (m1 ainit)) $ \b_ -> effIO io' $ do
+          putMVar bv (Left b_)
+          takeMVar av
+
+        effIO io' (putMVar bv (Right r))
+
+  let t2 :: forall e. IOE e -> Eff (e :& es) ()
+      t2 io' = do
+        r <- m2 (UnsafeMkLinearly av bv)
+        effIO io' (putMVar rv r)
+
+  concurrently_ (useImplWithin t1) (useImplWithin t2) io
+
+  -- I don't really like returning through rv.  It would be good if we
+  -- could tell t1 to be "done" and block forever without returning.
+  effIO io (takeMVar rv)
 
 receiveStream ::
   (forall e. Coroutine () a e -> Eff (e :& es) r) ->
@@ -498,7 +540,6 @@ bracket ::
   (a -> Eff es ()) ->
   -- | Run the body
   (a -> Eff es b) ->
-  -- |
   Eff es b
 bracket before after body =
   UnsafeMkEff $
