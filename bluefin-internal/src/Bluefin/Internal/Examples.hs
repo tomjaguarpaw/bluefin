@@ -714,9 +714,7 @@ linearlyExample = runEff $ \io ->
                 linearly
                   (\() y -> for_ [1 :: Int .. 3] $ \i -> yield y i)
                   ( \l2 n2 -> L.do
-                      b_ <- alternate out l1 l2 n1 n2
-                      (b1, b2_) <- L.pure (splitBiglyDone b_)
-                      L.pure (((), b1), b2_)
+                      alternate out l1 l2 n1 n2
                   )
             )
     )
@@ -729,14 +727,13 @@ alternate ::
   Linearly () a2 () e2 %1 ->
   Need e1 %1 ->
   Need e2 %1 ->
-  LEff es BiglyDone
+  LEff es ()
 alternate y l1 l2 n1 n2 =
   yieldLinearly l1 () L.>>= \case
     Right (Ur r, d1) -> L.do
-      b_ <- L.pure (provide d1 n1)
-      n <- L.pure (mergeBiglyDone b_ n2)
+      consumeBiglyDone (provide d1 n1)
       liftLEff (yield y ("done: " <> show r))
-      yieldAll y n l2
+      yieldAll y n2 l2
     Left (Ur s, l1') -> L.do
       liftLEff (yield y ("got: " <> show s))
       alternate y l2 l1' n2 n1
@@ -746,12 +743,12 @@ yieldAll ::
   Stream String e2 ->
   Need e %1 ->
   Linearly () a () e %1 ->
-  LEff es BiglyDone
+  LEff es ()
 yieldAll y n l =
   yieldLinearly l () L.>>= \case
     Right (Ur r, done) -> L.do
       liftLEff (yield y ("done: " <> show r))
-      lpure (provide done n)
+      consumeBiglyDone (provide done n)
     Left (Ur s, l1) -> L.do
       liftLEff (yield y ("got: " <> show s))
       yieldAll y n l1

@@ -170,6 +170,9 @@ data BiglyDone = MkBiglyDone
 provide :: You'reDone e %1 -> Need e %1 -> BiglyDone
 provide MkYou'reDone MkNeed = MkBiglyDone
 
+consumeBiglyDone :: BiglyDone %1 -> LEff es ()
+consumeBiglyDone MkBiglyDone = L.pure ()
+
 data You'reDone (e :: Effects) = MkYou'reDone
 
 mapYou'reDone :: e `In` es -> You'reDone es %1 -> You'reDone e
@@ -233,12 +236,12 @@ newtype Wrap1 a b es r
   = Wrap1 (forall e. a -> Coroutine b a e -> Eff (e :& es) r)
 
 newtype Wrap2 a b es r r'
-  = Wrap2 (forall e. Linearly a b r e %1 -> Need e -> LEff (e :& es) (r', BiglyDone))
+  = Wrap2 (forall e. Linearly a b r e %1 -> Need e -> LEff (e :& es) r')
 
 linearly ::
   forall es a b r r'.
   (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
-  (forall e. Linearly a b r e %1 -> Need e -> LEff (e :& es) (r', BiglyDone)) %1 ->
+  (forall e. Linearly a b r e %1 -> Need e -> LEff (e :& es) r') %1 ->
   LEff es r'
 linearly x y = linearlyWrapL (Wrap1 x) (Wrap2 y)
 
@@ -259,7 +262,7 @@ linearlyWrap (Wrap1 w1) (Wrap2 w2_) = linearlyImpl w1 w2_
 linearlyImpl ::
   forall es a b r r'.
   (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
-  (forall e. Linearly a b r e %1 -> Need e -> LEff (e :& es) (r', BiglyDone)) ->
+  (forall e. Linearly a b r e %1 -> Need e -> LEff (e :& es) r') ->
   LEff es r'
 linearlyImpl m1 m2 = MkLEff $ unsafeProvideIO $ \io -> do
   av <- effIO io newEmptyMVar
@@ -277,7 +280,7 @@ linearlyImpl m1 m2 = MkLEff $ unsafeProvideIO $ \io -> do
 
   let t2 :: forall e. IOE e -> Eff (e :& es) ()
       t2 io' = do
-        (r, MkBiglyDone) <- unLEff $ m2 (UnsafeMkLinearly (Ur (av, bv))) MkNeed
+        r <- unLEff $ m2 (UnsafeMkLinearly (Ur (av, bv))) MkNeed
         effIO io' (putMVar rv r)
 
   concurrently_ (useImplWithin t1) (useImplWithin t2) io
