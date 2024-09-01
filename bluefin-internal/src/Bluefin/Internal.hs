@@ -154,50 +154,8 @@ connectCoroutines m1 m2 = unsafeProvideIO $ \io -> do
 newtype Linearly a b r (e :: Effects)
   = UnsafeMkLinearly (Ur (MVar a, MVar (Either b r)))
 
-data Need (e :: Effects) = MkNeed
-
-mergeNeed :: Need e %1 -> Need e' %1 -> Need (e :& e')
-mergeNeed MkNeed MkNeed = MkNeed
-
-splitNeed :: Need (e :& e') %1 -> Need e %1 -> Need e'
-splitNeed MkNeed MkNeed = MkNeed
-
-flipNeed :: Need (e :& e') -> Need (e' :& e)
-flipNeed MkNeed = MkNeed
-
-data BiglyDone = MkBiglyDone
-
-provide :: You'reDone e %1 -> Need e %1 -> BiglyDone
-provide MkYou'reDone MkNeed = MkBiglyDone
-
-satisfy :: You'reDone e %1 -> Need e %1 -> LEff es ()
-satisfy y n = consumeBiglyDone (provide y n)
-
-consumeBiglyDone :: BiglyDone %1 -> LEff es ()
-consumeBiglyDone MkBiglyDone = L.pure ()
-
-data You'reDone (e :: Effects) = MkYou'reDone
-
-mapYou'reDone :: e `In` es -> You'reDone es %1 -> You'reDone e
-mapYou'reDone _ MkYou'reDone = MkYou'reDone
-
-mergeYou'reDone :: You'reDone e1 %1 -> You'reDone e2 %1 -> You'reDone (e1 :& e2)
-mergeYou'reDone MkYou'reDone MkYou'reDone = MkYou'reDone
-
-splitYou'reDone :: You'reDone (e1 :& e2) %1 -> (You'reDone e1, You'reDone e2)
-splitYou'reDone MkYou'reDone = (MkYou'reDone, MkYou'reDone)
-
-mergeBiglyDone :: BiglyDone %1 -> Need e %1 -> Need e
-mergeBiglyDone MkBiglyDone MkNeed = MkNeed
-
-splitBiglyDone :: BiglyDone %1 -> (BiglyDone, BiglyDone)
-splitBiglyDone MkBiglyDone = (MkBiglyDone, MkBiglyDone)
-
 data Ur a where
   Ur :: a -> Ur a
-
-data Rr a where
-  Rr :: a %1 -> Rr a
 
 yieldLinearly ::
   (e :> es) =>
@@ -228,9 +186,6 @@ instance L.Monad (Eff es) where
   (>>=) = unsafeCoerce ((>>=) @IO)
 
 type LEff = Eff
-
-liftLEff :: Eff es r -> LEff es r
-liftLEff = id
 
 newtype Wrap1 a b es r
   = Wrap1 (forall e. a -> Coroutine b a e -> Eff (e :& es) r)

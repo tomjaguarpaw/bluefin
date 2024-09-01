@@ -726,10 +726,10 @@ alternate ::
 alternate y l1 l2 =
   yieldLinearly l1 () L.>>= \case
     Right (Ur r) -> L.do
-      liftLEff (yield y ("done: " <> show r))
+      yield y ("done: " <> show r)
       yieldAll y l2
     Left (Ur s, l1') -> L.do
-      liftLEff (yield y ("got: " <> show s))
+      yield y ("got: " <> show s)
       alternate y l2 l1'
 
 yieldAll ::
@@ -740,7 +740,7 @@ yieldAll ::
 yieldAll y l =
   yieldLinearly l () L.>>= \case
     Right (Ur r) -> L.do
-      liftLEff (yield y ("done: " <> show r))
+      yield y ("done: " <> show r)
     Left (Ur s, l1) -> L.do
-      liftLEff (yield y ("got: " <> show s))
+      yield y ("got: " <> show s)
       yieldAll y l1
