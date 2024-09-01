@@ -110,6 +110,16 @@ race x y io = do
     Left a -> a
     Right a -> a
 
+concurrently_ ::
+  (e2 :> es) =>
+  (forall e. IOE e -> Eff (e :& es) a) ->
+  (forall e. IOE e -> Eff (e :& es) b) ->
+  IOE e2 ->
+  Eff es ()
+concurrently_ x y io = do
+  withEffToIO' io $ \toIO ->
+    Async.concurrently_ (toIO x) (toIO y)
+
 -- | Connect two coroutines.  Their execution is interleaved by
 -- exchanging @a@s and @b@s. When the first yields its first @a@ it
 -- starts the second (which is waiting to receive an @a@).
