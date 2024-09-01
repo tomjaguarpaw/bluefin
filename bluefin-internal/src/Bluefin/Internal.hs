@@ -170,6 +170,9 @@ data BiglyDone = MkBiglyDone
 provide :: You'reDone e %1 -> Need e %1 -> BiglyDone
 provide MkYou'reDone MkNeed = MkBiglyDone
 
+satisfy :: You'reDone e %1 -> Need e %1 -> LEff es ()
+satisfy y n = consumeBiglyDone (provide y n)
+
 consumeBiglyDone :: BiglyDone %1 -> LEff es ()
 consumeBiglyDone MkBiglyDone = L.pure ()
 

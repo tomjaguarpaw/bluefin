@@ -731,7 +731,7 @@ alternate ::
 alternate y l1 l2 n1 n2 =
   yieldLinearly l1 () L.>>= \case
     Right (Ur r, d1) -> L.do
-      consumeBiglyDone (provide d1 n1)
+      satisfy d1 n1
       liftLEff (yield y ("done: " <> show r))
       yieldAll y n2 l2
     Left (Ur s, l1') -> L.do
@@ -748,7 +748,7 @@ yieldAll y n l =
   yieldLinearly l () L.>>= \case
     Right (Ur r, done) -> L.do
       liftLEff (yield y ("done: " <> show r))
-      consumeBiglyDone (provide done n)
+      satisfy done n
     Left (Ur s, l1) -> L.do
       liftLEff (yield y ("got: " <> show s))
       yieldAll y n l1
