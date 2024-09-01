@@ -205,36 +205,33 @@ yieldLinearly ::
   Linearly a b r e %1 ->
   a ->
   LEff es (Either (Ur b, Linearly a b r e) (Ur r))
-yieldLinearly (UnsafeMkLinearly (Ur (av, bv))) a = MkLEff $ UnsafeMkEff $ do
+yieldLinearly (UnsafeMkLinearly (Ur (av, bv))) a = UnsafeMkEff $ do
   putMVar av a
   takeMVar bv >>= \case
     Left b_ -> pure (Left (Ur b_, UnsafeMkLinearly (Ur (av, bv))))
     Right r -> pure (Right (Ur r))
 
-instance DL.Functor (LEff es) where
+instance DL.Functor (Eff es) where
   fmap = unsafeCoerce (fmap @IO)
 
-instance L.Functor (LEff es) where
+instance L.Functor (Eff es) where
   fmap = unsafeCoerce (fmap @IO)
 
-instance DL.Applicative (LEff es) where
+instance DL.Applicative (Eff es) where
   pure = unsafeCoerce (pure @IO)
   (<*>) = unsafeCoerce ((<*>) @IO)
 
-instance L.Applicative (LEff es) where
+instance L.Applicative (Eff es) where
   pure = unsafeCoerce (pure @IO)
   (<*>) = unsafeCoerce ((<*>) @IO)
 
-instance L.Monad (LEff es) where
+instance L.Monad (Eff es) where
   (>>=) = unsafeCoerce ((>>=) @IO)
 
-newtype LEff es r = MkLEff {unLEff :: Eff es r}
+type LEff = Eff
 
 liftLEff :: Eff es r -> LEff es r
-liftLEff = MkLEff
-
-lpure :: r %1 -> LEff es r
-lpure = unsafeCoerce (pure @IO)
+liftLEff = id
 
 newtype Wrap1 a b es r
   = Wrap1 (forall e. a -> Coroutine b a e -> Eff (e :& es) r)
@@ -268,7 +265,7 @@ linearlyImpl ::
   (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
   (forall e. Linearly a b r e %1 -> LEff (e :& es) r') ->
   LEff es r'
-linearlyImpl m1 m2 = MkLEff $ unsafeProvideIO $ \io -> do
+linearlyImpl m1 m2 = unsafeProvideIO $ \io -> do
   av <- effIO io newEmptyMVar
   bv <- effIO io newEmptyMVar
   rv <- effIO io newEmptyMVar
@@ -284,7 +281,7 @@ linearlyImpl m1 m2 = MkLEff $ unsafeProvideIO $ \io -> do
 
   let t2 :: forall e. IOE e -> Eff (e :& es) ()
       t2 io' = do
-        r <- unLEff $ m2 (UnsafeMkLinearly (Ur (av, bv)))
+        r <- m2 (UnsafeMkLinearly (Ur (av, bv)))
         effIO io' (putMVar rv r)
 
   concurrently_ (useImplWithin t1) (useImplWithin t2) io
