@@ -154,6 +154,22 @@ connectCoroutines m1 m2 = unsafeProvideIO $ \io -> do
 newtype Linearly a b r (e :: Effects)
   = UnsafeMkLinearly (Ur (MVar a, MVar (Either b r)))
 
+data Need (e :: Effects) = MkNeed
+
+mergeNeed :: Need e %1 -> Need e' %1 -> Need (e :& e')
+mergeNeed MkNeed MkNeed = MkNeed
+
+splitNeed :: Need (e :& e') %1 -> Need e %1 -> Need e'
+splitNeed MkNeed MkNeed = MkNeed
+
+flipNeed :: Need (e :& e') -> Need (e' :& e)
+flipNeed MkNeed = MkNeed
+
+data BiglyDone = MkBiglyDone
+
+provide :: You'reDone e %1 -> Need e %1 -> BiglyDone
+provide MkYou'reDone MkNeed = MkBiglyDone
+
 data You'reDone (e :: Effects) = MkYou'reDone
 
 mapYou'reDone :: e `In` es -> You'reDone es %1 -> You'reDone e
@@ -164,6 +180,12 @@ mergeYou'reDone MkYou'reDone MkYou'reDone = MkYou'reDone
 
 splitYou'reDone :: You'reDone (e1 :& e2) %1 -> (You'reDone e1, You'reDone e2)
 splitYou'reDone MkYou'reDone = (MkYou'reDone, MkYou'reDone)
+
+mergeBiglyDone :: BiglyDone %1 -> Need e %1 -> Need e
+mergeBiglyDone MkBiglyDone MkNeed = MkNeed
+
+splitBiglyDone :: BiglyDone %1 -> (BiglyDone, BiglyDone)
+splitBiglyDone MkBiglyDone = (MkBiglyDone, MkBiglyDone)
 
 data Ur a where
   Ur :: a -> Ur a
@@ -211,12 +233,12 @@ newtype Wrap1 a b es r
   = Wrap1 (forall e. a -> Coroutine b a e -> Eff (e :& es) r)
 
 newtype Wrap2 a b es r r'
-  = Wrap2 (forall e. Linearly a b r e %1 -> LEff (e :& es) (r', You'reDone e))
+  = Wrap2 (forall e. Linearly a b r e %1 -> Need e -> LEff (e :& es) (r', BiglyDone))
 
 linearly ::
   forall es a b r r'.
   (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
-  (forall e. Linearly a b r e %1 -> LEff (e :& es) (r', You'reDone e)) %1 ->
+  (forall e. Linearly a b r e %1 -> Need e -> LEff (e :& es) (r', BiglyDone)) %1 ->
   LEff es r'
 linearly x y = linearlyWrapL (Wrap1 x) (Wrap2 y)
 
@@ -237,7 +259,7 @@ linearlyWrap (Wrap1 w1) (Wrap2 w2_) = linearlyImpl w1 w2_
 linearlyImpl ::
   forall es a b r r'.
   (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
-  (forall e. Linearly a b r e %1 -> LEff (e :& es) (r', You'reDone e)) ->
+  (forall e. Linearly a b r e %1 -> Need e -> LEff (e :& es) (r', BiglyDone)) ->
   LEff es r'
 linearlyImpl m1 m2 = MkLEff $ unsafeProvideIO $ \io -> do
   av <- effIO io newEmptyMVar
@@ -255,7 +277,7 @@ linearlyImpl m1 m2 = MkLEff $ unsafeProvideIO $ \io -> do
 
   let t2 :: forall e. IOE e -> Eff (e :& es) ()
       t2 io' = do
-        (r, MkYou'reDone) <- unLEff $ m2 (UnsafeMkLinearly (Ur (av, bv)))
+        (r, MkBiglyDone) <- unLEff $ m2 (UnsafeMkLinearly (Ur (av, bv))) MkNeed
         effIO io' (putMVar rv r)
 
   concurrently_ (useImplWithin t1) (useImplWithin t2) io
