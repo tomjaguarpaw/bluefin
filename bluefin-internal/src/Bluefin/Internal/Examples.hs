@@ -1,8 +1,8 @@
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE LinearTypes #-}
 {-# LANGUAGE QualifiedDo #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# OPTIONS_GHC -Wno-typed-holes #-}
 
 module Bluefin.Internal.Examples where
 
@@ -914,18 +914,16 @@ linearlyExample = runEff $ \io ->
         unLEff $
           linearly
             (\() y -> for_ ['A' .. 'H'] $ \i -> yield y i)
-            ( \l1 ->
-                linearly
-                  (\() y -> for_ [1 :: Int .. 3] $ \i -> yield y i)
-                  ( \l2 -> L.do
-                      alternate out l1 l2
-                  )
-            )
+            \l1 ->
+              linearly
+                (\() y -> for_ [1 :: Int .. 3] $ \i -> yield y i)
+                \l2 -> L.do
+                    alternate out l1 l2
     )
     (\s -> effIO io (putStrLn s))
 
 alternate ::
-  (e3 :> es, e2 :> es, Show a1, e1 :> es, Show a2) =>
+  (e1 :> es, e2 :> es, e3 :> es, Show a1, Show a2) =>
   Stream String e3 ->
   Linearly () a1 () e1 %1 ->
   Linearly () a2 () e2 %1 ->
@@ -940,9 +938,9 @@ alternate y l1 l2 =
       alternate y l2 l1'
 
 yieldAll ::
-  (e :> es, e2 :> es, Show a) =>
-  Stream String e2 ->
-  Linearly () a () e %1 ->
+  (e1 :> es, e2 :> es, Show a) =>
+  Stream String e1 ->
+  Linearly () a () e2 %1 ->
   LEff es ()
 yieldAll y l =
   yieldLinearly l () L.>>= \case
