@@ -934,8 +934,7 @@ alternate y l1 l2 =
   yieldLinearly l1 () L.>>= \case
     Right (Ur r, d1) -> L.do
       liftLEff (yield y ("done: " <> show r))
-      ((), d2) <- yieldAll y l2
-      L.pure (((), d1), d2)
+      yieldAll y (\d2 -> (((), d1), d2)) l2
     Left (Ur s, l1') -> L.do
       liftLEff (yield y ("got: " <> show s))
       alternate1 y l2 l1'
@@ -950,8 +949,7 @@ alternate1 y l1 l2 =
   yieldLinearly l1 () L.>>= \case
     Right (Ur r, d1) -> L.do
       liftLEff (yield y ("done: " <> show r))
-      ((), d2) <- yieldAll y l2
-      L.pure (((), d2), d1)
+      yieldAll y (\d2 -> (((), d2), d1)) l2
     Left (Ur s, l1') -> L.do
       liftLEff (yield y ("got: " <> show s))
       alternate y l2 l1'
@@ -959,13 +957,14 @@ alternate1 y l1 l2 =
 yieldAll ::
   (e :> es, e2 :> es, Show a) =>
   Stream String e2 ->
+  (You'reDone e %1 -> r) %1 ->
   Linearly () a () e %1 ->
-  LEff es ((), You'reDone e)
-yieldAll y l =
+  LEff es r
+yieldAll y mkdone l =
   yieldLinearly l () L.>>= \case
     Right (Ur r, done) -> L.do
       liftLEff (yield y ("done: " <> show r))
-      lpure ((), done)
+      lpure (mkdone done)
     Left (Ur s, l1) -> L.do
       liftLEff (yield y ("got: " <> show s))
-      yieldAll y l1
+      yieldAll y mkdone l1
