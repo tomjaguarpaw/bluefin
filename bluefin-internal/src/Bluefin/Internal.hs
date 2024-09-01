@@ -441,6 +441,7 @@ class Handle (h :: Effects -> Type) where
   -- @
   mapHandle :: (e :> es) => h e -> h es
   mapHandle = case handleImpl of MkHandleD f -> f
+  mopHandle :: e `In` es -> h e -> h es
 
 -- | The type of the 'handleImpl' method of the 'Handle' class.
 -- Create a @HandleD@ using 'handleMapHandle'.
@@ -510,6 +511,9 @@ pattern ZW <- MkZW (# #)
 
 newtype In (a :: Effects) (b :: Effects) = In# (# #)
 
+runIn :: (ZW -> a `In` b) -> a `In` b
+runIn f = f ZW
+
 unsafeInAxiom :: ZW -> e1 `In` e2
 unsafeInAxiom ZW = In# (# #)
 
@@ -550,10 +554,19 @@ b2 :: (a `In` b) -> ((a :& c) `In` (b :& c))
 b2 h = bimap h (eq ZW)
 
 b :: (a `In` b) -> (c :& a) `In` (c :& b)
-b = bimap (eq ZW)
+b = b1
+
+b1 :: (a `In` b) -> (c :& a) `In` (c :& b)
+b1 = bimap (eq ZW)
 
 subsume1 :: (e2 `In` e1) -> (e1 :& e2) `In` e1
 subsume1 i = cmp (bimap (eq ZW) i) (merge ZW)
+
+bothIn :: (a1 :> b, a2 :> b) => (# #) -> In (a1 :& a2) b
+bothIn (# #) = bimap has has `cmp` merge (# #)
+
+mop :: (# #) -> In c d -> In (b :& c) (b :& d)
+mop (# #) i = (runIn (\unit -> bimap (eq unit) i))
 
 subsume2 :: (e1 `In` e2) -> (e1 :& e2) `In` e2
 subsume2 i = cmp (bimap i (eq ZW)) (merge ZW)
