@@ -68,6 +68,75 @@ newtype WrapEff r es = MkWrapEff {unWrapEff :: Eff es r}
 
 instance Handle (WrapEff r) where
   mapHandle (MkWrapEff e) = MkWrapEff (useImpl e)
+  mopHandle i (MkWrapEff e) = MkWrapEff (weakenEff i e)
+
+instance (Handle t) => Handle (h :~> t) where
+  mapHandle (Nest f) = Nest (mopHandle (bimap has has) . f)
+  mopHandle i (Nest f) = Nest (mopHandle (b1 i) . f)
+
+infixr 9 :~>
+
+infixl 9 <|
+
+-- Abstraction
+wrapHandle ::
+  (forall (e :: Effects). h e -> t (e :& es)) ->
+  (h :~> t) es
+wrapHandle = Nest
+
+-- Application
+(<|) ::
+  (Handle t, e :> es) =>
+  (h :~> t) es ->
+  h e ->
+  t es
+n <| h = mopHandle (runIn bothIn) (unNest n h)
+
+two ::
+  (Stream Bool :~> State Int :~> WrapEff r) es ->
+  (e1 :> es, e2 :> es) =>
+  Stream Bool e1 ->
+  State Int e2 ->
+  Eff es r
+two x b_ s = unWrapEff (x <| b_ <| s)
+
+three ::
+  ( forall e2 e1.
+    State Int e1 ->
+    Stream Bool e2 ->
+    Eff (e2 :& e1 :& es) r
+  ) ->
+  (State Int :~> Stream Bool :~> WrapEff r) es
+three f =
+  wrapHandle $ \y ->
+    wrapHandle $ \x ->
+      MkWrapEff (f y x)
+
+four ::
+  ( forall e.
+    State Int e ->
+    Stream Bool e ->
+    Eff (e :& es) r
+  ) ->
+  (State Int :~> Stream Bool :~> WrapEff r) es
+four f =
+  wrapHandle $ \y ->
+    wrapHandle $ \x ->
+      useImplEff (f (mapHandle y) (mapHandle x))
+
+five ::
+  (Handle h) =>
+  (forall e. h e -> Eff (e :& es) r) ->
+  (h :~> WrapEff r) es
+five f =
+  wrapHandle $ \x ->
+    useImplEff (f (mapHandle x))
+
+useImplEff :: (e :> es) => Eff (es :& e) r -> WrapEff r es
+useImplEff = MkWrapEff . useImplIn'
+
+useImplIn' :: (e :> es) => Eff (es :& e) r -> Eff es r
+useImplIn' = ($ ()) . useImplIn . const
 
 runTests ::
   forall es e3.

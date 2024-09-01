@@ -342,6 +342,7 @@ class Handle (h :: Effects -> Type) where
   -- | Used to create compound effects, i.e. handles that contain
   -- other handles.
   mapHandle :: (e :> es) => h e -> h es
+  mopHandle :: e `In` es -> h e -> h es
 
 instance Handle (State s) where
   mapHandle (UnsafeMkState s) = UnsafeMkState s
@@ -359,6 +360,9 @@ instance Handle IOE where
   mapHandle MkIOE = MkIOE
 
 newtype In (a :: Effects) (b :: Effects) = In# (# #)
+
+runIn :: ((# #) -> a `In` b) -> a `In` b
+runIn f = f (# #)
 
 merge :: (# #) -> (a :& a) `In` a
 merge (# #) = In# (# #)
@@ -397,10 +401,19 @@ b2 :: (a `In` b) -> ((a :& c) `In` (b :& c))
 b2 h = bimap h (eq (# #))
 
 b :: (a `In` b) -> (c :& a) `In` (c :& b)
-b = bimap (eq (# #))
+b = b1
+
+b1 :: (a `In` b) -> (c :& a) `In` (c :& b)
+b1 = bimap (eq (# #))
 
 subsume1 :: (e2 `In` e1) -> (e1 :& e2) `In` e1
 subsume1 i = cmp (bimap (eq (# #)) i) (merge (# #))
+
+bothIn :: (a1 :> b, a2 :> b) => (# #) -> In (a1 :& a2) b
+bothIn (# #) = bimap has has `cmp` merge (# #)
+
+mop :: (# #) -> In c d -> In (b :& c) (b :& d)
+mop (# #) i = (runIn (\unit -> bimap (eq unit) i))
 
 subsume2 :: (e2 `In` e1) -> (e2 :& e1) `In` e1
 subsume2 i = cmp (bimap i (eq (# #))) (merge (# #))
