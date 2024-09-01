@@ -710,11 +710,11 @@ linearlyExample = runEff $ \io ->
         unLEff $
           linearly
             (\() y -> for_ ['A' .. 'H'] $ \i -> yield y i)
-            ( \l1 n1 ->
+            ( \l1 ->
                 linearly
                   (\() y -> for_ [1 :: Int .. 3] $ \i -> yield y i)
-                  ( \l2 n2 -> L.do
-                      alternate out l1 l2 n1 n2
+                  ( \l2 -> L.do
+                      alternate out l1 l2
                   )
             )
     )
@@ -725,30 +725,25 @@ alternate ::
   Stream String e3 ->
   Linearly () a1 () e1 %1 ->
   Linearly () a2 () e2 %1 ->
-  Need e1 %1 ->
-  Need e2 %1 ->
   LEff es ()
-alternate y l1 l2 n1 n2 =
+alternate y l1 l2 =
   yieldLinearly l1 () L.>>= \case
-    Right (Ur r, d1) -> L.do
-      satisfy d1 n1
+    Right (Ur r) -> L.do
       liftLEff (yield y ("done: " <> show r))
-      yieldAll y n2 l2
+      yieldAll y l2
     Left (Ur s, l1') -> L.do
       liftLEff (yield y ("got: " <> show s))
-      alternate y l2 l1' n2 n1
+      alternate y l2 l1'
 
 yieldAll ::
   (e :> es, e2 :> es, Show a) =>
   Stream String e2 ->
-  Need e %1 ->
   Linearly () a () e %1 ->
   LEff es ()
-yieldAll y n l =
+yieldAll y l =
   yieldLinearly l () L.>>= \case
-    Right (Ur r, done) -> L.do
+    Right (Ur r) -> L.do
       liftLEff (yield y ("done: " <> show r))
-      satisfy done n
     Left (Ur s, l1) -> L.do
       liftLEff (yield y ("got: " <> show s))
-      yieldAll y n l1
+      yieldAll y l1
