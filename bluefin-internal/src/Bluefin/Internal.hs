@@ -402,6 +402,12 @@ b = bimap (eq (# #))
 subsume1 :: (e2 `In` e1) -> (e1 :& e2) `In` e1
 subsume1 i = cmp (bimap (eq (# #)) i) (merge (# #))
 
+subsume2 :: (e2 `In` e1) -> (e2 :& e1) `In` e1
+subsume2 i = cmp (bimap i (eq (# #))) (merge (# #))
+
+subsume1L :: (e1 :> es) => Eff (e1 :& es) a -> Eff es a
+subsume1L = weakenEff (subsume2 has)
+
 -- | Effect subset constraint
 class (es1 :: Effects) :> (es2 :: Effects)
 

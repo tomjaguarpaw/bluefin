@@ -888,3 +888,38 @@ promptCoroutine = runEff $ \io -> do
           (\_ -> for_ [1 :: Int ..] $ \i -> yield y i)
     )
   effIO io (putStrLn "Finishing")
+
+-- Duplication with Nest from the tests
+newtype WrappedStream a r es
+  = MkWrappedStream (forall e. Stream a e -> Eff (e :& es) r)
+
+wrapStream ::
+  (forall e. Stream a e -> Eff (e :& es) r) ->
+  WrappedStream a r es
+wrapStream = MkWrappedStream
+
+unWrapStream ::
+  forall e1 e es a r.
+  (e :> es, e1 :> es) =>
+  WrappedStream a r e1 ->
+  Stream a e ->
+  Eff es r
+unWrapStream (MkWrappedStream s) u = subsume1L (insertManySecond (s u))
+
+nested ::
+  forall e e1 es.
+  (e1 :> es, e :> es) =>
+  Stream (WrappedStream Int () e1) e ->
+  Eff es ()
+nested y = for_ [1 .. 5] $ \i -> do
+  yield y $ wrapStream $ \y' -> do
+    for_ [1 .. i] $ \j -> do
+      yield y' j
+
+runNested :: forall e es. (e :> es) => IOE e -> Eff es ()
+runNested io = evalState () $ \_ -> do
+  forEach nested $ \s -> do
+    evalState () $ \_ -> do
+      effIO io (putStrLn "Doing a new stream")
+      forEach (\k -> evalState () $ \_ -> unWrapStream @es s k) $ \i -> do
+        effIO io (print i)
