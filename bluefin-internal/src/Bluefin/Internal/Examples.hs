@@ -913,13 +913,14 @@ linearlyExample = runEff $ \io ->
     ( \out -> do
         unLEff $
           linearly
-            (\() y -> for_ ['A' .. 'F'] $ \i -> yield y i)
-            ( \l1 ->
+            (\() y -> for_ ['A' .. 'H'] $ \i -> yield y i)
+            ( \l1 n1 ->
                 linearly
                   (\() y -> for_ [1 :: Int .. 3] $ \i -> yield y i)
-                  ( \l2 -> L.do
-                      d <- alternate out l1 l2
-                      case splitYou'reDone d of (!d1, !d2) -> L.pure (((), d1), d2)
+                  ( \l2 n2 -> L.do
+                      b_ <- alternate out l1 l2 n1 n2
+                      (b1, b2_) <- L.pure (splitBiglyDone b_)
+                      L.pure (((), b1), b2_)
                   )
             )
     )
@@ -930,42 +931,31 @@ alternate ::
   Stream String e3 ->
   Linearly () a1 () e1 %1 ->
   Linearly () a2 () e2 %1 ->
-  LEff es (You'reDone (e1 :& e2))
-alternate y l1 l2 =
+  Need e1 %1 ->
+  Need e2 %1 ->
+  LEff es BiglyDone
+alternate y l1 l2 n1 n2 =
   yieldLinearly l1 () L.>>= \case
     Right (Ur r, d1) -> L.do
+      b_ <- L.pure (provide d1 n1)
+      n <- L.pure (mergeBiglyDone b_ n2)
       liftLEff (yield y ("done: " <> show r))
-      yieldAll y (\d2 -> (mergeYou'reDone d1 d2)) l2
+      yieldAll y n l2
     Left (Ur s, l1') -> L.do
       liftLEff (yield y ("got: " <> show s))
-      alternate1 y l2 l1'
-
-alternate1 ::
-  (e3 :> es, e2 :> es, Show a1, e1 :> es, Show a2) =>
-  Stream String e3 ->
-  Linearly () a1 () e1 %1 ->
-  Linearly () a2 () e2 %1 ->
-  LEff es (You'reDone (e2 :& e1))
-alternate1 y l1 l2 =
-  yieldLinearly l1 () L.>>= \case
-    Right (Ur r, d1) -> L.do
-      liftLEff (yield y ("done: " <> show r))
-      yieldAll y (\d2 -> (mergeYou'reDone d2 d1)) l2
-    Left (Ur s, l1') -> L.do
-      liftLEff (yield y ("got: " <> show s))
-      alternate y l2 l1'
+      alternate y l2 l1' n2 n1
 
 yieldAll ::
   (e :> es, e2 :> es, Show a) =>
   Stream String e2 ->
-  (You'reDone e %1 -> r) %1 ->
+  Need e %1 ->
   Linearly () a () e %1 ->
-  LEff es r
-yieldAll y mkdone l =
+  LEff es BiglyDone
+yieldAll y n l =
   yieldLinearly l () L.>>= \case
     Right (Ur r, done) -> L.do
       liftLEff (yield y ("done: " <> show r))
-      lpure (mkdone done)
+      lpure (provide done n)
     Left (Ur s, l1) -> L.do
       liftLEff (yield y ("got: " <> show s))
-      yieldAll y mkdone l1
+      yieldAll y n l1
