@@ -926,7 +926,7 @@ alternate ::
   Stream String e3 ->
   Linearly () a1 () e1 %1 ->
   Linearly () a2 () e2 %1 ->
-  LEff es ()
+  Eff es ()
 alternate y l1 l2 =
   yieldLinearly l1 () L.>>= \case
     Right (Ur r) -> L.do
@@ -940,7 +940,7 @@ yieldAll ::
   (e1 :> es, e2 :> es, Show a) =>
   Stream String e1 ->
   Linearly () a () e2 %1 ->
-  LEff es ()
+  Eff es ()
 yieldAll y l =
   yieldLinearly l () L.>>= \case
     Right (Ur r) -> L.do

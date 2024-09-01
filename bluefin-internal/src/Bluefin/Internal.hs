@@ -162,7 +162,7 @@ yieldLinearly ::
   (e :> es) =>
   Linearly a b r e %1 ->
   a ->
-  LEff es (Either (Ur b, Linearly a b r e) (Ur r))
+  Eff es (Either (Ur b, Linearly a b r e) (Ur r))
 yieldLinearly (UnsafeMkLinearly (Ur (av, bv))) a = UnsafeMkEff $ do
   putMVar av a
   takeMVar bv >>= \case
@@ -186,40 +186,38 @@ instance L.Applicative (Eff es) where
 instance L.Monad (Eff es) where
   (>>=) = unsafeCoerce ((>>=) @IO)
 
-type LEff = Eff
-
 newtype Wrap1 a b es r
   = Wrap1 (forall e. a -> Coroutine b a e -> Eff (e :& es) r)
 
 newtype Wrap2 a b es r r'
-  = Wrap2 (forall e. Linearly a b r e %1 -> LEff (e :& es) r')
+  = Wrap2 (forall e. Linearly a b r e %1 -> Eff (e :& es) r')
 
 linearly ::
   forall es a b r r'.
   (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
-  (forall e. Linearly a b r e %1 -> LEff (e :& es) r') %1 ->
-  LEff es r'
+  (forall e. Linearly a b r e %1 -> Eff (e :& es) r') %1 ->
+  Eff es r'
 linearly x y = linearlyWrapL (Wrap1 x) (Wrap2 y)
 
 linearlyWrapL ::
   forall es a b r r'.
   Wrap1 a b es r ->
   Wrap2 a b es r r' %1 ->
-  LEff es r'
+  Eff es r'
 linearlyWrapL x = Unsafe.Linear.toLinear (linearlyWrap x)
 
 linearlyWrap ::
   forall es a b r r'.
   Wrap1 a b es r ->
   Wrap2 a b es r r' ->
-  LEff es r'
+  Eff es r'
 linearlyWrap (Wrap1 w1) (Wrap2 w2_) = linearlyImpl w1 w2_
 
 linearlyImpl ::
   forall es a b r r'.
   (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
-  (forall e. Linearly a b r e %1 -> LEff (e :& es) r') ->
-  LEff es r'
+  (forall e. Linearly a b r e %1 -> Eff (e :& es) r') ->
+  Eff es r'
 linearlyImpl m1 m2 = unsafeProvideIO $ \io -> do
   av <- effIO io newEmptyMVar
   bv <- effIO io newEmptyMVar
