@@ -921,3 +921,46 @@ runBucket k =
   evalState 0 $ \s1 -> do
     evalState False $ \s2 -> do
       useImplIn k (MkBucket s1 s2)
+
+example :: (State () es, Exception () es) -> Eff es ()
+example _ = pure ()
+
+type Counter7 e =
+  (State Int e, State Bool e, Stream String e)
+
+incCounter7 :: (e :> es) => Counter7 e -> Eff es ()
+incCounter7 (st, _, y) = do
+  count <- get st
+
+  when (even count) $
+    yield y "Count was even"
+
+  put st (count + 1)
+
+getCounter7 :: (e :> es) => Counter7 e -> String -> Eff es Int
+getCounter7 (st, _, y) msg = do
+  yield y msg
+  get st
+
+runCounter7 ::
+  forall es e1 e2 r.
+  (e1 :> es, e2 :> es) =>
+  State Bool e2 ->
+  Stream String e1 ->
+  (forall e. (State Int e, State Bool e, Stream String e) -> Eff e r) ->
+  Eff es Int
+runCounter7 stb y k =
+  evalState 0 $ \(st :: State Int e) -> do
+    evalState () $ \(_ :: State () e4) -> do
+      _ <-
+        inContext
+          @es
+          @(e4 :& e :& es)
+          (foo @(e4 :& e :& es) (mapHandle st, mapHandle stb, mapHandle y))
+      get st
+  where
+    foo ::
+      forall e.
+      (State Int e, State Bool e, Stream String e) ->
+      Eff (e :& es) r
+    foo = useImpl @e . k
