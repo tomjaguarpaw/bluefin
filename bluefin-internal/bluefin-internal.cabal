@@ -79,6 +79,7 @@ library
     build-depends:
       async >= 2.2 && < 2.3,
       base >= 4.12 && < 4.21,
+      effectful-core,
       unliftio-core < 0.3,
       transformers < 0.7,
       transformers-base < 0.5,
@@ -86,6 +87,7 @@ library
     ghc-options: -Wall
     exposed-modules:
       Bluefin.Internal,
+      Bluefin.Internal.Effectful,
       Bluefin.Internal.Examples,
       Bluefin.Internal.Pipes,
       Bluefin.Internal.System.IO
