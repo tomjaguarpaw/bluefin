@@ -665,3 +665,42 @@ pipesExample1 = runEff $ \io -> runEffect (count >-> P.print io)
 pipesExample2 :: IO String
 pipesExample2 = runEff $ \io -> runEffect $ do
   stdinLn io >-> takeWhile' (/= "quit") >-> stdoutLn io
+
+data DiskIOError = MkDiskIOError String
+
+data FooError = MkFooError String
+
+data BarError = MkBarError String
+
+data AError = MkAError String
+
+data BError = MkBError String
+
+data FooBarExceptions e
+  = FooBarExceptions (Exception FooError e) (Exception BarError e)
+
+data ABExceptions e
+  = ABExceptions (Exception AError e) (Exception BError e)
+
+data AllExceptions e = MkAllExceptions
+  { eDisk :: Exception DiskIOError e,
+    eFooBar :: FooBarExceptions e,
+    eAB :: ABExceptions e
+  }
+
+instance Handle AllExceptions where
+  mapHandle = error "Leaving unimplemented. It is in principle derivable."
+
+yieldDiskIOErrors ::
+  (e1 :> es, e2 :> es) =>
+  Stream String e1 ->
+  AllExceptions e2 ->
+  (forall e. AllExceptions e -> Eff (e :& es) ()) ->
+  Eff es ()
+yieldDiskIOErrors y allEx k = do
+  e <- try $ \localDisk ->
+    useImplIn k ((mapHandle allEx) { eDisk = mapHandle localDisk })
+
+  case e of
+    Left (MkDiskIOError s) -> yield y s
+    Right r -> pure r
