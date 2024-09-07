@@ -1,16 +1,24 @@
 module Bluefin.Internal.Effectful where
 
 import Bluefin.Internal
+import Control.Monad (when)
 import qualified Effectful
+import qualified Effectful.Error.Dynamic as Er
 import Effectful.Internal.Env
 import qualified Effectful.Internal.Monad as Effectful
 import qualified Effectful.State.Dynamic as St
 
 newtype Effectful es (e :: Effects) = MkEffectful (Env es)
 
+data Bluefin m a :: Effectful.Effect
+
 useEffectful ::
   (e :> es) => Effectful effes e -> Effectful.Eff effes r -> Eff es r
 useEffectful (MkEffectful env) k = UnsafeMkEff (Effectful.unEff k env)
+
+unsafeSomething :: (Effectful es e -> Eff es' a) -> Effectful.Eff es a
+unsafeSomething m =
+  Effectful.unsafeEff (\env' -> unsafeUnEff (m (MkEffectful env')))
 
 handleWith ::
   (e1 :> es) =>
@@ -19,40 +27,45 @@ handleWith ::
   Effectful effes e1 ->
   Eff es r2
 handleWith handler m (MkEffectful env) =
-  UnsafeMkEff
-    ( Effectful.unEff
-        ( handler
-            (Effectful.unsafeEff (\env' -> unsafeUnEff (m (MkEffectful env'))))
-        )
-        env
-    )
+  UnsafeMkEff (Effectful.unEff (handler (unsafeSomething m)) env)
 
 runEffectful ::
   (e1 :> es) =>
   IOE e1 ->
   (forall e. Effectful '[Effectful.IOE] e -> Eff (e :& es) r) ->
   Eff e1 r
-runEffectful ioe k =
-  effIO ioe $ Effectful.runEff (Effectful.unsafeEff (\env -> unsafeUnEff (k (MkEffectful env))))
+runEffectful ioe k = effIO ioe (Effectful.runEff (unsafeSomething k))
 
 runPureEffectful ::
   (forall e. Effectful '[] e -> Eff (e :& es) r) ->
   Eff e1 r
-runPureEffectful k =
-  pure (Effectful.runPureEff (Effectful.unsafeEff (\env -> unsafeUnEff (k (MkEffectful env)))))
+runPureEffectful k = pure (Effectful.runPureEff (unsafeSomething k))
 
-
-example :: (St.State Int Effectful.:> es) => Effectful.Eff es Int
+example ::
+  (St.State Int Effectful.:> es, Er.Error String Effectful.:> es) =>
+  Effectful.Eff es Int
 example = do
   r <- St.get
   St.put (r + 1 :: Int)
+  r' <- St.get @Int
+  when (r' > 10) (Er.throwError "foo")
   St.get
 
 bfExample ::
-  (e :> es, St.State Int Effectful.:> effes) =>
+  ( e :> es,
+    St.State Int Effectful.:> effes,
+    Er.Error String Effectful.:> effes
+  ) =>
   Effectful effes e ->
   Eff es Int
 bfExample e = useEffectful e example
 
-runExample :: Int
-runExample = runPureEff (runPureEffectful (handleWith (St.evalStateLocal (10 :: Int)) bfExample))
+runExample :: Int -> Either String Int
+runExample i =
+  runPureEff
+    ( runPureEffectful
+        ( handleWith
+            Er.runErrorNoCallStack
+            (handleWith (St.evalStateLocal i) bfExample)
+        )
+    )
