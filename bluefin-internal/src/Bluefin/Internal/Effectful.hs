@@ -38,7 +38,7 @@ runEffectful ioe k = effIO ioe (Effectful.runEff (unsafeSomething k))
 
 runPureEffectful ::
   (forall e. Effectful '[] e -> Eff (e :& es) r) ->
-  Eff e1 r
+  Eff es r
 runPureEffectful k = pure (Effectful.runPureEff (unsafeSomething k))
 
 example ::
