@@ -13,33 +13,42 @@ newtype Effectful es (e :: Effects) = MkEffectful (Env es)
 data Bluefin m a :: Effectful.Effect
 
 useEffectful ::
-  (e :> es) => Effectful effes e -> Effectful.Eff effes r -> Eff es r
+  (e :> es) =>
+  -- | Bluefin handle to @effectful@ operations
+  Effectful effes e ->
+  -- | An @effectful@ operation
+  Effectful.Eff effes r ->
+  Eff es r
 useEffectful (MkEffectful env) k = UnsafeMkEff (Effectful.unEff k env)
 
-unsafeSomething :: (Effectful es e -> Eff es' a) -> Effectful.Eff es a
-unsafeSomething m =
+unsafeToEffectful :: (Effectful es e -> Eff es' a) -> Effectful.Eff es a
+unsafeToEffectful m =
   Effectful.unsafeEff (\env' -> unsafeUnEff (m (MkEffectful env')))
 
 handleWith ::
   (e1 :> es) =>
+  -- | An @effectful@ handler
   (Effectful.Eff (effe : effes) r1 -> Effectful.Eff effes r2) ->
+  -- | An @effectful@ operation, in Bluefin style
   (forall e. Effectful (effe : effes) e -> Eff (e :& es) r1) ->
   Effectful effes e1 ->
   Eff es r2
 handleWith handler m (MkEffectful env) =
-  UnsafeMkEff (Effectful.unEff (handler (unsafeSomething m)) env)
+  UnsafeMkEff (Effectful.unEff (handler (unsafeToEffectful m)) env)
 
 runEffectful ::
   (e1 :> es) =>
   IOE e1 ->
+  -- | An @effectful@ operation, in Bluefin style (with IO)
   (forall e. Effectful '[Effectful.IOE] e -> Eff (e :& es) r) ->
   Eff e1 r
-runEffectful ioe k = effIO ioe (Effectful.runEff (unsafeSomething k))
+runEffectful ioe k = effIO ioe (Effectful.runEff (unsafeToEffectful k))
 
 runPureEffectful ::
+  -- | An @effectful@ operation, in Bluefin style (without IO)
   (forall e. Effectful '[] e -> Eff (e :& es) r) ->
   Eff es r
-runPureEffectful k = pure (Effectful.runPureEff (unsafeSomething k))
+runPureEffectful k = pure (Effectful.runPureEff (unsafeToEffectful k))
 
 example ::
   (St.State Int Effectful.:> es, Er.Error String Effectful.:> es) =>
@@ -68,10 +77,14 @@ bfExample s e = do
 runExample :: Int -> Either String Int
 runExample i =
   runPureEff
-    ( evalState (error "Never read") $ \s ->
+    ( evalState 1000 $ \s ->
         runPureEffectful
           ( handleWith
               Er.runErrorNoCallStack
               (handleWith (St.evalStateLocal i) (bfExample s))
           )
     )
+-- > runExample 9
+-- Right 10
+-- > runExample 10
+-- Left "foo"
