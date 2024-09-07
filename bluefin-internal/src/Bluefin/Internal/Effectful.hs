@@ -53,19 +53,25 @@ example = do
 
 bfExample ::
   ( e :> es,
+    e1 :> es,
     St.State Int Effectful.:> effes,
     Er.Error String Effectful.:> effes
   ) =>
+  State Int e1 ->
   Effectful effes e ->
   Eff es Int
-bfExample e = useEffectful e example
+bfExample s e = do
+  r <- useEffectful e example
+  put s r
+  pure r
 
 runExample :: Int -> Either String Int
 runExample i =
   runPureEff
-    ( runPureEffectful
-        ( handleWith
-            Er.runErrorNoCallStack
-            (handleWith (St.evalStateLocal i) bfExample)
-        )
+    ( evalState (error "Never read") $ \s ->
+        runPureEffectful
+          ( handleWith
+              Er.runErrorNoCallStack
+              (handleWith (St.evalStateLocal i) (bfExample s))
+          )
     )
