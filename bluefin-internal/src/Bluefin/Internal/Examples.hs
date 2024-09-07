@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
@@ -898,3 +899,25 @@ rethrowIOExample = runEff $ \io -> do
   effIO io $ putStrLn $ case r of
     Left e -> "Caught IOException:\n" ++ show e
     Right contents -> contents
+
+data Bucket es where
+  MkBucket ::
+    (e1 :> es, e2 :> es) =>
+    State Int e1 ->
+    State Bool e2 ->
+    Bucket es
+
+mapHandle' :: forall e' h e. (Handle h, e :> e') => h e -> h e'
+mapHandle' = mapHandle @h @e @e'
+
+useBucket :: forall e es. (e :> es) => Bucket e -> Eff es ()
+useBucket (MkBucket (mapHandle' @e -> s1) (mapHandle' @e -> s2)) = do
+  get s2 >>= \case
+    True -> modify s1 (subtract 1)
+    False -> modify s1 (+ 1)
+
+runBucket :: (forall e. Bucket e -> Eff (e :& es) r) -> Eff es r
+runBucket k =
+  evalState 0 $ \s1 -> do
+    evalState False $ \s2 -> do
+      useImplIn k (MkBucket s1 s2)
