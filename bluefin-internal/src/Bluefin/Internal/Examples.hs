@@ -943,10 +943,9 @@ getCounter7 (st, _, y) msg = do
   get st
 
 runCounter7 ::
-  forall es e1 e2 r.
-  (e1 :> es, e2 :> es) =>
-  State Bool e2 ->
-  Stream String e1 ->
+  forall es r.
+  State Bool es ->
+  Stream String es ->
   (forall e. (State Int e, State Bool e, Stream String e) -> Eff e r) ->
   Eff es Int
 runCounter7 stb y k =
