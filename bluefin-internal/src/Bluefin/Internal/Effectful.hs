@@ -98,14 +98,11 @@ bfExample s e = do
 
 runExample :: Int -> Either String Int
 runExample i =
-  runPureEff
-    ( evalState 1000 $ \s ->
-        runPureEffectful
-          ( handleWith
-              Er.runErrorNoCallStack
-              (handleWith (St.evalStateLocal i) (bfExample s))
-          )
-    )
+  runPureEff $
+    evalState 1000 $ \s ->
+      runPureEffectful $
+        handleWith Er.runErrorNoCallStack $
+          handleWith (St.evalStateLocal i) (bfExample s)
 
 -- > runExample 9
 -- Right 10
