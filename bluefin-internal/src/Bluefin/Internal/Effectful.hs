@@ -28,7 +28,8 @@ useEffectful ::
   -- | An @effectful@ operation
   Effectful.Eff effes r ->
   Eff es r
-useEffectful (MkEffectful env) k = UnsafeMkEff (Effectful.unEff k env)
+useEffectful (MkEffectful env) k =
+  UnsafeMkEff (Effectful.unEff k env)
 
 useBluefin ::
   forall es effes r.
@@ -44,13 +45,17 @@ toEffectful ::
   Effectful.Eff effes a
 toEffectful = unsafeToEffectful
 
+unsafeInterpretBluefin ::
+  Effectful.Eff (Bluefin es : effes) a -> Effectful.Eff effes a
+unsafeInterpretBluefin = Effectful.interpret (\_ -> voidBluefin)
+
 fromEffectful ::
   (e :> es) =>
   (Proxy es -> Effectful.Eff (Bluefin es : effes) r) ->
   Effectful effes e ->
   Eff es r
 fromEffectful m e =
-  useEffectful e (Effectful.interpret (\_ -> voidBluefin) (m Proxy))
+  useEffectful e (unsafeInterpretBluefin (m Proxy))
 
 unsafeToEffectful :: (Effectful es e -> Eff es' a) -> Effectful.Eff es a
 unsafeToEffectful m =
