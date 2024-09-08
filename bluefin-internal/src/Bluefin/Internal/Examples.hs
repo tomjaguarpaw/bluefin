@@ -955,11 +955,11 @@ runCounter7 stb y k =
         inContext
           @es
           @(e4 :& e :& es)
-          (foo @(e4 :& e :& es) (mapHandle st, mapHandle stb, mapHandle y))
+          (useImplk @(e4 :& e :& es) (mapHandle st, mapHandle stb, mapHandle y))
       get st
   where
-    foo ::
+    useImplk ::
       forall e.
       (State Int e, State Bool e, Stream String e) ->
       Eff (e :& es) r
-    foo = useImpl @e . k
+    useImplk = useImpl @e . k
