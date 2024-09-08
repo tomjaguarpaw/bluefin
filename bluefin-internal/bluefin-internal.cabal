@@ -13,7 +13,7 @@ homepage:           https://github.com/tomjaguarpaw/bluefin
 bug-reports:        https://github.com/tomjaguarpaw/bluefin/issues
 
 common defaults
-    ghc-options: -Wall
+    ghc-options: -Wno-unticked-promoted-constructors -Wall
     default-extensions:
       -- GHC2021
       BangPatterns
