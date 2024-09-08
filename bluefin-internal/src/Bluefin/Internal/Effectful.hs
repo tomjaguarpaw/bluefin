@@ -87,6 +87,17 @@ runPureEffectful ::
   Eff es r
 runPureEffectful k = pure (Effectful.runPureEff (unsafeToEffectful k))
 
+runBluefin ::
+  Effectful.IOE Effectful.:> effes =>
+  (forall e es. IOE e -> Effectful.Eff (Bluefin (e :& es) : effes) r) ->
+  Effectful.Eff effes r
+runBluefin m = unsafeInterpretBluefin (m MkIOE)
+
+runPureBluefin ::
+  (forall es. Effectful.Eff (Bluefin es : effes) r) ->
+  Effectful.Eff effes r
+runPureBluefin = unsafeInterpretBluefin
+
 example ::
   ( St.State Int Effectful.:> es,
     Er.Error String Effectful.:> es,
