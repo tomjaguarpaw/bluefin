@@ -963,3 +963,33 @@ runCounter7 stb y k =
       (State Int e, State Bool e, Stream String e) ->
       Eff (e :& es) r
     useImplk = useImpl @e . k
+
+foo ::
+  (e1 :> es, e2 :> es, e3 :> es) =>
+  State () e1 ->
+  State Bool e2 ->
+  State Int e3 ->
+  Eff es ()
+foo _ _ _ = pure ()
+
+bar ::
+  State () e ->
+  State Bool e ->
+  State Int e ->
+  Eff e ()
+bar _ _ _ = pure ()
+
+barFromFoo ::
+  State () e ->
+  State Bool e ->
+  State Int e ->
+  Eff e ()
+barFromFoo = foo
+
+fooFromBar ::
+  (e1 :> es, e2 :> es, e3 :> es) =>
+  State () e1 ->
+  State Bool e2 ->
+  State Int e3 ->
+  Eff es ()
+fooFromBar s1 s2 s3 = bar (mapHandle s1) (mapHandle s2) (mapHandle s3)
