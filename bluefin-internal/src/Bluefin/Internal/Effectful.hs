@@ -10,7 +10,7 @@ import qualified Effectful.State.Dynamic as St
 
 newtype Effectful es (e :: Effects) = MkEffectful (Env es)
 
-data Bluefin m a :: Effectful.Effect
+data Bluefin es m a
 
 useEffectful ::
   (e :> es) =>
@@ -20,6 +20,19 @@ useEffectful ::
   Effectful.Eff effes r ->
   Eff es r
 useEffectful (MkEffectful env) k = UnsafeMkEff (Effectful.unEff k env)
+
+toEffectful ::
+  Bluefin es Effectful.:> effes =>
+  (forall e. Effectful effes e -> Eff (e :& es) a) ->
+  Effectful.Eff effes a
+toEffectful = _
+
+fromEffectful ::
+  e :> es =>
+  Effectful.Eff (Bluefin es : effes) r ->
+  Effectful effes e ->
+  Eff es r
+fromEffectful = _
 
 unsafeToEffectful :: (Effectful es e -> Eff es' a) -> Effectful.Eff es a
 unsafeToEffectful m =
@@ -84,6 +97,7 @@ runExample i =
               (handleWith (St.evalStateLocal i) (bfExample s))
           )
     )
+
 -- > runExample 9
 -- Right 10
 -- > runExample 10
