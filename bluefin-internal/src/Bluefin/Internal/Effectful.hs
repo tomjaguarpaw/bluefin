@@ -28,8 +28,8 @@ useEffectful ::
   -- | An @effectful@ operation
   Effectful.Eff effes r ->
   Eff es r
-useEffectful (MkEffectful env) k =
-  UnsafeMkEff (Effectful.unEff k env)
+useEffectful e k =
+  fromEffectful (\Proxy -> Effectful.inject k) e
 
 useBluefin ::
   forall es effes r.
