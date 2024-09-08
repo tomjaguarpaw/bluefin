@@ -4,6 +4,7 @@ module Bluefin.Internal.Effectful where
 
 import Bluefin.Internal
 import Control.Monad (when)
+import Data.Proxy (Proxy (Proxy))
 import qualified Effectful
 import qualified Effectful.Dispatch.Dynamic as Effectful
 import qualified Effectful.Error.Dynamic as Er
@@ -29,7 +30,15 @@ useEffectful ::
   Eff es r
 useEffectful (MkEffectful env) k = UnsafeMkEff (Effectful.unEff k env)
 
+useBluefin ::
+  forall es effes r.
+  (Bluefin es Effectful.:> effes) =>
+  Eff es r ->
+  Effectful.Eff effes r
+useBluefin m = Effectful.unsafeEff (\_ -> unsafeUnEff m)
+
 toEffectful ::
+  forall es effes a.
   (Bluefin es Effectful.:> effes) =>
   (forall e. Effectful effes e -> Eff (e :& es) a) ->
   Effectful.Eff effes a
@@ -37,11 +46,11 @@ toEffectful = unsafeToEffectful
 
 fromEffectful ::
   (e :> es) =>
-  Effectful.Eff (Bluefin es : effes) r ->
+  (Proxy es -> Effectful.Eff (Bluefin es : effes) r) ->
   Effectful effes e ->
   Eff es r
 fromEffectful m e =
-  useEffectful e (Effectful.interpret (\_ -> voidBluefin) m)
+  useEffectful e (Effectful.interpret (\_ -> voidBluefin) (m Proxy))
 
 unsafeToEffectful :: (Effectful es e -> Eff es' a) -> Effectful.Eff es a
 unsafeToEffectful m =
@@ -73,16 +82,25 @@ runPureEffectful ::
 runPureEffectful k = pure (Effectful.runPureEff (unsafeToEffectful k))
 
 example ::
-  (St.State Int Effectful.:> es, Er.Error String Effectful.:> es) =>
+  forall es bes e.
+  ( St.State Int Effectful.:> es,
+    Er.Error String Effectful.:> es,
+    Bluefin bes Effectful.:> es,
+    e :> bes
+  ) =>
+  State Int e ->
+  Proxy bes ->
   Effectful.Eff es Int
-example = do
+example bst _ = do
   r <- St.get
   St.put (r + 1 :: Int)
   r' <- St.get @Int
   when (r' > 10) (Er.throwError "foo")
+  useBluefin @bes (put bst r')
   St.get
 
 bfExample ::
+  forall e es e1 effes.
   ( e :> es,
     e1 :> es,
     St.State Int Effectful.:> effes,
@@ -92,7 +110,7 @@ bfExample ::
   Effectful effes e ->
   Eff es Int
 bfExample s e = do
-  r <- useEffectful e example
+  r <- fromEffectful (\_ -> example s (Proxy @es)) e
   put s r
   pure r
 
@@ -101,8 +119,12 @@ runExample i =
   runPureEff $
     evalState 1000 $ \s ->
       runPureEffectful $
-        handleWith Er.runErrorNoCallStack $
-          handleWith (St.evalStateLocal i) (bfExample s)
+        fromEffectful $ \(_ :: Proxy es) ->
+          Er.runErrorNoCallStack $
+            toEffectful @es $
+              fromEffectful $ \(_ :: Proxy es') ->
+                St.evalStateLocal i $
+                  toEffectful @es' (bfExample s)
 
 -- > runExample 9
 -- Right 10
