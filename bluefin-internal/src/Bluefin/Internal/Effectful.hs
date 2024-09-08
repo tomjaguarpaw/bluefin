@@ -54,8 +54,8 @@ fromEffectful ::
   (Proxy es -> Effectful.Eff (Bluefin es : effes) r) ->
   Effectful effes e ->
   Eff es r
-fromEffectful m e =
-  useEffectful e (unsafeInterpretBluefin (m Proxy))
+fromEffectful m (MkEffectful env) =
+  UnsafeMkEff (Effectful.unEff (unsafeInterpretBluefin (m Proxy)) env)
 
 unsafeToEffectful :: (Effectful es e -> Eff es' a) -> Effectful.Eff es a
 unsafeToEffectful m =
