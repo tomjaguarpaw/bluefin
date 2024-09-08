@@ -36,7 +36,8 @@ useBluefin ::
   (Bluefin es Effectful.:> effes) =>
   Eff es r ->
   Effectful.Eff effes r
-useBluefin m = Effectful.unsafeEff (\_ -> unsafeUnEff m)
+useBluefin m =
+  toEffectful (\(_ :: Effectful effes e) -> useImpl @es @(e :& es) m)
 
 toEffectful ::
   forall es effes a.
