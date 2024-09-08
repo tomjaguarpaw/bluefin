@@ -1,8 +1,11 @@
+{-# LANGUAGE TypeFamilies #-}
+
 module Bluefin.Internal.Effectful where
 
 import Bluefin.Internal
 import Control.Monad (when)
 import qualified Effectful
+import qualified Effectful.Dispatch.Dynamic as Effectful
 import qualified Effectful.Error.Dynamic as Er
 import Effectful.Internal.Env
 import qualified Effectful.Internal.Monad as Effectful
@@ -11,6 +14,11 @@ import qualified Effectful.State.Dynamic as St
 newtype Effectful es (e :: Effects) = MkEffectful (Env es)
 
 data Bluefin es m a
+
+type instance DispatchOf (Bluefin es) = Dynamic
+
+voidBluefin :: Bluefin es m a -> r
+voidBluefin = \case {}
 
 useEffectful ::
   (e :> es) =>
@@ -22,17 +30,18 @@ useEffectful ::
 useEffectful (MkEffectful env) k = UnsafeMkEff (Effectful.unEff k env)
 
 toEffectful ::
-  Bluefin es Effectful.:> effes =>
+  (Bluefin es Effectful.:> effes) =>
   (forall e. Effectful effes e -> Eff (e :& es) a) ->
   Effectful.Eff effes a
-toEffectful = _
+toEffectful = unsafeToEffectful
 
 fromEffectful ::
-  e :> es =>
+  (e :> es) =>
   Effectful.Eff (Bluefin es : effes) r ->
   Effectful effes e ->
   Eff es r
-fromEffectful = _
+fromEffectful m e =
+  useEffectful e (Effectful.interpret (\_ -> voidBluefin) m)
 
 unsafeToEffectful :: (Effectful es e -> Eff es' a) -> Effectful.Eff es a
 unsafeToEffectful m =
