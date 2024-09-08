@@ -78,7 +78,7 @@ runEffectful ::
   IOE e1 ->
   -- | An @effectful@ operation, in Bluefin style (with IO)
   (forall e. Effectful '[Effectful.IOE] e -> Eff (e :& es) r) ->
-  Eff e1 r
+  Eff es r
 runEffectful ioe k = effIO ioe (Effectful.runEff (unsafeToEffectful k))
 
 runPureEffectful ::
