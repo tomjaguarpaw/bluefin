@@ -82,7 +82,6 @@ runPureEffectful ::
 runPureEffectful k = pure (Effectful.runPureEff (unsafeToEffectful k))
 
 example ::
-  forall es bes e.
   ( St.State Int Effectful.:> es,
     Er.Error String Effectful.:> es,
     Bluefin bes Effectful.:> es,
@@ -91,7 +90,7 @@ example ::
   State Int e ->
   Proxy bes ->
   Effectful.Eff es Int
-example bst _ = do
+example bst (_ :: Proxy bes) = do
   r <- St.get
   St.put (r + 1 :: Int)
   r' <- St.get @Int
