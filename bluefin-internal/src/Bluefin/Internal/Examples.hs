@@ -665,3 +665,32 @@ pipesExample1 = runEff $ \io -> runEffect (count >-> P.print io)
 pipesExample2 :: IO String
 pipesExample2 = runEff $ \io -> runEffect $ do
   stdinLn io >-> takeWhile' (/= "quit") >-> stdoutLn io
+
+-- Acquiring resource
+-- 1
+-- 2
+-- 3
+-- 4
+-- 5
+-- Releasing resource
+-- Finishing
+promptCoroutine :: IO ()
+promptCoroutine = runEff $ \io -> do
+  -- receiveStream connects a consumer to a producer
+  receiveStream
+    -- Like a pipes Consumer.  Prints the first five elements it
+    -- receives.
+    ( \r -> for_ [1 :: Int .. 5] $ \_ -> do
+        v <- yieldCoroutine r ()
+        effIO io (print v)
+    )
+    -- Like a pipes Producer. Yields successive integers indefinitely.
+    -- Unlike in pipes, we can simply use Bluefin's standard bracket
+    -- for prompt release of a resource
+    ( \y ->
+        bracket
+          (effIO io (putStrLn "Acquiring resource"))
+          (\_ -> effIO io (putStrLn "Releasing resource"))
+          (\_ -> for_ [1 :: Int ..] $ \i -> yield y i)
+    )
+  effIO io (putStrLn "Finishing")
