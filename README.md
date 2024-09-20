@@ -1,4 +1,4 @@
-# Bluefin [![Hackage version](https://img.shields.io/hackage/v/bluefin.svg?label=Hackage)](https://hackage.haskell.org/package/bluefin)[![Stackage version](https://www.stackage.org/package/bluefin/badge/nightly?label=Stackage)](https://www.stackage.org/package/bluefin)
+# Bluefin [![Hackage version](https://img.shields.io/hackage/v/bluefin.svg?label=Hackage)](https://hackage.haskell.org/package/bluefin)[![Stackage version](https://www.stackage.org/package/bluefin/badge/nightly?label=Stackage)](https://www.stackage.org/package/bluefin)[![Build status](https://img.shields.io/github/actions/workflow/status/tomjaguarpaw/bluefin/ci.yml?branch=master)](https://github.com/tomjaguarpaw/bluefin/actions)
 
 Bluefin is an effect system for Haskell which allows you, through
 value-level handles, to freely mix a variety of effects
