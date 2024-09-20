@@ -1,4 +1,4 @@
-# Bluefin
+# Bluefin [![Hackage version](https://img.shields.io/hackage/v/bluefin.svg?label=Hackage)](https://hackage.haskell.org/package/bluefin)
 
 Bluefin is an effect system for Haskell which allows you, through
 value-level handles, to freely mix a variety of effects
