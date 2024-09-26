@@ -400,10 +400,10 @@ instance {-# INCOHERENT #-} e :> (e :& es)
 -- Right "No exception thrown"
 -- @
 throw ::
-  (ex :> es) =>
-  Exception e ex ->
+  (e :> es) =>
+  Exception ex e ->
   -- | Value to throw
-  e ->
+  ex ->
   Eff es a
 throw (UnsafeMkException throw_) e = UnsafeMkEff (throw_ e)
 
