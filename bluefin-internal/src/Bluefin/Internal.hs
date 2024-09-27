@@ -302,19 +302,27 @@ foo ::
     e %1 ->
   Eff es ()
 foo io l3 = L.do
-  yieldLinearly l3 () L.>>= \case
-    Left (Ur bs, l3') -> L.do
-      effIO io (print bs)
-      foo io l3'
-    Right (Ur r) -> case r of
-      Left (r1, l2') -> L.do
-        effIO io (print r1)
-        bar io l2'
-      Right (r2, a1, l1') -> L.do
-        effIO io $ do
-          print a1
-          print r2
-        bar io l1'
+  catchL
+    ( \exn2 -> do
+        catchL
+          ( \exn -> do
+              yieldLinearly l3 () L.>>= \case
+                Left (Ur bs, l3') -> L.do
+                  effIO io (print bs)
+                  foo io l3'
+                Right (Ur r) -> case r of
+                  Left (r1, l2') -> L.do
+                    effIO io (print r1)
+                    throwL exn l2'
+                  Right (r2, a1, l1') -> L.do
+                    effIO io $ do
+                      print a1
+                      print r2
+                    throwL exn2 l1'
+          )
+          (bar io)
+    )
+    (bar io)
 
 bar ::
   (e :> es, e1 :> es, Show a, Show r) =>
