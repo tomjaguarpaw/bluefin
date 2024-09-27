@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE LinearTypes #-}
 {-# LANGUAGE MagicHash #-}
@@ -251,31 +252,81 @@ zipLinearly ::
   Linearly a b2 r2 e2 %1 ->
   a ->
   Coroutine (b1, b2) a e3 ->
-  Eff es (Either (r1, Linearly a b2 r2 e2) (r2, Linearly a b1 r1 e1))
+  Eff es (Either (r1, Linearly a b2 r2 e2) (r2, b1, Linearly a b1 r1 e1))
 zipLinearly l1 l2 a c = L.do
   yieldLinearly l1 a L.>>= \case
     Right (Ur r1) -> L.pure (Left (r1, l2))
     Left (Ur b1, l1') ->
       yieldLinearly l2 a L.>>= \case
-        Right (Ur r2) -> L.pure (Right (r2, l1'))
+        Right (Ur r2) -> L.pure (Right (r2, b1, l1'))
         Left (Ur b2_, l2') -> L.do
           Ur a' <- Ur <$> yieldCoroutine c (b1, b2_)
           zipLinearly l1' l2' a' c
 
 zipLinearly' ::
-  (e1 :> es, e2 :> es, e3 :> es) =>
+  (e1 :> es, e2 :> es) =>
   Linearly a b1 r1 e1 %1 ->
   Linearly a b2 r2 e2 %1 ->
   ( forall (e :: Effects).
     Linearly
       a
       (b1, b2)
-      (Either (r1, Linearly a b2 r2 e2) (r2, Linearly a b1 r1 e1))
+      (Either (r1, Linearly a b2 r2 e2) (r2, b1, Linearly a b1 r1 e1))
       e %1 ->
     Eff (e :& es) r
   ) %1 ->
   Eff es r
 zipLinearly' l1 l2 a = linearly (zipLinearly l1 l2) a
+
+zipLinearlyExample :: IO ()
+zipLinearlyExample = runEff $ \io -> do
+  let m1 y = for_ [1 .. 10 :: Int] (yield y)
+
+  let m2 y = for_ [1 .. 5 :: Int] (yield y)
+
+  linearly (\() -> m1) \l1 -> L.do
+    linearly (\() -> m2) \l2 -> L.do
+      zipLinearly' l1 l2 \l3 -> L.do
+        foo io l3
+
+foo ::
+  (e :> es, Show a, e1 :> es, Show r1, Show r2, e2 :> es, Show a1, Show a2, e4 :> es) =>
+  IOE e4 ->
+  Linearly
+    ()
+    a
+    ( Either
+        (r1, Linearly () a2 r2 e2)
+        (r2, a1, Linearly () a1 r1 e1)
+    )
+    e %1 ->
+  Eff es ()
+foo io l3 = L.do
+  yieldLinearly l3 () L.>>= \case
+    Left (Ur bs, l3') -> L.do
+      effIO io (print bs)
+      foo io l3'
+    Right (Ur r) -> case r of
+      Left (r1, l2') -> L.do
+        effIO io (print r1)
+        bar io l2'
+      Right (r2, a1, l1') -> L.do
+        effIO io $ do
+          print a1
+          print r2
+        bar io l1'
+
+bar ::
+  (e :> es, e1 :> es, Show a, Show r) =>
+  IOE e1 ->
+  Linearly () a r e %1 ->
+  Eff es ()
+bar io l = L.do
+  yieldLinearly l () L.>>= \case
+    Left (Ur a, l') -> L.do
+      effIO io (print a)
+      bar io l'
+    Right (Ur r) -> effIO io (print r)
 
 -- | Old name for 'consumeStream'.  @receiveStream@ will be deprecated
 -- in a future version.
