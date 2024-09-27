@@ -322,11 +322,15 @@ bar ::
   Linearly () a r e %1 ->
   Eff es ()
 bar io l = L.do
-  yieldLinearly l () L.>>= \case
-    Left (Ur a, l') -> L.do
-      effIO io (print a)
-      bar io l'
-    Right (Ur r) -> effIO io (print r)
+  catchL
+    ( \exn -> do
+        yieldLinearly l () L.>>= \case
+          Left (Ur a, l') -> L.do
+            effIO io (print a)
+            bar io l'
+          Right r -> throwL exn r
+    )
+    (\(Ur r) -> effIO io (print r))
 
 -- | Old name for 'consumeStream'.  @receiveStream@ will be deprecated
 -- in a future version.
@@ -631,6 +635,14 @@ throw ::
   Eff es a
 throw (UnsafeMkException throw_) e = UnsafeMkEff (throw_ e)
 
+throwL ::
+  (e :> es) =>
+  Exception ex e ->
+  -- | Value to throw
+  ex %1 ->
+  Eff es a
+throwL ex = Unsafe.Linear.toLinear (throw ex)
+
 has :: forall a b. (a :> b) => a `In` b
 has = In# (# #)
 
@@ -674,6 +686,21 @@ handle h f =
   try f >>= \case
     Left e -> h e
     Right a -> pure a
+
+catchL ::
+  forall exn (es :: Effects) a.
+  (forall e. Exception exn e -> Eff (e :& es) a) %1 ->
+  -- | If the exception is thrown, apply this handler
+  (exn %1 -> Eff es a) ->
+  Eff es a
+catchL x y =
+  Unsafe.Linear.toLinear
+    (\(MkWrapCatch x') y' -> catch x' y')
+    (MkWrapCatch x)
+    (\e -> y e)
+
+newtype WrapCatch exn es a
+  = MkWrapCatch (forall e. Exception exn e -> Eff (e :& es) a)
 
 catch ::
   forall exn (es :: Effects) a.
