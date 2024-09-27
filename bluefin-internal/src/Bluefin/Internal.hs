@@ -324,6 +324,12 @@ foo io l3 = L.do
     )
     (bar io)
 
+forL_ :: (L.Monad m) => [a] -> s %1 -> (a -> s %1 -> m s) -> m s
+forL_ [] s _ = L.pure s
+forL_ (x : xs) s f = L.do
+  s' <- f x s
+  forL_ xs s' f
+
 foreverL :: (L.Monad m) => s %1 -> (s %1 -> m s) -> m void
 foreverL s f = L.do
   s' <- f s
