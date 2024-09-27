@@ -77,18 +77,11 @@ library
     default-language: Haskell2010
     hs-source-dirs: src
     build-depends:
-      async,
       base >= 4.12 && < 4.21,
-      unliftio-core < 0.3,
-      transformers < 0.7,
-      transformers-base < 0.5,
-      monad-control < 1.1,
       linear-base
     ghc-options: -Wall
     exposed-modules:
-      Bluefin.Internal,
-      Bluefin.Internal.Examples,
-      Bluefin.Internal.Pipes
+      Bluefin.Internal
 
 test-suite bluefin-test
     import:           defaults
