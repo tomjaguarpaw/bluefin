@@ -344,11 +344,12 @@ bar ::
 bar io l = L.do
   catchL
     ( \exn -> do
-        yieldLinearly l () L.>>= \case
-          Left (Ur a, l') -> L.do
-            effIO io (print a)
-            bar io l'
-          Right r -> throwL exn r
+        foreverL l \l' -> do
+          yieldLinearly l' () L.>>= \case
+            Left (Ur a, l'') -> L.do
+              effIO io (print a)
+              L.pure l''
+            Right r -> throwL exn r
     )
     (\(Ur r) -> effIO io (print r))
 
