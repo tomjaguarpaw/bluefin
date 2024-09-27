@@ -27,7 +27,8 @@ jobs:
 # the range of GHCs we support
 #          - "8.6.5"
 #          - "8.8.3"
-          - "8.10.7"
+# 8.10 can't do linear
+#          - "8.10.7"
           - "9.0.2"
           - "9.2.4"
           - "9.4.7"
