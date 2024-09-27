@@ -194,17 +194,18 @@ newtype Wrap2 a b es r r'
 
 linearly ::
   forall es a b r r'.
-  (forall e. a -> Coroutine b a e -> Eff (e :& es) r) ->
+  (forall e. a -> Coroutine b a e -> Eff (e :& es) r) %1 ->
   (forall e. Linearly a b r e %1 -> Eff (e :& es) r') %1 ->
   Eff es r'
 linearly x y = linearlyWrapL (Wrap1 x) (Wrap2 y)
 
 linearlyWrapL ::
   forall es a b r r'.
-  Wrap1 a b es r ->
+  Wrap1 a b es r %1 ->
   Wrap2 a b es r r' %1 ->
   Eff es r'
-linearlyWrapL x = Unsafe.Linear.toLinear (linearlyWrap x)
+linearlyWrapL x =
+  Unsafe.Linear.toLinear ((Unsafe.Linear.toLinear linearlyWrap) x)
 
 linearlyWrap ::
   forall es a b r r'.
@@ -253,11 +254,27 @@ zipLinearly ::
 zipLinearly l1 l2 a c = L.do
   yieldLinearly l1 a L.>>= \case
     Right (Ur r1) -> L.pure (Left (r1, l2))
-    Left (Ur b1, l1') -> yieldLinearly l2 a L.>>= \case
-      Right (Ur r2) -> L.pure (Right (r2, l1'))
-      Left (Ur b2_, l2') -> L.do
-        Ur a' <- Ur <$> yieldCoroutine c (b1, b2_)
-        zipLinearly l1' l2' a' c
+    Left (Ur b1, l1') ->
+      yieldLinearly l2 a L.>>= \case
+        Right (Ur r2) -> L.pure (Right (r2, l1'))
+        Left (Ur b2_, l2') -> L.do
+          Ur a' <- Ur <$> yieldCoroutine c (b1, b2_)
+          zipLinearly l1' l2' a' c
+
+zipLinearly' ::
+  (e1 :> es, e2 :> es, e3 :> es) =>
+  Linearly a b1 r1 e1 %1 ->
+  Linearly a b2 r2 e2 %1 ->
+  ( forall (e :: Effects).
+    Linearly
+      a
+      (b1, b2)
+      (Either (r1, Linearly a b2 r2 e2) (r2, Linearly a b1 r1 e1))
+      e %1 ->
+    Eff (e :& es) r
+  ) %1 ->
+  Eff es r
+zipLinearly' l1 l2 a = linearly (zipLinearly l1 l2) a
 
 receiveStream ::
   (forall e. Coroutine () a e -> Eff (e :& es) r) ->
