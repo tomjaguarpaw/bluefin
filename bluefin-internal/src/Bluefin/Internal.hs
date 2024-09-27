@@ -2,6 +2,7 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE LinearTypes #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE QualifiedDo #-}
 {-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
@@ -241,6 +242,22 @@ linearlyImpl m1 m2 = unsafeProvideIO $ \io -> do
   -- I don't really like returning through rv.  It would be good if we
   -- could tell t1 to be "done" and block forever without returning.
   effIO io (takeMVar rv)
+
+zipLinearly ::
+  (e1 :> es, e2 :> es, e3 :> es) =>
+  Linearly a b1 r1 e1 %1 ->
+  Linearly a b2 r2 e2 %1 ->
+  a ->
+  Coroutine (b1, b2) a e3 ->
+  Eff es (Either (r1, Linearly a b2 r2 e2) (r2, Linearly a b1 r1 e1))
+zipLinearly l1 l2 a c = L.do
+  yieldLinearly l1 a L.>>= \case
+    Right (Ur r1) -> L.pure (Left (r1, l2))
+    Left (Ur b1, l1') -> yieldLinearly l2 a L.>>= \case
+      Right (Ur r2) -> L.pure (Right (r2, l1'))
+      Left (Ur b2_, l2') -> L.do
+        Ur a' <- Ur <$> yieldCoroutine c (b1, b2_)
+        zipLinearly l1' l2' a' c
 
 receiveStream ::
   (forall e. Coroutine () a e -> Eff (e :& es) r) ->
