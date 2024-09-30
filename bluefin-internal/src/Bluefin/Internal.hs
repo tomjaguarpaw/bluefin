@@ -112,7 +112,7 @@ race x y io = do
 
 -- | Connect two coroutines.  Their execution is interleaved by
 -- exchanging @a@s and @b@s. When the first yields its first @a@ it
--- starts the second (which is waiting to receive an @a@).
+-- starts the second (which is awaiting an @a@).
 connectCoroutines ::
   forall es a b r.
   (forall e. Coroutine a b e -> Eff (e :& es) r) ->
@@ -137,11 +137,19 @@ connectCoroutines m1 m2 = unsafeProvideIO $ \io -> do
 
   race (useImplWithin t1) (useImplWithin t2) io
 
+-- | Old name for 'consumeStream'.  @receiveStream@ will be deprecated
+-- in a future version.
 receiveStream ::
-  (forall e. Coroutine () a e -> Eff (e :& es) r) ->
+  (forall e. Consume a e -> Eff (e :& es) r) ->
   (forall e. Stream a e -> Eff (e :& es) r) ->
   Eff es r
-receiveStream r s = connectCoroutines r (\() -> s)
+receiveStream = consumeStream
+
+consumeStream ::
+  (forall e. Consume a e -> Eff (e :& es) r) ->
+  (forall e. Stream a e -> Eff (e :& es) r) ->
+  Eff es r
+consumeStream r s = connectCoroutines r (\() -> s)
 
 instance (e :> es) => MonadBase IO (EffReader (IOE e) es) where
   liftBase = liftIO
@@ -270,6 +278,8 @@ newtype Coroutine a b (e :: Effects) = MkCoroutine (a -> Eff e b)
 -- implemented as a handle to a coroutine that yields values of type
 -- @a@ and then expects values of type @()@.
 type Stream a = Coroutine a ()
+
+type Consume a = Coroutine () a
 
 -- | You can define a @Handle@ instance for your compound handles.  As
 -- an example, an "application" handle with a dynamic effect for
@@ -721,6 +731,23 @@ enumerateFrom n ss st =
     ii <- get i
     yield st (ii, s)
     put i (ii + 1)
+
+-- | A version of 'forEach' specialized to @Consume@.  Every time the
+-- @Consume@ is used to 'await' a @b@, feed it the one created by the
+-- handler.
+consumeEach ::
+  -- | Body
+  ( forall e.
+    Consume b e ->
+    Eff (e :& es) r
+  ) ->
+  -- | Value to send to each @await@ in the body.
+  Eff es b ->
+  Eff es r
+consumeEach k e = forEach k (\() -> e)
+
+await :: (e :> es) => Consume a e -> Eff es a
+await r = yieldCoroutine r ()
 
 type EarlyReturn = Exception
 

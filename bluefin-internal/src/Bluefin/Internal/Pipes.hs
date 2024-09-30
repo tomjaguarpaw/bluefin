@@ -1,6 +1,6 @@
 module Bluefin.Internal.Pipes where
 
-import Bluefin.Internal hiding (yield)
+import Bluefin.Internal hiding (yield, await)
 import qualified Bluefin.Internal
 import Control.Monad (forever)
 import Data.Foldable (for_)
