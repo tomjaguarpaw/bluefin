@@ -13,6 +13,7 @@ import qualified Control.Concurrent.Async as Async
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
+import Control.Monad (forever)
 import Control.Monad.Base (MonadBase (liftBase))
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
@@ -152,6 +153,24 @@ consumeStream ::
   (forall e. Stream a e -> Eff (e :& es) r) ->
   Eff es r
 consumeStream r s = connectCoroutines r (\() -> s)
+
+zipCoroutines ::
+  (e1 :> es) =>
+  Coroutine (a1, a2) b e1 ->
+  (forall e. Coroutine a1 b e -> Eff (e :& es) r) ->
+  (forall e. Coroutine a2 b e -> Eff (e :& es) r) ->
+  -- | ͘
+  Eff es r
+zipCoroutines c m1 m2 = do
+  connectCoroutines m1 $ \a1 c1 -> do
+    connectCoroutines (useImplWithin m2) $ \a2 c2 -> do
+      evalState (a1, a2) $ \ass -> do
+        forever $ do
+          as <- get ass
+          b' <- yieldCoroutine c as
+          a1' <- yieldCoroutine c1 b'
+          a2' <- yieldCoroutine c2 b'
+          put ass (a1', a2')
 
 instance (e :> es) => MonadBase IO (EffReader (IOE e) es) where
   liftBase = liftIO
