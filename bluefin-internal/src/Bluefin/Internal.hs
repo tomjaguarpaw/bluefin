@@ -146,7 +146,9 @@ receiveStream ::
 receiveStream = consumeStream
 
 consumeStream ::
+  -- | Each 'await' from the @Consume@ ...
   (forall e. Consume a e -> Eff (e :& es) r) ->
+  -- | ... receives the value 'yield'ed from the @Stream@
   (forall e. Stream a e -> Eff (e :& es) r) ->
   Eff es r
 consumeStream r s = connectCoroutines r (\() -> s)
