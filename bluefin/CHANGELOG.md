@@ -1,3 +1,7 @@
+## 0.0.8.0
+
+Add `Bluefin.Consume` and `consumeStream`
+
 ## 0.0.7.0
 
 Add `Bluefin.Pipes` and `Bluefin.Pipes.Prelude`, `connectCoroutines`

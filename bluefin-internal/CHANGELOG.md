@@ -1,3 +1,8 @@
+## 0.0.8.0
+
+Add `Consume`, `await`, `consumeStream`, `zipCoroutines`,
+`consumeEach`, and associated examples.
+
 ## 0.0.7.0
 
 Add `withEffToIO'`, `race`, `connectCoroutines`, `receiveStream`,
