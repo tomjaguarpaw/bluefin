@@ -5,22 +5,26 @@ module Bluefin.Pipes
     Proxy,
     Effect,
     runEffect,
+
     -- ** Producers
     Producer,
     yield,
     for,
     (~>),
     (<~),
+
     -- ** Consumers
     Consumer,
     await,
     (>~),
     (~<),
+
     -- ** Pipes
     Pipe,
     cat,
     (>->),
     (<-<),
+
     -- * Utilities
     next,
     each,
