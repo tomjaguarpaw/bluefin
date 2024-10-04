@@ -681,7 +681,7 @@ promptCoroutine = runEff $ \io -> do
     -- Like a pipes Consumer.  Prints the first five elements it
     -- awaits.
     ( \r -> for_ [1 :: Int .. 5] $ \_ -> do
-        v <- yieldCoroutine r ()
+        v <- await r
         effIO io (print v)
     )
     -- Like a pipes Producer. Yields successive integers indefinitely.
