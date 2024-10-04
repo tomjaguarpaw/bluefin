@@ -676,10 +676,10 @@ pipesExample2 = runEff $ \io -> runEffect $ do
 -- Finishing
 promptCoroutine :: IO ()
 promptCoroutine = runEff $ \io -> do
-  -- receiveStream connects a consumer to a producer
-  receiveStream
+  -- consumeStream connects a consumer to a producer
+  consumeStream
     -- Like a pipes Consumer.  Prints the first five elements it
-    -- receives.
+    -- awaits.
     ( \r -> for_ [1 :: Int .. 5] $ \_ -> do
         v <- yieldCoroutine r ()
         effIO io (print v)
