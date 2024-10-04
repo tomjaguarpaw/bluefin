@@ -22,6 +22,7 @@ library
     exposed-modules:
       Bluefin,
       Bluefin.Compound,
+      Bluefin.Consume,
       Bluefin.Coroutine,
       Bluefin.EarlyReturn,
       Bluefin.Eff,
