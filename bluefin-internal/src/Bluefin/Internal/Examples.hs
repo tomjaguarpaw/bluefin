@@ -15,7 +15,7 @@ import Bluefin.Internal.Pipes
 import qualified Bluefin.Internal.Pipes as P
 import Control.Exception (IOException)
 import qualified Control.Exception
-import Control.Monad (forever, unless, when)
+import Control.Monad (forever, replicateM_, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
 import Data.Monoid (Any (Any, getAny))
@@ -168,6 +168,189 @@ example3_ = runEff $ \io -> do
           enumeratedLines
 
   forEach formattedLines $ \line -> effIO io (putStrLn line)
+
+awaitList ::
+  (e :> es) =>
+  [a] ->
+  IOE e ->
+  (forall e1. Consume a e1 -> Eff (e1 :& es) ()) ->
+  Eff es ()
+awaitList l io k = evalState l $ \s -> do
+  withJump $ \done ->
+    bracket
+      (pure ())
+      (\() -> effIO io (putStrLn "Released"))
+      $ \() -> do
+        consumeEach (useImplWithin k) $ do
+          (x, xs) <-
+            get s >>= \case
+              [] -> jumpTo done
+              x : xs -> pure (x, xs)
+          put s xs
+          pure x
+
+takeRec ::
+  (e3 :> es) =>
+  Int ->
+  (forall e. Consume a e -> Eff (e :& es) ()) ->
+  Consume a e3 ->
+  Eff es ()
+takeRec n k rec =
+  withJump $ \done -> evalState n $ \s -> consumeEach (useImplWithin k) $ do
+    s' <- get s
+    if s' <= 0
+      then jumpTo done
+      else do
+        modify s (subtract 1)
+        await rec
+
+mapRec ::
+  (e :> es) =>
+  (a -> b) ->
+  (forall e1. Consume b e1 -> Eff (e1 :& es) ()) ->
+  Consume a e ->
+  Eff es ()
+mapRec f = traverseRec (pure . f)
+
+traverseRec ::
+  (e :> es) =>
+  (a -> Eff es b) ->
+  (forall e1. Consume b e1 -> Eff (e1 :& es) ()) ->
+  Consume a e ->
+  Eff es ()
+traverseRec f k rec = forEach k $ \() -> do
+  r <- await rec
+  f r
+
+awaitUsage ::
+  (e1 :> es, e2 :> es) =>
+  IOE e1 ->
+  (forall e. Consume () e -> Eff (e :& es) ()) ->
+  Consume Int e2 ->
+  Eff es ()
+awaitUsage io x = do
+  mapRec (* 11) $
+    mapRec (subtract 1) $
+      takeRec 3 $
+        traverseRec (effIO io . print) $
+          useImplWithin x
+
+awaitExample :: IO ()
+awaitExample = runEff $ \io -> do
+  awaitList [1 :: Int ..] io $ awaitUsage io $ \rec -> do
+    replicateM_ 5 (await rec)
+
+consumeStreamExample :: IO (Either String String)
+consumeStreamExample = runEff $ \io -> do
+  try $ \ex -> do
+    consumeStream
+      ( \r ->
+          bracket
+            (effIO io (putStrLn "Starting 2"))
+            (\_ -> effIO io (putStrLn "Leaving 2"))
+            $ \_ -> do
+              for_ [1 :: Int .. 100] $ \n -> do
+                b' <- await r
+                effIO
+                  io
+                  ( putStrLn
+                      ("Consumed body " ++ show b' ++ " at time " ++ show n)
+                  )
+              pure "Consumer finished first"
+      )
+      ( \y -> bracket
+          (effIO io (putStrLn "Starting 1"))
+          (\_ -> effIO io (putStrLn "Leaving 1"))
+          $ \_ -> do
+            for_ [1 :: Int .. 10] $ \n -> do
+              effIO io (putStrLn ("Sending " ++ show n))
+              yield y n
+              when (n > 5) $ do
+                effIO io (putStrLn "Aborting...")
+                throw ex "Aborted"
+
+            pure "Yielder finished first"
+      )
+
+consumeStreamExample2 :: IO ()
+consumeStreamExample2 = runEff $ \io -> do
+  let counter yeven yodd = for_ [0 :: Int .. 10] $ \i -> do
+        if even i
+          then yield yeven i
+          else yield yodd i
+
+  let foo yeven =
+        consumeStream
+          ( \r -> forever $ do
+              i <- await r
+              effIO io (putStrLn ("Odd: " ++ show i))
+          )
+          (counter yeven)
+
+  let bar =
+        consumeStream
+          ( \r -> forever $ do
+              i <- await r
+              effIO io (putStrLn ("Even: " ++ show i))
+          )
+          foo
+
+  bar
+
+connectExample :: IO (Either String String)
+connectExample = runEff $ \io -> do
+  try $ \ex -> do
+    connectCoroutines
+      ( \y -> bracket
+          (effIO io (putStrLn "Starting 1"))
+          (\_ -> effIO io (putStrLn "Leaving 1"))
+          $ \_ -> do
+            for_ [1 :: Int .. 10] $ \n -> do
+              effIO io (putStrLn ("Sending " ++ show n))
+              yield y n
+              when (n > 5) $ do
+                effIO io (putStrLn "Aborting...")
+                throw ex "Aborted"
+
+            pure "Yielder finished first"
+      )
+      ( \binit r ->
+          bracket
+            (effIO io (putStrLn "Starting 2"))
+            (\_ -> effIO io (putStrLn "Leaving 2"))
+            $ \_ -> do
+              effIO io (putStrLn ("Consumed intial " ++ show binit))
+              for_ [1 :: Int .. 100] $ \n -> do
+                b' <- await r
+                effIO
+                  io
+                  ( putStrLn
+                      ("Consumed body " ++ show b' ++ " at time " ++ show n)
+                  )
+              pure "Consumer finished first"
+      )
+
+zipCoroutinesExample :: IO ()
+zipCoroutinesExample = runEff $ \io -> do
+  let m1 y = do
+        r <- yieldCoroutine y 1
+        evalState r $ \rs -> do
+          for_ [1 .. 10 :: Int] $ \i -> do
+            r' <- get rs
+            r'' <- yieldCoroutine y (r' + i)
+            put rs r''
+
+  let m2 y = do
+        r <- yieldCoroutine y 1
+        evalState r $ \rs -> do
+          for_ [1 .. 5 :: Int] $ \i -> do
+            r' <- get rs
+            r'' <- yieldCoroutine y (r' - i)
+            put rs r''
+
+  forEach (\c -> zipCoroutines c m1 m2) $ \i@(i1, i2) -> do
+    effIO io (print i)
+    pure (i1 + i2)
 
 -- Count the number of (strictly) positives and (strictly) negatives
 -- in a list, unless we see a zero, in which case we bail with an
