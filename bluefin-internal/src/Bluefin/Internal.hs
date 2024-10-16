@@ -243,7 +243,7 @@ insertFirst :: Eff b r -> Eff (c1 :& b) r
 insertFirst = weakenEff (drop (eq (# #)))
 
 insertSecond :: Eff (c1 :& b) r -> Eff (c1 :& (c2 :& b)) r
-insertSecond = weakenEff (b (drop (eq (# #))))
+insertSecond = insertManySecond
 
 insertManySecond :: (b :> c) => Eff (c1 :& b) r -> Eff (c1 :& c) r
 insertManySecond = weakenEff (bimap has has)
