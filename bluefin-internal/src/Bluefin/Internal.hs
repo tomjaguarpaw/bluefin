@@ -355,6 +355,9 @@ instance Handle (Coroutine a b) where
 instance Handle (Writer w) where
   mapHandle (Writer wr) = Writer (mapHandle wr)
 
+instance Handle IOE where
+  mapHandle MkIOE = MkIOE
+
 newtype In (a :: Effects) (b :: Effects) = In# (# #)
 
 merge :: (# #) -> (a :& a) `In` a
