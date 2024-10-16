@@ -4,16 +4,16 @@ Bluefin is an effect system for Haskell which allows you, through
 value-level handles, to freely mix a variety of effects
 including
 
-* [`Bluefin.EarlyReturn`](bluefin/src/Bluefin/EarlyReturn.hs), for early return
-* [`Bluefin.Exception`](bluefin/src/Bluefin/Exception.hs), for exceptions
-* [`Bluefin.IO`](bluefin/src/Bluefin/IO.hs), for I/O
-* [`Bluefin.State`](bluefin/src/Bluefin/State.hs), for mutable state
-* [`Bluefin.Stream`](bluefin/src/Bluefin/Stream.hs), for streams
+* [`Bluefin.EarlyReturn`](https://hackage.haskell.org/package/bluefin/docs/Bluefin-EarlyReturn.html), for early return
+* [`Bluefin.Exception`](https://hackage.haskell.org/package/bluefin/docs/Bluefin-Exception.html), for exceptions
+* [`Bluefin.IO`](https://hackage.haskell.org/package/bluefin/docs/Bluefin-IO.html), for I/O
+* [`Bluefin.State`](https://hackage.haskell.org/package/bluefin/docs/Bluefin-State.html), for mutable state
+* [`Bluefin.Stream`](https://hackage.haskell.org/package/bluefin/docs/Bluefin-Stream.html), for streams
 
 ## Introduction
 
 For an introduction to Bluefin, see the docs in the
-[`Bluefin`](bluefin/src/Bluefin.hs) module.
+[`Bluefin`](https://hackage.haskell.org/package/bluefin/docs/Bluefin.html) module.
 
 ## Examples
 
