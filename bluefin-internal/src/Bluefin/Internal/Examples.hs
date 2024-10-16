@@ -20,6 +20,7 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
 import Data.Monoid (Any (Any, getAny))
 import Text.Read (readMaybe)
+import Unsafe.Coerce
 import Prelude hiding
   ( break,
     drop,
@@ -708,86 +709,6 @@ exampleCounter6 = runPureEff $ yieldToList $ \y -> do
 -- > exampleCounter6
 -- (["Count was even","I'm getting the counter","n was 2, as expected"],2)
 
--- FileSystem
-
-data FileSystem es = MkFileSystem
-  { readFileImpl :: FilePath -> Eff es String,
-    writeFileImpl :: FilePath -> String -> Eff es ()
-  }
-
-readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
-readFile fs filepath = useImpl (readFileImpl fs filepath)
-
-writeFile :: (e :> es) => FileSystem e -> FilePath -> String -> Eff es ()
-writeFile fs filepath contents = useImpl (writeFileImpl fs filepath contents)
-
-runFileSystemPure ::
-  (e1 :> es) =>
-  Exception String e1 ->
-  [(FilePath, String)] ->
-  (forall e2. FileSystem e2 -> Eff (e2 :& es) r) ->
-  Eff es r
-runFileSystemPure ex fs0 k =
-  evalState fs0 $ \fs ->
-    useImplIn
-      k
-      MkFileSystem
-        { readFileImpl = \path -> do
-            fs' <- get fs
-            case lookup path fs' of
-              Nothing ->
-                throw ex ("File not found: " <> path)
-              Just s -> pure s,
-          writeFileImpl = \path contents ->
-            modify fs ((path, contents) :)
-        }
-
-runFileSystemIO ::
-  forall e1 e2 es r.
-  (e1 :> es, e2 :> es) =>
-  Exception String e1 ->
-  IOE e2 ->
-  (forall e. FileSystem e -> Eff (e :& es) r) ->
-  Eff es r
-runFileSystemIO ex io k =
-  useImplIn
-    k
-    MkFileSystem
-      { readFileImpl =
-          adapt . Prelude.readFile,
-        writeFileImpl =
-          \path -> adapt . Prelude.writeFile path
-      }
-  where
-    adapt :: (e1 :> ess, e2 :> ess) => IO a -> Eff ess a
-    adapt m =
-      effIO io (Control.Exception.try @IOException m) >>= \case
-        Left e -> throw ex (show e)
-        Right r -> pure r
-
-action :: (e :> es) => FileSystem e -> Eff es String
-action fs = do
-  file <- readFile fs "/dev/null"
-  when (length file == 0) $ do
-    writeFile fs "/tmp/bluefin" "Hello!\n"
-  readFile fs "/tmp/doesn't exist"
-
-exampleRunFileSystemPure :: Either String String
-exampleRunFileSystemPure = runPureEff $ try $ \ex ->
-  runFileSystemPure ex [("/dev/null", "")] action
-
--- > exampleRunFileSystemPure
--- Left "File not found: /tmp/doesn't exist"
-
-exampleRunFileSystemIO :: IO (Either String String)
-exampleRunFileSystemIO = runEff $ \io -> try $ \ex ->
-  runFileSystemIO ex io action
-
--- > exampleRunFileSystemIO
--- Left "/tmp/doesn't exist: openFile: does not exist (No such file or directory)"
--- \$ cat /tmp/bluefin
--- Hello!
-
 -- instance Handle example
 
 data Application e = MkApplication
@@ -877,3 +798,64 @@ promptCoroutine = runEff $ \io -> do
           (\_ -> for_ [1 :: Int ..] $ \i -> yield y i)
     )
   effIO io (putStrLn "Finishing")
+
+data FsWeird es = MkFsWeird
+  { readFileImpl ::
+      forall e.
+      Exception String e ->
+      Stream Int e ->
+      FilePath ->
+      Eff (e :& es) String,
+    writeFileImpl ::
+      FilePath ->
+      String ->
+      Eff es ()
+  }
+
+instance Handle FsWeird where
+  mapHandle MkFsWeird {readFileImpl, writeFileImpl} =
+    MkFsWeird
+      { readFileImpl =
+          \ex sm fp -> insertManySecond (readFileImpl ex sm fp),
+        writeFileImpl =
+          \fp s -> useImpl (writeFileImpl fp s)
+      }
+
+readFile ::
+  (e1 :> es, e2 :> es, e3 :> es) =>
+  Exception String e1 ->
+  Stream Int e2 ->
+  FsWeird e3 ->
+  FilePath ->
+  Eff es String
+readFile ex sm MkFsWeird {readFileImpl} fp =
+  inContext (readFileImpl (mapHandle ex) (mapHandle sm) fp)
+
+writeFile ::
+  (e :> es) => FsWeird e -> FilePath -> String -> Eff es ()
+writeFile fs filepath contents =
+  useImpl (writeFileImpl fs filepath contents)
+
+runFileSystemPure ::
+  (e1 :> es) =>
+  State Int e1 ->
+  [(FilePath, String)] ->
+  (forall e. FsWeird e -> Eff (e :& es) r) ->
+  Eff es r
+runFileSystemPure st fs0 k =
+  evalState fs0 $ \fs ->
+    useImplIn
+      k
+      MkFsWeird
+        { readFileImpl = \ex sm filepath -> do
+            fs' <- get fs
+            yield sm 1
+            yield sm 1
+            put st 1
+            case lookup filepath fs' of
+              Nothing ->
+                throw ex ("File not found: " <> filepath)
+              Just s -> pure s,
+          writeFileImpl = \filepath contents ->
+            modify fs ((filepath, contents) :)
+        }
