@@ -77,6 +77,17 @@ withYieldToListExample = runPureEff $ withYieldToList $ \y -> do
   yield y 100
   pure length
 
+-- This shows we can use forEach at any level of nesting with
+-- insertManySecond
+doubleNestedForEach ::
+  (forall e. Stream () e -> Eff (e :& es) ()) ->
+  Eff es ()
+doubleNestedForEach f =
+  withState () $ \_ -> do
+    withState () $ \_ -> do
+      forEach (insertManySecond . f) (\_ -> pure ())
+      pure (\_ _ -> ())
+
 forEachExample :: ([Int], ())
 forEachExample = runPureEff $ yieldToList $ \y -> do
   forEach (inFoldable [0 .. 4]) $ \i -> do
