@@ -93,6 +93,22 @@ runSpecH ::
   (forall e1. SpecH e1 -> Eff (e1 :& es) ()) ->
   Eff es ()
 runSpecH ioe f = do
+  -- I think the need for useImplWithin shows that set types wouldn't
+  -- solve everything.  runTests needs to be run at type
+  --
+  --     es |-> (e3 :& es)
+  --
+  -- so that we can apply forEach to it.  Therefore we need to convert
+  -- f from
+  --
+  --     (forall e1. SpecH e1 -> Eff (e1 :& es) ())
+  --
+  -- to
+  --
+  --     (forall e1. SpecH e1 -> Eff (e1 :& e3 :& es) ())
+  --
+  -- and I just don't think there's any way of doing that implicitly
+  -- using set typing.
   passed <- forEach (runTests (useImplUnder . f)) $ \text ->
     effIO ioe (putStrLn text)
 
