@@ -67,12 +67,12 @@ newtype Forall t r = Forall {unForall :: forall es. t es r}
 runTests ::
   forall es e3.
   (e3 :> es) =>
-  (forall e1 e2. SpecH e1 -> Eff (e1 :& e2 :& es) ()) ->
+  (forall e1. SpecH e1 -> Eff (e1 :& es) ()) ->
   Stream String e3 ->
   Eff es Bool
 runTests f y = do
   ((), All passedAll) <- runWriter $ \passedAllSoFar -> do
-    forEach f $ \(name, mFailure) -> do
+    forEach (useImplWithin f) $ \(name, mFailure) -> do
       let passed = case mFailure of
             Just _ -> False
             Nothing -> True
