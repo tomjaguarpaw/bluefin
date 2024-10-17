@@ -11,8 +11,8 @@ import System.Exit (ExitCode (ExitFailure), exitWith)
 import Prelude hiding (break, read)
 
 main :: IO ()
-main = do
-  runSpecH $ \y -> do
+main = runEff $ \io -> do
+  runSpecH io $ \y -> do
     let assertEqual' = assertEqual y
 
     assertEqual' "oddsUntilFirstGreaterThan5" oddsUntilFirstGreaterThan5 [1, 3, 5, 7]
@@ -94,10 +94,12 @@ runTests f y = do
   pure passedAll
 
 runSpecH ::
-  (forall e1 es. SpecH e1 -> Eff (e1 :& es) ()) ->
-  IO ()
-runSpecH f = runEff $ \ioe -> do
-  passed <- forEach (runTests f) $ \text ->
+  (e :> es) =>
+  IOE e ->
+  (forall e1. SpecH e1 -> Eff (e1 :& es) ()) ->
+  Eff es ()
+runSpecH ioe f = do
+  passed <- forEach (runTests (useImplWithin f)) $ \text ->
     effIO ioe (putStrLn text)
 
   effIO ioe $ case passed of
