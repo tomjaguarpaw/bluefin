@@ -53,14 +53,14 @@ assertEqual y n c1 c2 =
           yield y2 ("But got: " ++ show c2)
     )
 
-type SpecInfo = Forall (Nest (Stream String) Eff)
+type SpecInfo = Forall (Stream String :~> Eff)
 
 withSpecInfo ::
   (forall e es. (e :> es) => Stream String e -> Eff es r) ->
   SpecInfo r
 withSpecInfo x = Forall (Nest x)
 
-newtype Nest h t es r = Nest {unNest :: forall e. h e -> t (e :& es) r}
+newtype (h :~> t) es r = Nest {unNest :: forall e. h e -> t (e :& es) r}
 
 newtype Forall t r = Forall {unForall :: forall es. t es r}
 
