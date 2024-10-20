@@ -493,6 +493,51 @@ catch ::
   Eff es a
 catch f h = handle h f
 
+-- We really do need to have an IOE argument here because, it is not
+-- determined which of Ex1 or Ex2 is produced in the following code,
+-- due to pure exceptions being imprecise.
+--
+-- f :: IO (Either Ex1 (Either Ex2 a))
+-- f = runEff $ \io -> do
+--   try $ \e1 -> do
+--     try $ \e2 -> do
+--       rethrowIO io e1 $ do
+--         rethrowIO io e2 $ doa
+--           Control.Exception.throw Ex1) (Control.Exception.throw E2)
+
+-- | Rethrow an exception raised by an 'IO' action as a Bluefin
+-- exception.
+--
+-- @
+-- 'runEff' $ \\io -> do
+--   r \<- 'try' $ \\ex -> do
+--     rethrowIO @'Control.Exception.IOException' io ex $ do
+--       effIO io ('Prelude.readFile' "\/tmp\/doesnt-exist")
+--
+--   'effIO' io $ putStrLn $ case r of
+--     Left e -> "Caught IOException:\\n" ++ show e
+--     Right contents -> contents
+-- @
+--
+-- @
+-- Caught ErrorCall:
+-- \/tmp\/doesnt-exist: openFile: does not exist (No such file or directory)
+-- @
+rethrowIO ::
+  forall ex es e1 e2 r.
+  (e1 :> es, e2 :> es, Control.Exception.Exception ex) =>
+  IOE e1 ->
+  Exception ex e2 ->
+  Eff es r ->
+  -- | ͘
+  Eff es r
+rethrowIO MkIOE ex body =
+  UnsafeMkEff
+    ( Control.Exception.catch
+        (unsafeUnEff body)
+        (\e -> unsafeUnEff (throw @_ @es ex e))
+    )
+
 -- | @bracket acquire release body@: @acquire@ a resource, perform the
 -- @body@ with it, and @release@ the resource even if @body@ threw an
 -- exception.  This is essentially the same as

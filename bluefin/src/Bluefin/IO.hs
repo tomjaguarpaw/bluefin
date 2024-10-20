@@ -7,6 +7,7 @@ module Bluefin.IO
     runEff,
     -- * Effectful operations
     effIO,
+    rethrowIO,
     -- * IO type classes
     withMonadIO,
     withEffToIO,

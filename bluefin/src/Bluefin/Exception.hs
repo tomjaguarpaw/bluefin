@@ -7,6 +7,7 @@ module Bluefin.Exception
     catch,
     -- * Effectful operations
     throw,
+    rethrowIO,
   )
 where
 

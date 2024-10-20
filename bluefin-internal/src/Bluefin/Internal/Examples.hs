@@ -888,3 +888,13 @@ promptCoroutine = runEff $ \io -> do
           (\_ -> for_ [1 :: Int ..] $ \i -> yield y i)
     )
   effIO io (putStrLn "Finishing")
+
+rethrowIOExample :: IO ()
+rethrowIOExample = runEff $ \io -> do
+  r <- try $ \ex -> do
+    rethrowIO @Control.Exception.IOException io ex $ do
+      effIO io (Prelude.readFile "/tmp/doesnt-exist")
+
+  effIO io $ putStrLn $ case r of
+    Left e -> "Caught IOException:\n" ++ show e
+    Right contents -> contents
