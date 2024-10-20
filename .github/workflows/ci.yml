@@ -68,9 +68,9 @@ jobs:
       run: |
         cabal build all
 
-#    - name: Test
-#      run: |
-#        cabal test all
+    - name: Test
+      run: |
+        cabal test all
 
 #    - name: Documentation
 #      run: |
