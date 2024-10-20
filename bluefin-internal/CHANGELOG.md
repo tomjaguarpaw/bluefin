@@ -1,3 +1,9 @@
+## 0.0.9.0
+
+* Add `instance Handle IOE`
+
+* Add `rethrowIO`
+
 ## 0.0.8.0
 
 Add `Consume`, `await`, `consumeStream`, `zipCoroutines`,
