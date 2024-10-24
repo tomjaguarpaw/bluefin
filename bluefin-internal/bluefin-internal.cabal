@@ -87,7 +87,8 @@ library
     exposed-modules:
       Bluefin.Internal,
       Bluefin.Internal.Examples,
-      Bluefin.Internal.Pipes
+      Bluefin.Internal.Pipes,
+      Bluefin.Internal.System.Exit
 
 test-suite bluefin-test
     import:           defaults
