@@ -35,6 +35,7 @@ library
       Bluefin.State,
       Bluefin.StateSource,
       Bluefin.Stream,
+      Bluefin.System.IO,
       Bluefin.Writer,
     build-depends:
       bluefin-internal >= 0.0.9.0 && < 0.1
