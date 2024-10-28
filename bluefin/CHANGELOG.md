@@ -1,3 +1,7 @@
+## 0.0.10.0
+
+* Add `Bluefin.System.IO`
+
 ## 0.0.9.0
 
 * Add `instance Handle IOE`
