@@ -520,7 +520,7 @@ catch f h = handle h f
 -- @
 --
 -- @
--- Caught ErrorCall:
+-- Caught IOException:
 -- \/tmp\/doesnt-exist: openFile: does not exist (No such file or directory)
 -- @
 rethrowIO ::
