@@ -963,22 +963,14 @@ instructions pages insns = do
                   (\c -> chunksOfBS 16 c y)
                   (\y' -> yield y' p2)
 
-          let interleavedWords y =
+          consumeStream
+            ( \c2 ->
                 consumeStream
-                  ( \c2 ->
-                      consumeStream
-                        (\c1 -> interleave c1 c2 y)
-                        p1Words
-                  )
-                  p2Words
+                  (\c1 -> interleave c1 c2 word)
+                  p1Words
+            )
+            p2Words
 
-          forEach interleavedWords $ \wd -> do
-            yield word wd
-
-  let insns' y =
-        consumeStream
-          (\c -> chunksOfBS 3 c y)
-          words'
-
-  forEach insns' $ \insn ->
-    yield insns insn
+  consumeStream
+    (\c -> chunksOfBS 3 c insns)
+    words'
