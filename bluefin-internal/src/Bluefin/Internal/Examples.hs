@@ -921,6 +921,17 @@ chunksOfBS n c y = evalState BS.empty $
           put leftovers rest
       | otherwise -> error "Impossible"
 
+chunkBS ::
+  (e :> es) =>
+  Int ->
+  BS.ByteString ->
+  Stream BS.ByteString e ->
+  Eff es ()
+chunkBS n bs y =
+  consumeStream
+    (\c -> chunksOfBS n c y)
+    (\y' -> yield y' bs)
+
 pairUp ::
   (e1 :> es, e2 :> es) =>
   Consume a e1 ->
@@ -953,15 +964,8 @@ instructions pages insns = do
 
   let words' word = do
         forEach pagePairs $ \(p1, p2) -> do
-          let p1Words y =
-                consumeStream
-                  (\c -> chunksOfBS 16 c y)
-                  (\y' -> yield y' p1)
-
-          let p2Words y =
-                consumeStream
-                  (\c -> chunksOfBS 16 c y)
-                  (\y' -> yield y' p2)
+          let p1Words = chunkBS 16 p1
+          let p2Words = chunkBS 16 p2
 
           consumeStream
             ( \c2 ->
