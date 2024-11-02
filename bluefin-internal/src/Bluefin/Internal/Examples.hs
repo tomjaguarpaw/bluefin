@@ -944,7 +944,6 @@ interleave c1 c2 y = forever $ do
   yield y c2'
 
 instructions ::
-  forall e1 e2 es void.
   (e1 :> es, e2 :> es) =>
   Consume BS.ByteString e1 ->
   Stream BS.ByteString e2 ->
