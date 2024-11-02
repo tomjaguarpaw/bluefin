@@ -976,3 +976,21 @@ instructions pages insns = do
             p2Words
 
   consumeStream (\c -> chunksOfBS 3 c insns) words'
+
+zipWithCheckLength :: (a -> b -> r) -> [a] -> [b] -> [r]
+zipWithCheckLength f as bs =
+  untilNothing g (zip (extend as) (extend bs))
+  where
+    g (Just a_, Just b_) = Just (f a_ b_)
+    g (Nothing, Nothing) = Nothing
+    g (Just _, Nothing) = error msg
+    g (Nothing, Just _) = error msg
+
+    extend = (++ repeat Nothing) . map Just
+    msg = "Unequal lengths"
+
+untilNothing :: (a -> Maybe b) -> [a] -> [b]
+untilNothing _ [] = []
+untilNothing f (x : xs) = case f x of
+  Nothing -> []
+  Just b_ -> b_ : untilNothing f xs
