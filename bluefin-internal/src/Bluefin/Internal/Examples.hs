@@ -950,42 +950,21 @@ instructions ::
   Stream BS.ByteString e2 ->
   Eff es void
 instructions pages insns = do
-  let pagePairs ::
-        (e1 :> es', e :> es') =>
-        Stream (BS.ByteString, BS.ByteString) e ->
-        Eff es' void
-      pagePairs = pairUp pages
+  let pagePairs = pairUp pages
 
-  let words' ::
-        forall e es'.
-        (e1 :> es', e :> es') =>
-        Stream BS.ByteString e ->
-        Eff es' void
-      words' word = do
+  let words' word = do
         forEach pagePairs $ \(p1, p2) -> do
-          let p1Words ::
-                (e' :> es'') =>
-                Stream BS.ByteString e' ->
-                Eff es'' ()
-              p1Words y =
+          let p1Words y =
                 consumeStream
                   (\c -> chunksOfBS 16 c y)
                   (\y' -> yield y' p1)
 
-          let p2Words ::
-                (e' :> es'') =>
-                Stream BS.ByteString e' ->
-                Eff es'' ()
-              p2Words y =
+          let p2Words y =
                 consumeStream
                   (\c -> chunksOfBS 16 c y)
                   (\y' -> yield y' p2)
 
-          let interleavedWords ::
-                (e' :> es'') =>
-                Stream BS.ByteString e' ->
-                Eff es'' ()
-              interleavedWords y =
+          let interleavedWords y =
                 consumeStream
                   ( \c2 ->
                       consumeStream
@@ -997,11 +976,7 @@ instructions pages insns = do
           forEach interleavedWords $ \wd -> do
             yield word wd
 
-  let insns' ::
-        (e1 :> es', e' :> es') =>
-        Stream BS.ByteString e' ->
-        Eff es' void
-      insns' y =
+  let insns' y =
         consumeStream
           (\c -> chunksOfBS 3 c y)
           words'
