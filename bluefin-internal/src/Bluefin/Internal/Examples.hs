@@ -1041,6 +1041,22 @@ zipWithConsume f c1 c2 y = forever $ do
   a2 <- await c2
   yield y =<< f a1 a2
 
+zipWithErrorMismatch ::
+  (e1 :> es, e2 :> es, e3 :> es, e :> es) =>
+  (a1 -> a2 -> Eff es b) ->
+  Exception () e3 ->
+  Consume (Maybe a1) e1 ->
+  Consume (Maybe a2) e2 ->
+  Stream b e ->
+  Eff es ()
+zipWithErrorMismatch f err c1 c2 y = withJump $ \done -> do
+  let g (Just a1) (Just a2) = useImpl (f a1 a2)
+      g Nothing Nothing = jumpTo done
+      g (Just _) Nothing = jumpTo err
+      g Nothing (Just _) = jumpTo err
+
+  zipWithConsume g c1 c2 y
+
 zipWithCheckLength :: (a -> b -> r) -> [a] -> [b] -> [r]
 zipWithCheckLength f as bs =
   untilNothing g (zip (extend as) (extend bs))
