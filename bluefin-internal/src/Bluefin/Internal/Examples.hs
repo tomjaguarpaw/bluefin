@@ -1029,6 +1029,18 @@ instructions pages insns = do
 
   consumeStream (\c -> chunksOfBS 3 c insns) words'
 
+zipWithConsume ::
+  (e1 :> es, e2 :> es, e :> es) =>
+  (a1 -> a2 -> Eff es b) ->
+  Consume a1 e1 ->
+  Consume a2 e2 ->
+  Stream b e ->
+  Eff es void
+zipWithConsume f c1 c2 y = forever $ do
+  a1 <- await c1
+  a2 <- await c2
+  yield y =<< f a1 a2
+
 zipWithCheckLength :: (a -> b -> r) -> [a] -> [b] -> [r]
 zipWithCheckLength f as bs =
   untilNothing g (zip (extend as) (extend bs))
