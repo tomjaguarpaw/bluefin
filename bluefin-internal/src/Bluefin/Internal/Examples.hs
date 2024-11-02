@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
@@ -17,6 +18,7 @@ import Control.Exception (IOException)
 import qualified Control.Exception
 import Control.Monad (forever, replicateM_, unless, when)
 import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString as BS
 import Data.Foldable (for_)
 import Data.Monoid (Any (Any, getAny))
 import Text.Read (readMaybe)
@@ -898,3 +900,111 @@ rethrowIOExample = runEff $ \io -> do
   effIO io $ putStrLn $ case r of
     Left e -> "Caught IOException:\n" ++ show e
     Right contents -> contents
+
+chunksOfBS ::
+  (e1 :> es, e2 :> es) =>
+  Int ->
+  Consume BS.ByteString e1 ->
+  Stream BS.ByteString e2 ->
+  Eff es r
+chunksOfBS n c y = evalState BS.empty $
+  \leftovers -> forever $ do
+    leftovers' <- get leftovers
+    let (possibleChunk, rest) = BS.splitAt n leftovers'
+    let lenPossibleChunk = BS.length possibleChunk
+    if
+      | lenPossibleChunk < n -> do
+          more <- await c
+          put leftovers (leftovers' <> more)
+      | lenPossibleChunk == n -> do
+          yield y possibleChunk
+          put leftovers rest
+      | otherwise -> error "Impossible"
+
+pairUp ::
+  (e1 :> es, e2 :> es) =>
+  Consume a e1 ->
+  Stream (a, a) e2 ->
+  Eff es void
+pairUp c y = forever $ do
+  c1 <- await c
+  c2 <- await c
+  yield y (c1, c2)
+
+interleave ::
+  (e1 :> es, e2 :> es, e3 :> es) =>
+  Consume a e1 ->
+  Consume a e2 ->
+  Stream a e3 ->
+  Eff es void
+interleave c1 c2 y = forever $ do
+  c1' <- await c1
+  yield y c1'
+  c2' <- await c2
+  yield y c2'
+
+instructions ::
+  forall e1 e2 es void.
+  (e1 :> es, e2 :> es) =>
+  Consume BS.ByteString e1 ->
+  Stream BS.ByteString e2 ->
+  Eff es void
+instructions pages insns = do
+  let pagePairs ::
+        (e1 :> es', e :> es') =>
+        Stream (BS.ByteString, BS.ByteString) e ->
+        Eff es' void
+      pagePairs = pairUp pages
+
+  let words' ::
+        forall e es'.
+        (e1 :> es', e :> es') =>
+        Stream BS.ByteString e ->
+        Eff es' void
+      words' word = do
+        forEach pagePairs $ \(p1, p2) -> do
+          let p1Words ::
+                (e' :> es'') =>
+                Stream BS.ByteString e' ->
+                Eff es'' ()
+              p1Words y =
+                consumeStream
+                  (\c -> chunksOfBS 16 c y)
+                  (\y' -> yield y' p1)
+
+          let p2Words ::
+                (e' :> es'') =>
+                Stream BS.ByteString e' ->
+                Eff es'' ()
+              p2Words y =
+                consumeStream
+                  (\c -> chunksOfBS 16 c y)
+                  (\y' -> yield y' p2)
+
+          let interleavedWords ::
+                (e' :> es'') =>
+                Stream BS.ByteString e' ->
+                Eff es'' ()
+              interleavedWords y =
+                consumeStream
+                  ( \c2 ->
+                      consumeStream
+                        (\c1 -> interleave c1 c2 y)
+                        p1Words
+                  )
+                  p2Words
+
+          forEach interleavedWords $ \wd -> do
+            yield word wd
+
+  let insns' ::
+        (e1 :> es', e' :> es') =>
+        Stream BS.ByteString e' ->
+        Eff es' void
+      insns' y =
+        consumeStream
+          (\c -> chunksOfBS 3 c y)
+          words'
+
+  forEach insns' $ \insn ->
+    yield insns insn
