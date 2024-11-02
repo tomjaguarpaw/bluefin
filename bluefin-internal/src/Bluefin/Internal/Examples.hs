@@ -971,6 +971,4 @@ instructions pages insns = do
             )
             p2Words
 
-  consumeStream
-    (\c -> chunksOfBS 3 c insns)
-    words'
+  consumeStream (\c -> chunksOfBS 3 c insns) words'
