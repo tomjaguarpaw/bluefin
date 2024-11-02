@@ -1057,6 +1057,49 @@ zipWithErrorMismatch f err c1 c2 y = withJump $ \done -> do
 
   zipWithConsume g c1 c2 y
 
+zipWithErrorMismatch' ::
+  (e3 :> es, e :> es) =>
+  (a1 -> a2 -> Eff es b) ->
+  Exception () e3 ->
+  (forall e'. Stream a1 e' -> Eff (e' :& es) ()) ->
+  (forall e'. Stream a2 e' -> Eff (e' :& es) ()) ->
+  Stream b e ->
+  Eff es ()
+zipWithErrorMismatch' f err k1 k2 y = do
+  consumeStream
+    ( \c1 ->
+        consumeStream
+          ( \c2 ->
+              zipWithErrorMismatch (\x' y' -> useImpl (f x' y')) err c1 c2 y
+          )
+          (foo (useImplWithin k2))
+    )
+    (foo (useImplWithin k1))
+
+exampleZipWithErrorMismatch' :: (e :> es) => Stream String e -> Eff es ()
+exampleZipWithErrorMismatch' y = do
+  let k1 y' = for_ [1 .. 5 :: Int] (yield y')
+  let k2 y' = for_ ['A' .. 'E'] (yield y')
+
+  r <- try $ \ex ->
+    forEach
+      (zipWithErrorMismatch' (\a b_ -> pure (a, b_)) ex k1 k2)
+      (yield y . show)
+
+  yield y (show r)
+
+foo ::
+  (e1 :> es) =>
+  (forall e. Stream a e -> Eff (e :& es) ()) ->
+  Stream (Maybe a) e1 ->
+  Eff es void
+foo k y = do
+  forEach k $ \a -> do
+    yield y (Just a)
+
+  forever $ do
+    yield y Nothing
+
 zipWithCheckLength :: (a -> b -> r) -> [a] -> [b] -> [r]
 zipWithCheckLength f as bs =
   untilNothing g (zip (extend as) (extend bs))
