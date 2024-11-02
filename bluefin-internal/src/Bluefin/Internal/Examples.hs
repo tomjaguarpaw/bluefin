@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
@@ -19,6 +20,7 @@ import qualified Control.Exception
 import Control.Monad (forever, replicateM_, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as C8
 import Data.Foldable (for_)
 import Data.Monoid (Any (Any, getAny))
 import Text.Read (readMaybe)
@@ -921,6 +923,25 @@ chunksOfBS n c y = evalState BS.empty $
           put leftovers rest
       | otherwise -> error "Impossible"
 
+runExample ::
+  (forall e es. Stream String e -> Eff (e :& es) ()) ->
+  IO ()
+runExample lines_ = runEff $ \io -> forEach lines_ $ \line -> do
+  effIO io (putStrLn line)
+
+exampleChunksOfBS :: (e :> es) => Stream String e -> Eff es ()
+exampleChunksOfBS line = do
+  forEach
+    ( \y -> do
+        consumeStream
+          (\c -> chunksOfBS 4 c y)
+          ( \y' -> do
+              for_ ["Hello", " ", "world", "!!!"] $
+                yield y'
+          )
+    )
+    (yield line . C8.unpack)
+
 chunkBS ::
   (e :> es) =>
   Int ->
@@ -932,6 +953,11 @@ chunkBS n bs y =
     (\c -> chunksOfBS n c y)
     (\y' -> yield y' bs)
 
+exampleChunkBS :: (e :> es) => Stream String e -> Eff es ()
+exampleChunkBS line = do
+  let msg = "Hello world!!!"
+  forEach (chunkBS 4 msg) (yield line . C8.unpack)
+
 pairUp ::
   (e1 :> es, e2 :> es) =>
   Consume a e1 ->
@@ -941,6 +967,16 @@ pairUp c y = forever $ do
   c1 <- await c
   c2 <- await c
   yield y (c1, c2)
+
+examplePairUp :: (e :> es) => Stream String e -> Eff es ()
+examplePairUp line =
+  forEach
+    ( \y -> do
+        consumeStream
+          (\c -> pairUp c y)
+          (\y' -> for_ [1 :: Int .. 10] (yield y'))
+    )
+    (yield line . show)
 
 interleave ::
   (e1 :> es, e2 :> es, e3 :> es) =>
@@ -953,6 +989,22 @@ interleave c1 c2 y = forever $ do
   yield y c1'
   c2' <- await c2
   yield y c2'
+
+exampleInterleave :: (e1 :> es) => Stream String e1 -> Eff es ()
+exampleInterleave line =
+  forEach
+    ( \y -> do
+        consumeStream
+          ( \c2 ->
+              consumeStream
+                ( \c1 ->
+                    interleave c1 c2 y
+                )
+                (\y' -> for_ [1 :: Int .. 5] (yield y'))
+          )
+          (\y' -> for_ [10 :: Int .. 15] (yield y'))
+    )
+    (yield line . show)
 
 instructions ::
   (e1 :> es, e2 :> es) =>
