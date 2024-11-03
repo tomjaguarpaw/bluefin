@@ -21,7 +21,7 @@ import Control.Monad (forever, replicateM_, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C8
-import Data.Foldable (for_)
+import Data.Foldable (for_, traverse_)
 import Data.Monoid (Any (Any, getAny))
 import Text.Read (readMaybe)
 import Prelude hiding
@@ -1028,6 +1028,41 @@ instructions pages insns = do
             p2Words
 
   consumeStream (\c -> chunksOfBS 3 c insns) words'
+
+-- ghci> exampleRunInstructions
+-- ABC
+-- DEF
+-- GHI
+-- JKL
+-- 123
+-- 4QR
+-- STU
+-- VWX
+-- YZ0
+-- 987
+-- 65A
+-- BCD
+-- EFG
+-- HIJ
+-- KL1
+-- 234
+-- QRS
+-- TUV
+-- WXY
+-- Z09
+-- 876
+exampleRunInstructions :: IO ()
+exampleRunInstructions = runEff $ \io -> do
+  forEach
+    ( \y ->
+        consumeStream
+          (\c -> instructions c y)
+          ( \y' -> replicateM_ 2 $ do
+              yield y' "ABCDEFGHIJKL1234567890"
+              yield y' "QRSTUVWXYZ0987654321"
+          )
+    )
+    (effIO io . putStrLn . C8.unpack)
 
 zipWithConsume ::
   (e1 :> es, e2 :> es, e :> es) =>
