@@ -1007,11 +1007,12 @@ exampleInterleave line =
     (yield line . show)
 
 instructions ::
-  (e1 :> es, e2 :> es) =>
+  (e1 :> es, e2 :> es, e3 :> es) =>
   Consume BS.ByteString e1 ->
   Stream BS.ByteString e2 ->
+  IOE e3 ->
   Eff es void
-instructions pages insns = do
+instructions pages insns io = do
   let pagePairs = pairUp pages
 
   let words' word = do
@@ -1022,7 +1023,11 @@ instructions pages insns = do
           consumeStream
             ( \c2 ->
                 consumeStream
-                  (\c1 -> interleave c1 c2 word)
+                  ( \c1 -> do
+                      forEach (interleave c1 c2) $ \w -> do
+                        yield word w
+                        effIO io (putStrLn ("Debugging tracing " ++ C8.unpack w))
+                  )
                   p1Words
             )
             p2Words
@@ -1035,28 +1040,32 @@ instructions pages insns = do
 -- GHI
 -- JKL
 -- 123
+-- Debugging tracing ABCDEFGHIJKL1234
 -- 4QR
 -- STU
 -- VWX
 -- YZ0
 -- 987
+-- Debugging tracing QRSTUVWXYZ098765
 -- 65A
 -- BCD
 -- EFG
 -- HIJ
 -- KL1
 -- 234
+-- Debugging tracing ABCDEFGHIJKL1234
 -- QRS
 -- TUV
 -- WXY
 -- Z09
 -- 876
+-- Debugging tracing QRSTUVWXYZ098765
 exampleRunInstructions :: IO ()
 exampleRunInstructions = runEff $ \io -> do
   forEach
     ( \y ->
         consumeStream
-          (\c -> instructions c y)
+          (\c -> instructions c y io)
           ( \y' -> replicateM_ 2 $ do
               yield y' "ABCDEFGHIJKL1234567890"
               yield y' "QRSTUVWXYZ0987654321"
