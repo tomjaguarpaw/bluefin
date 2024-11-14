@@ -979,6 +979,13 @@ bar ::
   Eff e ()
 bar _ _ _ = pure ()
 
+baz ::
+  State () e1 ->
+  State Bool e2 ->
+  State Int e3 ->
+  Eff (e1 :& e2 :& e3 :& es) ()
+baz _ _ _ = pure ()
+
 barFromFoo ::
   State () e ->
   State Bool e ->
@@ -993,3 +1000,19 @@ fooFromBar ::
   State Int e3 ->
   Eff es ()
 fooFromBar s1 s2 s3 = bar (mapHandle s1) (mapHandle s2) (mapHandle s3)
+
+bazFromFoo ::
+  State () e1 ->
+  State Bool e2 ->
+  State Int e3 ->
+  Eff (e1 :& e2 :& e3 :& es) ()
+bazFromFoo = foo
+
+barFromBaz ::
+  forall e.
+  State () e ->
+  State Bool e ->
+  State Int e ->
+  Eff e ()
+barFromBaz s1 s2 s3 =
+  weakenEff (subsume1 (subsume1 (subsume1 has))) (baz @_ @_ @_ @e s1 s2 s3)
