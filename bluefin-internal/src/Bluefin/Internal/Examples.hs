@@ -1016,3 +1016,17 @@ barFromBaz ::
   Eff e ()
 barFromBaz s1 s2 s3 =
   weakenEff (subsume1 (subsume1 (subsume1 has))) (baz @_ @_ @_ @e s1 s2 s3)
+
+quux ::
+  State Bool e1 ->
+  State () es ->
+  Eff (e1 :& es) ()
+quux _ _ = pure ()
+
+--somethingFromQuux :: State Bool t -> State () t -> Eff t ()
+
+quux2 :: State Bool e -> State () e -> Eff e ()
+quux2 s1' s2' = weakenEff (subsume1 has) (quux s1' s2')
+
+quux3 :: (e1 :> e2) => State Bool e1 -> State () e2 -> Eff e2 ()
+quux3 s1 = quux2 (mapHandle s1)
