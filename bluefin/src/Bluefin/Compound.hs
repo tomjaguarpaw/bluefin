@@ -454,7 +454,6 @@ module Bluefin.Compound
     -- @
 
     -- * Functions for making compound effects
-
     Handle (mapHandle),
     useImpl,
     useImplUnder,
@@ -463,7 +462,6 @@ module Bluefin.Compound
     -- * Deprecated
 
     -- | Do not use.  Will be removed in a future version.
-
     Compound,
     runCompound,
     withCompound,
