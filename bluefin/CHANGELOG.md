@@ -1,4 +1,4 @@
-* Add `withEffToIO_`, `useImplUnder`
+* Add `withEffToIO_`, `useImplUnder`, `makeOp`
 
 * Soft deprecate `withEffToIO`, `useImplWithin`
 

@@ -212,15 +212,22 @@ module Bluefin.Compound
     --
     -- @
     -- data Counter5 e = MkCounter5
-    --   { incCounter5Impl :: Eff e (),
-    --     getCounter5Impl :: String -> Eff e Int
+    --   { incCounter5Impl :: forall e'. Eff (e' :& e) (),
+    --     getCounter5Impl :: forall e'. String -> Eff (e' :& e) Int
     --   }
     --
+    -- instance Handle Counter5 where
+    --   mapHandle c =
+    --     MkCounter5
+    --       { incCounter5Impl = useImplUnder (incCounter5Impl c),
+    --         getCounter5Impl = \\msg -> useImplUnder (getCounter5Impl c msg)
+    --       }
+    --
     -- incCounter5 :: (e :> es) => Counter5 e -> Eff es ()
-    -- incCounter5 e = useImpl (incCounter5Impl e)
+    -- incCounter5 e = makeOp (incCounter5Impl (mapHandle e))
     --
     -- getCounter5 :: (e :> es) => Counter5 e -> String -> Eff es Int
-    -- getCounter5 e msg = useImpl (getCounter5Impl e msg)
+    -- getCounter5 e msg = makeOp (getCounter5Impl (mapHandle e) msg)
     --
     -- runCounter5 ::
     --   (e1 :> es) =>
@@ -278,13 +285,21 @@ module Bluefin.Compound
     --
     -- @
     -- data Counter6 e = MkCounter6
-    --   { incCounter6Impl :: Eff e (),
+    --   { incCounter6Impl :: forall e'. Eff (e' :& e) (),
     --     counter6State :: State Int e,
     --     counter6Stream :: Stream String e
     --   }
     --
+    -- instance Handle Counter6 where
+    --   mapHandle c =
+    --     MkCounter6
+    --       { incCounter6Impl = useImplUnder (incCounter6Impl c),
+    --         counter6State = mapHandle (counter6State c),
+    --         counter6Stream = mapHandle (counter6Stream c)
+    --       }
+    --
     -- incCounter6 :: (e :> es) => Counter6 e -> Eff es ()
-    -- incCounter6 e = useImpl (incCounter6Impl e)
+    -- incCounter6 e = makeOp (incCounter6Impl (mapHandle e))
     --
     -- getCounter6 :: (e :> es) => Counter6 e -> String -> Eff es Int
     -- getCounter6 (MkCounter6 _ st y) msg = do
@@ -455,6 +470,7 @@ module Bluefin.Compound
 
     -- * Functions for making compound effects
     Handle (mapHandle),
+    makeOp,
     useImpl,
     useImplUnder,
     useImplIn,
