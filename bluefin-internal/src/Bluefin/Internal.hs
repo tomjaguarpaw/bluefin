@@ -338,7 +338,7 @@ type Consume a = Coroutine () a
 --
 -- @
 -- data Application e = MkApplication
---   { queryDatabase :: String -> Int -> Eff e [String],
+--   { queryDatabase :: forall e'. String -> Int -> Eff (e' :& e) [String],
 --     applicationState :: State (Int, Bool) e,
 --     logger :: Stream String e
 --   }
@@ -346,7 +346,7 @@ type Consume a = Coroutine () a
 --
 -- To define @mapHandle@ for @Application@ you should apply
 -- @mapHandle@ to all the fields that are themeselves handles and
--- apply @useImpl@ to all the fields that are dynamic effects:
+-- apply @useImplUnder@ to all the fields that are dynamic effects:
 --
 -- @
 -- instance Handle Application where
@@ -357,16 +357,11 @@ type Consume a = Coroutine () a
 --         logger = l
 --       } =
 --       MkApplication
---         { queryDatabase = (fmap . fmap) useImpl q,
+--         { queryDatabase = \s i -> useImplUnder (q s i),
 --           applicationState = mapHandle a,
 --           logger = mapHandle l
 --         }
 -- @
---
--- Note that preceding @useImpl@ on the dynamic effect there is one
--- fmap per @->@ that appears in type of the dynamic effect.  That is,
--- @queryDatabase@ has type @String -> Int -> Eff e [String]@, which
--- has two @->@, so there are two @fmap@s before @useImpl@.
 class Handle (h :: Effects -> Type) where
   -- | Used to create compound effects, i.e. handles that contain
   -- other handles.

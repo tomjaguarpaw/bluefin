@@ -802,7 +802,7 @@ exampleRunFileSystemIO = runEff $ \io -> try $ \ex ->
 -- instance Handle example
 
 data Application e = MkApplication
-  { queryDatabase :: String -> Int -> Eff e [String],
+  { queryDatabase :: forall e'. String -> Int -> Eff (e' :& e) [String],
     applicationState :: State (Int, Bool) e,
     logger :: Stream String e
   }
@@ -815,7 +815,7 @@ instance Handle Application where
         logger = l
       } =
       MkApplication
-        { queryDatabase = (fmap . fmap) useImpl q,
+        { queryDatabase = \s i -> useImplUnder (q s i),
           applicationState = mapHandle a,
           logger = mapHandle l
         }
