@@ -734,6 +734,81 @@ exampleCounter6 = runPureEff $ yieldToList $ \y -> do
 -- > exampleCounter6
 -- (["Count was even","I'm getting the counter","n was 2, as expected"],2)
 
+-- Counter 7
+
+data Counter7 e = MkCounter7
+  { incCounter7Impl :: forall e'. Exception () e' -> Eff (e' :& e) (),
+    counter7State :: State Int e,
+    counter7Stream :: Stream String e
+  }
+
+instance Handle Counter7 where
+  mapHandle c =
+    MkCounter7
+      { incCounter7Impl = \ex -> useImplUnder (incCounter7Impl c ex),
+        counter7State = mapHandle (counter7State c),
+        counter7Stream = mapHandle (counter7Stream c)
+      }
+
+incCounter7 ::
+  (e :> es, e1 :> es) => Counter7 e -> Exception () e1 -> Eff es ()
+incCounter7 e ex = makeOp (incCounter7Impl (mapHandle e) (mapHandle ex))
+
+getCounter7 :: (e :> es) => Counter7 e -> String -> Eff es Int
+getCounter7 (MkCounter7 _ st y) msg = do
+  yield y msg
+  get st
+
+runCounter7 ::
+  (e1 :> es) =>
+  Stream String e1 ->
+  (forall e. Counter7 e -> Eff (e :& es) r) ->
+  Eff es Int
+runCounter7 y k =
+  evalState 0 $ \st -> do
+    _ <-
+      useImplIn
+        k
+        ( MkCounter7
+            { incCounter7Impl = \ex -> do
+                count <- get st
+
+                when (even count) $
+                  yield y "Count was even"
+
+                when (count >= 10) $
+                  throw ex ()
+
+                put st (count + 1),
+              counter7State = mapHandle st,
+              counter7Stream = mapHandle y
+            }
+        )
+    get st
+
+exampleCounter7A :: ([String], Int)
+exampleCounter7A = runPureEff $ yieldToList $ \y -> do
+  handle (\() -> pure (-42)) $ \ex ->
+    runCounter7 y $ \c -> do
+      incCounter7 c ex
+      incCounter7 c ex
+      n <- getCounter7 c "I'm getting the counter"
+      when (n == 2) $
+        yield y "n was 2, as expected"
+
+-- > exampleCounter7A
+-- (["Count was even","I'm getting the counter","n was 2, as expected"],2)
+
+exampleCounter7B :: ([String], Int)
+exampleCounter7B = runPureEff $ yieldToList $ \y -> do
+  handle (\() -> pure (-42)) $ \ex ->
+    runCounter7 y $ \c -> do
+      forever (incCounter7 c ex)
+
+-- > exampleCounter7B
+-- (["Count was even","Count was even","Count was even","Count was even","Count was even","Count was even"],-42)
+
+
 -- FileSystem
 
 data FileSystem es = MkFileSystem
