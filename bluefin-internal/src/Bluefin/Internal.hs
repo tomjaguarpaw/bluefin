@@ -75,6 +75,8 @@ withEffToIO' ::
   Eff es a
 withEffToIO' io k = withEffToIO k io
 
+-- | This is equivalent to the 'withRunInIO' method of
+-- 'MonadUnliftIO', but written in Bluefin-style.
 withEffToIO_ ::
   (e :> es) =>
   IOE e ->
