@@ -1,3 +1,7 @@
+* Add `withEffToIO_`
+
+* Soft deprecate `withEffToIO`
+
 ## 0.0.10.0
 
 * Add `Bluefin.System.IO`

@@ -10,11 +10,13 @@ module Bluefin.IO
     rethrowIO,
     -- * IO type classes
     withMonadIO,
-    withEffToIO,
+    withEffToIO_,
     -- ** @EffReader@
     EffReader,
     effReader,
     runEffReader,
+    -- ** Deprecated versions
+    withEffToIO,
   )
 where
 

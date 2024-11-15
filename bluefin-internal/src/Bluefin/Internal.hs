@@ -58,7 +58,7 @@ effReader = MkEffReader
 runEffReader :: r -> EffReader r es a -> Eff es a
 runEffReader r (MkEffReader m) = m r
 
--- This is possibly what @withRunInIO@ should morally be.
+-- | Deprecated.  Use @withEffToIO_@ instead.
 withEffToIO ::
   (e2 :> es) =>
   -- | Continuation with the unlifting function in scope.
@@ -75,8 +75,29 @@ withEffToIO' ::
   Eff es a
 withEffToIO' io k = withEffToIO k io
 
+withEffToIO_ ::
+  (e :> es) =>
+  IOE e ->
+  -- | Continuation with the unlifting function in scope.
+  ((forall r. Eff es r -> IO r) -> IO a) ->
+  Eff es a
+withEffToIO_ io k =
+  withEffToIO (\effToIO -> k (\eff -> effToIO (\_ -> useImpl eff))) io
+
+-- We can do the old API in terms of withEffToIO_
+withEffToIO_' ::
+  (e2 :> es) =>
+  IOE e2 ->
+  -- | Continuation with the unlifting function in scope.
+  ((forall r. (forall e1. IOE e1 -> Eff (e1 :& es) r) -> IO r) -> IO a) ->
+  Eff es a
+withEffToIO_' io k =
+  withEffToIO_ io (\effToIO -> k (\eff -> effToIO (weakenEff (subsume2 has) (eff io))))
+
 -- We don't try to do anything sophisticated here.  I haven't thought
 -- through all the consequences.
+
+-- | You probably want to use 'withEffToIO_' instead.
 instance (e :> es) => MonadUnliftIO (EffReader (IOE e) es) where
   withRunInIO ::
     ((forall a. EffReader (IOE e) es a -> IO a) -> IO b) ->
@@ -401,6 +422,9 @@ b = bimap (eq (# #))
 
 subsume1 :: (e2 `In` e1) -> (e1 :& e2) `In` e1
 subsume1 i = cmp (bimap (eq (# #)) i) (merge (# #))
+
+subsume2 :: (e1 `In` e2) -> (e1 :& e2) `In` e2
+subsume2 i = cmp (bimap i (eq (# #))) (merge (# #))
 
 -- | Effect subset constraint
 class (es1 :: Effects) :> (es2 :: Effects)
