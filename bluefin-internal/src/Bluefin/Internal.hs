@@ -285,6 +285,14 @@ inContext = weakenEff (subsume1 has)
 useImpl :: (e :> es) => Eff e r -> Eff es r
 useImpl = weakenEff has
 
+-- | Like 'useImpl'
+useImplUnder ::
+  (e :> es) =>
+  Eff (e1 :& e) r ->
+  -- | ͘
+  Eff (e1 :& es) r
+useImplUnder = insertManySecond
+
 -- | Used to define handlers of compound effects.
 useImplIn ::
   (e :> es) =>
@@ -294,7 +302,7 @@ useImplIn ::
   Eff es r
 useImplIn f h = inContext (f h)
 
--- | Like 'useImplIn'
+-- | Deprecated.  Use 'useImplUnder' instead.
 useImplWithin ::
   (e :> es) =>
   (t -> Eff (e1 :& e) r) ->

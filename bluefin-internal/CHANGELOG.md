@@ -1,6 +1,6 @@
-* Add `withEffToIO_`
+* Add `withEffToIO_`, `useImplUnder`
 
-* Soft deprecate `withEffToIO`
+* Soft deprecate `withEffToIO`, `useImplWithin`
 
 ## 0.0.10.0
 

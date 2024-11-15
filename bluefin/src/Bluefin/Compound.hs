@@ -457,8 +457,8 @@ module Bluefin.Compound
 
     Handle (mapHandle),
     useImpl,
+    useImplUnder,
     useImplIn,
-    useImplWithin,
 
     -- * Deprecated
 
@@ -467,6 +467,7 @@ module Bluefin.Compound
     Compound,
     runCompound,
     withCompound,
+    useImplWithin,
   )
 where
 
