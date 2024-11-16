@@ -1253,7 +1253,7 @@ runReader ::
   r ->
   (forall e. Reader r e -> Eff (e :& es) a) ->
   Eff es a
-runReader r f = unsafeRemoveEff (f (MkReader r))
+runReader r f = useImplIn f (MkReader r)
 
 ask ::
   (e :> es) =>
