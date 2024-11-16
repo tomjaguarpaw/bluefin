@@ -1157,7 +1157,7 @@ unsafeProvideIO ::
   (forall e. IOE e -> Eff (e :& es) a) ->
   -- | ͘
   Eff es a
-unsafeProvideIO eff = unsafeRemoveEff (eff MkIOE)
+unsafeProvideIO eff = useImplIn eff MkIOE
 
 connect ::
   (forall e1. Coroutine a b e1 -> Eff (e1 :& es) r1) ->
