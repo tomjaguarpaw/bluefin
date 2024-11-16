@@ -692,7 +692,7 @@ withStateSource ::
   (forall e. StateSource e -> Eff (e :& es) a) ->
   -- | ͘
   Eff es a
-withStateSource f = unsafeRemoveEff (f StateSource)
+withStateSource f = useImplIn f StateSource
 
 -- |
 -- @
