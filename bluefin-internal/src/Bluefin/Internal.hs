@@ -1243,21 +1243,19 @@ tell ::
   Eff es ()
 tell (Writer y) = yield y
 
-newtype Reader r (e :: Effects) = MkReader r
-
-instance Handle (Reader r) where
-  mapHandle (MkReader r) = MkReader r
+newtype Reader r e = MkReader (State r e)
+  deriving newtype (Handle)
 
 runReader ::
   -- | ͘
   r ->
   (forall e. Reader r e -> Eff (e :& es) a) ->
   Eff es a
-runReader r f = useImplIn f (MkReader r)
+runReader r f = evalState r (f . MkReader)
 
 ask ::
   (e :> es) =>
   -- | ͘
   Reader r e ->
   Eff es r
-ask (MkReader r) = pure r
+ask (MkReader st) = get st
