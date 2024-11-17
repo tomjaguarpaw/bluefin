@@ -1247,12 +1247,27 @@ newtype Reader r e = MkReader (State r e)
   deriving newtype (Handle)
 
 runReader ::
-  -- | ͘
+  -- | Initial value for @Reader@.
   r ->
   (forall e. Reader r e -> Eff (e :& es) a) ->
   Eff es a
 runReader r f = evalState r (f . MkReader)
 
+-- | Read the value.  Note that @ask@ has the property that these two
+-- operations are always equivalent:
+--
+-- @
+-- do
+--   r1 <- ask re
+--   r2 <- ask re
+--   pure (r1, r2)
+-- @
+--
+-- @
+-- do
+--   r <- ask re
+--   pure (r, r)
+-- @
 ask ::
   (e :> es) =>
   -- | ͘
@@ -1260,9 +1275,11 @@ ask ::
   Eff es r
 ask (MkReader st) = get st
 
+-- | Read the value modified by a function
 asks ::
   (e :> es) =>
   Reader r e ->
+  -- | Read the value modified by this function
   (r -> a) ->
   Eff es a
 asks (MkReader st) f = fmap f (get st)
@@ -1270,7 +1287,9 @@ asks (MkReader st) f = fmap f (get st)
 local ::
   (e1 :> es) =>
   Reader r e1 ->
+  -- | In the body, the reader value is modified by this function.
   (r -> r) ->
+  -- | Body
   Eff es a ->
   Eff es a
 local (MkReader st) f k = do
