@@ -1260,6 +1260,13 @@ ask ::
   Eff es r
 ask (MkReader st) = get st
 
+asks ::
+  (e :> es) =>
+  Reader r e ->
+  (r -> a) ->
+  Eff es a
+asks (MkReader st) f = fmap f (get st)
+
 local ::
   (e1 :> es) =>
   Reader r e1 ->
