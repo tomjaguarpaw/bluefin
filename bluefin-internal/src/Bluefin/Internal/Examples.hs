@@ -820,7 +820,8 @@ readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
 readFile fs filepath = useImpl (readFileImpl fs filepath)
 
 writeFile :: (e :> es) => FileSystem e -> FilePath -> String -> Eff es ()
-writeFile fs filepath contents = useImpl (writeFileImpl fs filepath contents)
+writeFile fs filepath contents =
+  useImpl (writeFileImpl fs filepath contents)
 
 runFileSystemPure ::
   (e1 :> es) =>
