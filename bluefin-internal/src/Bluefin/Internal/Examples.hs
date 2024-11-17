@@ -507,7 +507,7 @@ exampleCounter1 = runPureEff $ runCounter1 $ \c -> do
   incCounter1 c
   incCounter1 c
 
--- > exampeleCounter1
+-- > exampleCounter1
 -- 3
 
 -- Counter 2
