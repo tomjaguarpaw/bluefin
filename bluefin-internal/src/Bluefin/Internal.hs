@@ -1259,3 +1259,16 @@ ask ::
   Reader r e ->
   Eff es r
 ask (MkReader st) = get st
+
+local ::
+  (e1 :> es) =>
+  Reader r e1 ->
+  (r -> r) ->
+  Eff es a ->
+  Eff es a
+local (MkReader st) f k = do
+  orig <- get st
+  bracket
+    (put st (f orig))
+    (\() -> put st orig)
+    (\() -> k)
