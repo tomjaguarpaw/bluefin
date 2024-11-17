@@ -18,7 +18,8 @@ common warnings
 library
     import:           warnings
     exposed-modules:
-      Bluefin.Examples.DB
+      Bluefin.Examples.DB,
+      Bluefin.Examples.Terminal
     build-depends:
       base, bluefin >= 0.0.6.0 && < 0.1
     hs-source-dirs:   src
