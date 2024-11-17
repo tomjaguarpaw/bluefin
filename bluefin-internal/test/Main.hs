@@ -77,7 +77,7 @@ runTests ::
   Eff es Bool
 runTests f y = do
   ((), All passedAll) <- runWriter $ \passedAllSoFar -> do
-    forEach (useImplWithin f) $ \(name, mFailure) -> do
+    forEach (useImplUnder . f) $ \(name, mFailure) -> do
       let passed = case mFailure of
             Just _ -> False
             Nothing -> True
@@ -104,7 +104,7 @@ runSpecH ::
   (forall e1. SpecH e1 -> Eff (e1 :& es) ()) ->
   Eff es ()
 runSpecH ioe f = do
-  passed <- forEach (runTests (useImplWithin f)) $ \text ->
+  passed <- forEach (runTests (useImplUnder . f)) $ \text ->
     effIO ioe (putStrLn text)
 
   effIO ioe $ case passed of
