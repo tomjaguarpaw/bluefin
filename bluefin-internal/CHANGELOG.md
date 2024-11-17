@@ -1,3 +1,7 @@
+## 0.0.12.0
+
+* Add `asks` and `local`
+
 ## 0.0.11.0
 
 * Add `withEffToIO_`, `useImplUnder`, `makeOp`

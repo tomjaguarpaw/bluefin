@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               bluefin-examples
-version:            0.0.0.0
+version:            0.1.0.0
 license:            MIT
 license-file:       LICENSE
 author:             Tom Ellis
@@ -21,6 +21,6 @@ library
       Bluefin.Examples.DB,
       Bluefin.Examples.Terminal
     build-depends:
-      base, bluefin >= 0.0.6.0 && < 0.1
+      base, bluefin >= 0.0.12.0 && < 0.1
     hs-source-dirs:   src
     default-language: Haskell2010
