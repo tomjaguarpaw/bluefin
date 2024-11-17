@@ -148,18 +148,18 @@ connectCoroutines m1 m2 = unsafeProvideIO $ \io -> do
   bv <- effIO io newEmptyMVar
 
   let t1 :: forall e. IOE e -> Eff (e :& es) r
-      t1 io' = forEach (useImplWithin m1) $ \a -> effIO io' $ do
+      t1 io' = forEach (useImplUnder . m1) $ \a -> effIO io' $ do
         putMVar av a
         takeMVar bv
 
   let t2 :: forall e. IOE e -> Eff (e :& es) r
       t2 io' = do
         ainit <- effIO io' (takeMVar av)
-        forEach (useImplWithin (m2 ainit)) $ \b_ -> effIO io' $ do
+        forEach (useImplUnder . (m2 ainit)) $ \b_ -> effIO io' $ do
           putMVar bv b_
           takeMVar av
 
-  race (useImplWithin t1) (useImplWithin t2) io
+  race (useImplUnder . t1) (useImplUnder . t2) io
 
 -- | Old name for 'consumeStream'.  @receiveStream@ will be deprecated
 -- in a future version.
@@ -186,7 +186,7 @@ zipCoroutines ::
   Eff es r
 zipCoroutines c m1 m2 = do
   connectCoroutines m1 $ \a1 c1 -> do
-    connectCoroutines (useImplWithin m2) $ \a2 c2 -> do
+    connectCoroutines (useImplUnder . m2) $ \a2 c2 -> do
       evalState (a1, a2) $ \ass -> do
         forever $ do
           as <- get ass
