@@ -252,6 +252,10 @@ withMonadFail ::
   Eff es r
 withMonadFail f m = unEffReader m f
 
+-- | This function is really very unsafe and for internal use only.
+-- Unlike the similarly-named @unsafeEff_@ function from @effectful@,
+-- which is provided for use in user code, this function must never be
+-- used in user code.
 unsafeRemoveEff :: Eff (e :& es) a -> Eff es a
 unsafeRemoveEff = UnsafeMkEff . unsafeUnEff
 
