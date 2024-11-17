@@ -428,7 +428,7 @@ module Bluefin.Compound
     -- @
     --
     -- ... unless we run @incCounter@ too many times, in which case it
-    -- throws can exception.
+    -- throws an exception.
     --
     -- @
     -- exampleCounter7B :: ([String], Int)
