@@ -192,7 +192,7 @@ awaitList l io k = evalState l $ \s -> do
       (pure ())
       (\() -> effIO io (putStrLn "Released"))
       $ \() -> do
-        consumeEach (useImplWithin k) $ do
+        consumeEach (useImplUnder . k) $ do
           (x, xs) <-
             get s >>= \case
               [] -> jumpTo done
@@ -207,7 +207,7 @@ takeRec ::
   Consume a e3 ->
   Eff es ()
 takeRec n k rec =
-  withJump $ \done -> evalState n $ \s -> consumeEach (useImplWithin k) $ do
+  withJump $ \done -> evalState n $ \s -> consumeEach (useImplUnder . k) $ do
     s' <- get s
     if s' <= 0
       then jumpTo done
@@ -244,7 +244,7 @@ awaitUsage io x = do
     mapRec (subtract 1) $
       takeRec 3 $
         traverseRec (effIO io . print) $
-          useImplWithin x
+          useImplUnder . x
 
 awaitExample :: IO ()
 awaitExample = runEff $ \io -> do
