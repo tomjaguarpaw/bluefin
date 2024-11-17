@@ -208,7 +208,7 @@ module Bluefin.Compound
     -- @getCounter4@ were, they're just defined in the handler.  In
     -- order to be used polymorphically, the actually effectful
     -- functions we call, @incCounter5@ and @getCounter5@ are derived
-    -- from the record fields by applying @useImpl@.
+    -- from the record fields by applying @makeOp@.
     --
     -- @
     -- data Counter5 e = MkCounter5
