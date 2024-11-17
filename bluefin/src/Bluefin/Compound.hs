@@ -134,13 +134,56 @@ module Bluefin.Compound
     -- 10
     -- @
 
-    -- ** Wrap multiple effects, don't handle them all
+    -- ** Wrap a single effect, don't handle it
 
     -- | So far our handlers have handled all the effects that are
     -- found within our compound effect. We don't have to do that
-    -- though: we can leave some of the effects unhandled to be
-    -- handled by a different handler at a higher level.  Let's extend
-    -- our example with a @Stream@ effect.  Whenever we ask to
+    -- though: we can leave an effect unhandled to be handled by a
+    -- different handler at a higher level.  This must /always/ be the
+    -- case for 'Bluefin.IO.IOE', which can only be handled at the top
+    -- level by 'Bluefin.IO.runEff'.  Let's see what it looks like to
+    -- wrap @IOE@ and provide an API which allows a subset of @IO@
+    -- operations.
+    --
+    -- @
+    -- newtype Counter3B e = MkCounter3B (IOE e)
+    --
+    -- incCounter3B :: (e :> es) => Counter3B e -> Eff es ()
+    -- incCounter3B (MkCounter3B io) =
+    --   effIO io (putStrLn "You tried to increment the counter")
+    --
+    -- runCounter3B ::
+    --   (e1 :> es) =>
+    --   IOE e1 ->
+    --   (forall e. Counter3B e -> Eff (e :& es) r) ->
+    --   Eff es r
+    -- runCounter3B io k = useImplIn k (MkCounter3B (mapHandle io))
+    -- @
+    --
+    -- @
+    -- exampleCounter3B :: IO ()
+    -- exampleCounter3B = runEff $ \\io -> runCounter3B io $ \\c -> do
+    --   incCounter3B c
+    --   incCounter3B c
+    --   incCounter3B c
+    -- @
+    --
+    -- This isn't a terribly useful counter!  It doesn't actually
+    -- increment anything, it just prints a message when we try, but
+    -- the example does demonstrate how to wrap @IOE@.
+    --
+    -- @
+    -- -- ghci> exampleCounter3B
+    -- -- You tried to increment the counter
+    -- -- You tried to increment the counter
+    -- -- You tried to increment the counter
+    -- @
+
+    -- ** Wrap multiple effects, don't handle them all
+
+    -- | We can wrap multiple effects, handle some of them and leave
+    -- the others to be handled later. Let's extend @Counter3@ with a
+    -- @Stream@ effect.  Whenever we ask to
     -- increment the counter, and it is currently an even number, then
     -- we yield a message about that.  Additionally, there's a new
     -- operation @getCounter4@ which allows us to yield a message

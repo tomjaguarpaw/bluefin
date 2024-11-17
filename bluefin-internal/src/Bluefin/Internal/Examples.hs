@@ -566,6 +566,32 @@ exampleCounter3 = runPureEff $ runCounter3 $ \c ->
 -- > exampleCounter3
 -- 10
 
+-- Counter 3B
+
+newtype Counter3B e = MkCounter3B (IOE e)
+
+incCounter3B :: (e :> es) => Counter3B e -> Eff es ()
+incCounter3B (MkCounter3B io) =
+  effIO io (putStrLn "You tried to increment the counter")
+
+runCounter3B ::
+  (e1 :> es) =>
+  IOE e1 ->
+  (forall e. Counter3B e -> Eff (e :& es) r) ->
+  Eff es r
+runCounter3B io k = useImplIn k (MkCounter3B (mapHandle io))
+
+exampleCounter3B :: IO ()
+exampleCounter3B = runEff $ \io -> runCounter3B io $ \c -> do
+  incCounter3B c
+  incCounter3B c
+  incCounter3B c
+
+-- ghci> exampleCounter3B
+-- You tried to increment the counter
+-- You tried to increment the counter
+-- You tried to increment the counter
+
 -- Counter 4
 
 data Counter4 e
