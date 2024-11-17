@@ -155,7 +155,7 @@ connectCoroutines m1 m2 = unsafeProvideIO $ \io -> do
   let t2 :: forall e. IOE e -> Eff (e :& es) r
       t2 io' = do
         ainit <- effIO io' (takeMVar av)
-        forEach (useImplUnder . (m2 ainit)) $ \b_ -> effIO io' $ do
+        forEach (useImplUnder . m2 ainit) $ \b_ -> effIO io' $ do
           putMVar bv b_
           takeMVar av
 
