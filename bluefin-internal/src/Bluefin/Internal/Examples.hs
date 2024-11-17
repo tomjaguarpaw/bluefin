@@ -812,16 +812,22 @@ exampleCounter7B = runPureEff $ yieldToList $ \y -> do
 -- FileSystem
 
 data FileSystem es = MkFileSystem
-  { readFileImpl :: FilePath -> Eff es String,
-    writeFileImpl :: FilePath -> String -> Eff es ()
+  { readFileImpl :: forall e. FilePath -> Eff (e :& es) String,
+    writeFileImpl :: forall e. FilePath -> String -> Eff (e :& es) ()
   }
 
+instance Handle FileSystem where
+  mapHandle fs = MkFileSystem {
+    readFileImpl = \fp -> useImplUnder (readFileImpl fs fp),
+    writeFileImpl = \fp s -> useImplUnder (writeFileImpl fs fp s)
+    }
+
 readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
-readFile fs filepath = useImpl (readFileImpl fs filepath)
+readFile fs filepath = makeOp (readFileImpl (mapHandle fs) filepath)
 
 writeFile :: (e :> es) => FileSystem e -> FilePath -> String -> Eff es ()
 writeFile fs filepath contents =
-  useImpl (writeFileImpl fs filepath contents)
+  makeOp (writeFileImpl (mapHandle fs) filepath contents)
 
 runFileSystemPure ::
   (e1 :> es) =>
