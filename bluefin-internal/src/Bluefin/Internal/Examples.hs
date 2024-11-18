@@ -3,7 +3,7 @@
 
 module Bluefin.Internal.Examples where
 
-import Bluefin.Internal hiding (w)
+import Bluefin.Internal hiding (b, w)
 import Bluefin.Internal.Pipes
   ( Producer,
     runEffect,
@@ -261,11 +261,11 @@ consumeStreamExample = runEff $ \io -> do
             (\_ -> effIO io (putStrLn "Leaving 2"))
             $ \_ -> do
               for_ [1 :: Int .. 100] $ \n -> do
-                b' <- await r
+                b <- await r
                 effIO
                   io
                   ( putStrLn
-                      ("Consumed body " ++ show b' ++ " at time " ++ show n)
+                      ("Consumed body " ++ show b ++ " at time " ++ show n)
                   )
               pure "Consumer finished first"
       )
@@ -332,11 +332,11 @@ connectExample = runEff $ \io -> do
             $ \_ -> do
               effIO io (putStrLn ("Consumed intial " ++ show binit))
               for_ [1 :: Int .. 100] $ \n -> do
-                b' <- await r
+                b <- await r
                 effIO
                   io
                   ( putStrLn
-                      ("Consumed body " ++ show b' ++ " at time " ++ show n)
+                      ("Consumed body " ++ show b ++ " at time " ++ show n)
                   )
               pure "Consumer finished first"
       )
