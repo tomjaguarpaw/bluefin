@@ -834,7 +834,6 @@ exampleCounter7B = runPureEff $ yieldToList $ \y -> do
 -- > exampleCounter7B
 -- (["Count was even","Count was even","Count was even","Count was even","Count was even","Count was even"],-42)
 
-
 -- FileSystem
 
 data FileSystem es = MkFileSystem
@@ -843,10 +842,11 @@ data FileSystem es = MkFileSystem
   }
 
 instance Handle FileSystem where
-  mapHandle fs = MkFileSystem {
-    readFileImpl = \fp -> useImplUnder (readFileImpl fs fp),
-    writeFileImpl = \fp s -> useImplUnder (writeFileImpl fs fp s)
-    }
+  mapHandle fs =
+    MkFileSystem
+      { readFileImpl = \fp -> useImplUnder (readFileImpl fs fp),
+        writeFileImpl = \fp s -> useImplUnder (writeFileImpl fs fp s)
+      }
 
 readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
 readFile fs filepath = makeOp (readFileImpl (mapHandle fs) filepath)
