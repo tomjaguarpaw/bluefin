@@ -1021,3 +1021,23 @@ rethrowIOExample = runEff $ \io -> do
   effIO io $ putStrLn $ case r of
     Left e -> "Caught IOException:\n" ++ show e
     Right contents -> contents
+
+data LocalReader r e = LocalReader
+  { askLR :: forall es. Eff (es :& e) r
+  , localLR :: forall es a. (r -> r) -> Eff (es :& e) a -> Eff (es :& e) a
+  }
+
+instance Handle (LocalReader r) where
+  mapHandle h = LocalReader (useImplUnder (askLR h)) (\f -> inContext . localLR h f . pushFirst)
+
+ask' :: e :> es => LocalReader r e -> Eff es r
+ask' c = inContext (askLR c)
+
+local' :: e :> es => LocalReader r e -> (r -> r) -> Eff es a -> Eff es a
+local' c f m = inContext (localLR c f (pushFirst m))
+
+interpretLocalReader :: LocalReader r es -> (forall e. LocalReader r e -> Eff (e :& es) a) -> Eff es a
+interpretLocalReader h m = mergeEff (m h)
+
+runLocalReader :: r -> (forall e. LocalReader r e -> Eff (e :& es) a) -> Eff es a
+runLocalReader r m = runReader r (\h -> m (LocalReader (ask h) (local h)))
