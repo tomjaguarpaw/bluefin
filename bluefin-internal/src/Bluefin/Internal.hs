@@ -1334,11 +1334,11 @@ askH hh = let UnsafeMkH st = mapHandle hh in get st
 runH ::
   (e1 :> es, Handle h) =>
   h e1 ->
-  (forall ek. H h ek -> Eff (ek :& es) r) ->
+  (forall e. H h e -> Eff (e :& es) r) ->
   Eff es r
 runH h k =
   evalState h $ \st -> do
-    -- This needs justifying!
+    -- This desperately needs justifying!
     let hh = unsafeCoerce st
     useImplIn k hh
 
@@ -1359,3 +1359,32 @@ data DynamicReader r e = MkDynamicReader (H (ConstEffect r) e) (H (Local r) e)
 instance Handle (DynamicReader r) where
   mapHandle (MkDynamicReader h1 h2) =
     MkDynamicReader (mapHandle h1) (mapHandle h2)
+
+runConstEffect ::
+  r ->
+  (forall e. ConstEffect r e -> Eff (e :& es) a) ->
+  Eff es a
+runConstEffect r k = useImplIn k (MkConstEffect r)
+
+runLocal ::
+  (forall a' e. (r -> r) -> Eff e a' -> Eff (e :& es) a') ->
+  (forall e. Local r e -> Eff (e :& es) a) ->
+  Eff es a
+runLocal l k = useImplIn k (MkLocal l)
+
+runDynamicReader ::
+  forall es r a.
+  r ->
+  (forall e. DynamicReader r e -> Eff (e :& es) a) ->
+  Eff es a
+runDynamicReader r k =
+  runConstEffect r $ \co -> do
+    runH co $ \hco -> do
+      runLocal
+        ( \f k' -> do
+            MkConstEffect r' <- askH hco
+            localH hco (MkConstEffect (f r')) (useImpl k')
+        )
+        $ \lo -> do
+          runH lo $ \hlo -> do
+            useImplIn k (MkDynamicReader (mapHandle hco) (mapHandle hlo))
