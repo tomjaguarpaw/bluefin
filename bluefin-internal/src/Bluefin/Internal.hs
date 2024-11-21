@@ -1389,6 +1389,14 @@ runDynamicReader r k =
           runH lo $ \hlo -> do
             useImplIn k (MkDynamicReader (mapHandle hco) (mapHandle hlo))
 
+dynamicAsk ::
+  (e :> es) =>
+  DynamicReader r e ->
+  Eff es r
+dynamicAsk (MkDynamicReader dyr _) = do
+  MkConstEffect r <- askH dyr
+  pure r
+
 dynamicLocal ::
   (e :> es) =>
   (r -> r) ->
