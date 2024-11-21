@@ -3,7 +3,7 @@
 
 module Bluefin.Internal.Examples where
 
-import Bluefin.Internal hiding (w)
+import Bluefin.Internal hiding (Log, b, log, w)
 import Bluefin.Internal.Pipes
   ( Producer,
     runEffect,
@@ -24,6 +24,7 @@ import Prelude hiding
   ( break,
     drop,
     head,
+    log,
     read,
     readFile,
     return,
@@ -1021,3 +1022,209 @@ rethrowIOExample = runEff $ \io -> do
   effIO io $ putStrLn $ case r of
     Left e -> "Caught IOException:\n" ++ show e
     Right contents -> contents
+
+newtype BasicLog es = MkBasicLog {basicLogImpl :: forall e. String -> Eff (e :& es) ()}
+
+instance Handle BasicLog where
+  mapHandle b =
+    MkBasicLog
+      { basicLogImpl = \s -> useImplUnder (basicLogImpl b s)
+      }
+
+basicLog :: (e :> es) => BasicLog e -> String -> Eff es ()
+basicLog b s = makeOp (basicLogImpl (mapHandle b) s)
+
+runBasicLog ::
+  (e1 :> es) =>
+  IOE e1 ->
+  (forall e. BasicLog e -> Eff (e :& es) a) ->
+  Eff es a
+runBasicLog io k =
+  useImplIn
+    k
+    MkBasicLog
+      { basicLogImpl = \msg ->
+          effIO io $ putStrLn $ "[INFO] " <> msg
+      }
+
+type DBValue = String
+
+newtype BasicDB es = MkBasicDB
+  { insertBasicDBImpl ::
+      forall e.
+      DBValue ->
+      Eff (e :& es) ()
+  }
+
+instance Handle BasicDB where
+  mapHandle b =
+    MkBasicDB
+      { insertBasicDBImpl = \s -> useImplUnder (insertBasicDBImpl b s)
+      }
+
+insertBasicDB :: (e :> es) => BasicDB e -> DBValue -> Eff es ()
+insertBasicDB d v = makeOp (insertBasicDBImpl (mapHandle d) v)
+
+runDummyBasicDB ::
+  (e1 :> es) =>
+  IOE e1 ->
+  (forall e. BasicDB e -> Eff (e :& es) a) ->
+  Eff es a
+runDummyBasicDB io k =
+  useImplIn
+    k
+    MkBasicDB
+      { insertBasicDBImpl = \value ->
+          effIO io $ putStrLn $ "[DummyDB.InsertDB] " <> value
+      }
+
+type Log = H BasicLog
+
+log :: (e :> es) => Log e -> String -> Eff es ()
+log l msg = do
+  b <- askH l
+  basicLog b msg
+
+runLog ::
+  (e1 :> es) =>
+  IOE e1 ->
+  (forall e. Log e -> Eff (e :& es) a) ->
+  Eff es a
+runLog io k = do
+  runBasicLog io $ \l -> do
+    runH l $ \h -> do
+      useImplIn k (mapHandle h)
+
+type DB = H BasicDB
+
+insertDB :: e :> es => DB e -> DBValue -> Eff es ()
+insertDB d v = do
+  b <- askH d
+  insertBasicDB b v
+
+runDummyDB ::
+  (e1 :> es) =>
+  IOE e1 ->
+  (forall e. DB e -> Eff (e :& es) a) ->
+  Eff es a
+runDummyDB io k = do
+  runDummyBasicDB io $ \d -> do
+    runH d $ \h -> do
+      useImplIn k (mapHandle h)
+
+hookLoggingInsertDBLocally ::
+  (e1 :> es, e2 :> es) =>
+  DB e1 ->
+  Log e2 ->
+  Eff es a ->
+  Eff es a
+hookLoggingInsertDBLocally d l k = do
+  orig <- askH d
+
+  localH
+    d
+    ( MkBasicDB
+        { insertBasicDBImpl = \value -> do
+            insertBasicDB orig value
+            log l $ "Wrote to the DB: " <> value
+        }
+    )
+    k
+
+suppressLog ::
+  (e1 :> es) =>
+  Log e1 ->
+  Eff es a ->
+  Eff es a
+suppressLog l k = do
+  localH
+    l
+    (MkBasicLog {basicLogImpl = \_ -> pure ()})
+    k
+
+-- > main
+-- [DummyDB.InsertDB] value1
+-- [DummyDB.InsertDB] value2
+-- [DummyDB.InsertDB] value3
+-- [INFO] Wrote to the DB: value3
+-- [DummyDB.InsertDB] value4
+-- [INFO] Wrote to the DB: value4
+-- [DummyDB.InsertDB] value5
+-- [DummyDB.InsertDB] value7
+-- [DummyDB.InsertDB] value9
+-- [DummyDB.InsertDB] value10
+main :: IO ()
+main =
+  runEff $ \io -> runLog io $ \l -> runDummyDB io $ \d -> do
+    insertDB d "value1"
+    insertDB d "value2"
+    hookLoggingInsertDBLocally d l $ do
+      insertDB d "value3"
+      insertDB d "value4"
+    insertDB d "value5"
+    insertDB d "value7"
+
+    suppressLog l $ do
+        hookLoggingInsertDBLocally d l $ do
+            insertDB d "value9"
+
+    hookLoggingInsertDBLocally d l $ do
+        suppressLog l $ do
+            insertDB d "value10"
+
+{-
+
+data Log :: Effect where
+    Log :: String -> Log m ()
+makeEffect ''Log
+
+runLog :: (IOE :> es) => Eff (Log ': es) a -> Eff es a
+runLog = interpret_ \(Log msg) -> liftIO $ putStrLn $ "[INFO] " <> msg
+
+type DBValue = String
+
+data DB :: Effect where
+    InsertDB :: DBValue -> DB m ()
+makeEffect ''DB
+
+runDummyDB :: (IOE :> es) => Eff (DB ': es) a -> Eff es a
+runDummyDB = interpret_ \case
+    InsertDB value -> liftIO $ putStrLn $ "[DummyDB.InsertDB] " <> value
+
+hookLoggingInsertDBLocally :: (DB :> es, Log :> es) => Eff es a -> Eff es a
+hookLoggingInsertDBLocally = interpose_ \(InsertDB value) -> do
+    insertDB value
+    log $ "Wrote to the DB: " <> value
+
+suppressLog :: (Log :> es) => Eff es a -> Eff es a
+suppressLog = interpose_ \(Log _) -> pure ()
+
+-- > main
+-- [DummyDB.InsertDB] value1
+-- [DummyDB.InsertDB] value2
+-- [DummyDB.InsertDB] value3
+-- [INFO] Wrote to the DB: value3
+-- [DummyDB.InsertDB] value4
+-- [INFO] Wrote to the DB: value4
+-- [DummyDB.InsertDB] value5
+-- [DummyDB.InsertDB] value6
+-- [DummyDB.InsertDB] value9
+-- [DummyDB.InsertDB] value10
+main :: IO ()
+main = runEff . runLog . runDummyDB $ do
+    insertDB "value1"
+    insertDB "value2"
+    hookLoggingInsertDBLocally do
+        insertDB "value3"
+        insertDB "value4"
+    insertDB "value5"
+    insertDB "value6"
+
+    suppressLog do
+        hookLoggingInsertDBLocally do
+            insertDB "value9"
+
+    hookLoggingInsertDBLocally do
+        suppressLog do
+            insertDB "value10"
+-}
