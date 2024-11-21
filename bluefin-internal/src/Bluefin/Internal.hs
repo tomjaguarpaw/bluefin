@@ -919,7 +919,7 @@ withState ::
   -- | Initial state
   s ->
   -- | Stateful computation
-  (forall st. State s st -> Eff (st :& es) (s -> a)) ->
+  (forall e. State s e -> Eff (e :& es) (s -> a)) ->
   -- | Result
   Eff es a
 withState s f = do
