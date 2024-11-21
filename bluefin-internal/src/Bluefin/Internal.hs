@@ -28,7 +28,7 @@ import qualified Data.Unique
 import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
-import Prelude hiding (drop, head, read, return)
+import Prelude hiding (drop, head, log, read, return)
 
 data Effects = Union Effects Effects
 
@@ -1446,5 +1446,50 @@ example = runEff $ \io ->
                 withTracingLocal y re "local2" $ do
                   dynamicLocal id re $ do
                     pure ()
+    )
+    (effIO io . putStrLn)
+
+type Log = DynamicReader String
+
+type Trace = Stream String
+
+log ::
+  (e1 :> es, e2 :> es) =>
+  Trace e1 ->
+  Log e2 ->
+  String ->
+  Eff es ()
+log y _ msg = do
+  yield y msg
+
+inSpan :: (e :> es) => Log e -> String -> Eff es a -> Eff es a
+inSpan l spanName k = dynamicLocal (const spanName) l k
+
+logOnSpan :: (e2 :> es, e3 :> es) => Trace e3 -> Log e2 -> Eff es a -> Eff es a
+logOnSpan y l k =
+  interposeDynamicLocal
+    l
+    ( \(MkLocal inSpan') -> MkLocal $ \f k' -> do
+        spanName <- dynamicAsk l
+        log y l $ "[logOnSpan] Start " <> spanName
+        a <- inSpan' f k'
+        log y l $ "[logOnSpan] End " <> spanName
+        pure a
+    )
+    k
+
+inSpanExample :: IO ()
+inSpanExample = runEff $ \io -> do
+  forEach
+    ( \y ->
+        runDynamicReader "" $ \l -> do
+          inSpan l "scope1" $ do
+            logOnSpan y l $ do
+              inSpan l "scope2" $ do
+                logOnSpan y l $ do
+                  inSpan l "scope2" $ do
+                    scope2 <- dynamicAsk l
+                    yield y ("scope2 is: " <> scope2)
+                    yield y "hello"
     )
     (effIO io . putStrLn)
