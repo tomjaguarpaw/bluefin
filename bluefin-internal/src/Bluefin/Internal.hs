@@ -19,9 +19,11 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
 import Control.Monad.Trans.Control (MonadBaseControl, StM, liftBaseWith, restoreM)
 import qualified Control.Monad.Trans.Reader as Reader
+import Data.Coerce (coerce)
 import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
+import Data.Type.Coercion (Coercion (Coercion))
 import qualified Data.Unique
 import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
@@ -1302,3 +1304,58 @@ local (MkReader st) f k = do
     (put st (f orig))
     (\() -> put st orig)
     (\() -> k)
+
+newtype H h e = UnsafeMkH (State (h e) e)
+
+-- In general this is really tremendously unsafe because we could take
+-- an `H h e`, map it to `H h es`, write an `h es` to it and then use
+-- the original handle to use the `h es` at type `h e`.  We must be
+-- very careful to only ever write to the mapped handle in such a way
+-- when we can only use the new value at the correct effect tag.  That
+-- is, we should only ever write to the handle via `localH`.
+mapH :: forall h e es. (Handle h, e :> es) => H h e -> H h es
+mapH = case coerceH of Coercion -> coerce
+  where
+    coerceH :: Coercion (h e) (h es)
+    coerceH = unsafeCoerce (Coercion :: Coercion (h e) (h e))
+
+localH :: (e :> es, Handle h) => H h e -> h es -> Eff es r -> Eff es r
+localH hh@(UnsafeMkH st) h k = do
+  let (UnsafeMkH st') = mapHandle hh
+  orig <- get st
+  bracket
+    (put st' h)
+    (\() -> put st orig)
+    (\() -> k)
+
+askH :: (e :> es, Handle h) => H h e -> Eff es (h es)
+askH hh = let UnsafeMkH st = mapHandle hh in get st
+
+runH ::
+  (e1 :> es, Handle h) =>
+  h e1 ->
+  (forall ek. H h ek -> Eff (ek :& es) r) ->
+  Eff es r
+runH h k =
+  evalState h $ \st -> do
+    -- This needs justifying!
+    let hh = unsafeCoerce st
+    useImplIn k hh
+
+instance (Handle h) => Handle (H h) where mapHandle = mapH
+
+newtype ConstEffect r e = MkConstEffect r
+
+instance Handle (ConstEffect r) where
+  mapHandle = coerce
+
+newtype Local r es = MkLocal {local_ :: forall a e. (r -> r) -> Eff e a -> Eff (e :& es) a}
+
+instance Handle (Local r) where
+  mapHandle m = MkLocal {local_ = \f k -> useImplUnder (local_ m f k)}
+
+data DynamicReader r e = MkDynamicReader (H (ConstEffect r) e) (H (Local r) e)
+
+instance Handle (DynamicReader r) where
+  mapHandle (MkDynamicReader h1 h2) =
+    MkDynamicReader (mapHandle h1) (mapHandle h2)
