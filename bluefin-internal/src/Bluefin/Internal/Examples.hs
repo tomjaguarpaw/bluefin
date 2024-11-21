@@ -1097,7 +1097,7 @@ runLog io k = do
 
 type DB = H BasicDB
 
-insertDB :: e :> es => DB e -> DBValue -> Eff es ()
+insertDB :: (e :> es) => DB e -> DBValue -> Eff es ()
 insertDB d v = do
   b <- askH d
   insertBasicDB b v
@@ -1165,12 +1165,12 @@ main =
     insertDB d "value7"
 
     suppressLog l $ do
-        hookLoggingInsertDBLocally d l $ do
-            insertDB d "value9"
+      hookLoggingInsertDBLocally d l $ do
+        insertDB d "value9"
 
     hookLoggingInsertDBLocally d l $ do
-        suppressLog l $ do
-            insertDB d "value10"
+      suppressLog l $ do
+        insertDB d "value10"
 
 {-
 
