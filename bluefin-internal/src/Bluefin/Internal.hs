@@ -1388,3 +1388,54 @@ runDynamicReader r k =
         $ \lo -> do
           runH lo $ \hlo -> do
             useImplIn k (MkDynamicReader (mapHandle hco) (mapHandle hlo))
+
+dynamicLocal ::
+  (e :> es) =>
+  (r -> r) ->
+  DynamicReader r e ->
+  Eff es a ->
+  Eff es a
+dynamicLocal f (MkDynamicReader _ dyl) k = do
+  MkLocal l <- askH dyl
+  makeOp (l f k)
+
+interposeDynamicLocal ::
+  (e1 :> es) =>
+  DynamicReader r e1 ->
+  (forall a' e. (r -> r) -> Eff e a' -> Eff (e :& es) a') ->
+  Eff es a ->
+  Eff es a
+interposeDynamicLocal (MkDynamicReader _ dyl) l = localH dyl (MkLocal l)
+
+withTracingLocal ::
+  (e1 :> es, e2 :> es) =>
+  Stream String e1 ->
+  DynamicReader r e2 ->
+  String ->
+  Eff es a ->
+  Eff es a
+withTracingLocal y dy@(MkDynamicReader _ dyl) s k = do
+  MkLocal orig <- askH dyl
+  interposeDynamicLocal
+    dy
+    ( \f k' -> do
+        yield y ("Entering modified local: " ++ s)
+        a <- orig f k'
+        yield y ("Leaving modified local: " ++ s)
+        pure a
+    )
+    k
+
+example :: IO ()
+example = runEff $ \io ->
+  forEach
+    ( \y -> do
+        runDynamicReader () $ \re -> do
+          dynamicLocal id re $ do
+            withTracingLocal y re "local1" $ do
+              dynamicLocal id re $ do
+                withTracingLocal y re "local2" $ do
+                  dynamicLocal id re $ do
+                    pure ()
+    )
+    (effIO io . putStrLn)
