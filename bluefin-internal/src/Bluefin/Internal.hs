@@ -1402,10 +1402,13 @@ dynamicLocal f (MkDynamicReader _ dyl) k = do
 interposeDynamicLocal ::
   (e1 :> es) =>
   DynamicReader r e1 ->
-  (forall a' e. (r -> r) -> Eff e a' -> Eff (e :& es) a') ->
+  ((forall a' e. (r -> r) -> Eff e a' -> Eff (e :& es) a') ->
+   forall a' e. (r -> r) -> Eff e a' -> Eff (e :& es) a') ->
   Eff es a ->
   Eff es a
-interposeDynamicLocal (MkDynamicReader _ dyl) l = localH dyl (MkLocal l)
+interposeDynamicLocal (MkDynamicReader _ dyl) l k = do
+  MkLocal orig <- askH dyl
+  localH dyl (MkLocal (l orig)) k
 
 withTracingLocal ::
   (e1 :> es, e2 :> es) =>
@@ -1414,11 +1417,10 @@ withTracingLocal ::
   String ->
   Eff es a ->
   Eff es a
-withTracingLocal y dy@(MkDynamicReader _ dyl) s k = do
-  MkLocal orig <- askH dyl
+withTracingLocal y dy s k = do
   interposeDynamicLocal
     dy
-    ( \f k' -> do
+    ( \orig f k' -> do
         yield y ("Entering modified local: " ++ s)
         a <- orig f k'
         yield y ("Leaving modified local: " ++ s)
