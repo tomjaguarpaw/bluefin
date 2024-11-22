@@ -484,6 +484,55 @@ module Bluefin.Compound
     -- -- (["Count was even","Count was even","Count was even","Count was even","Count was even","Count was even"],-42)
     -- @
 
+    -- ** Dynamic effects with effectful operations as arguments
+
+    -- | We can also implement dynamic effects that themselves take
+    -- effectful operations as arguments, by giving the effectful
+    -- operation the effect tag @e'@.  Here's an example of a dynamic
+    -- reader effect, and one handler for the effect, which runs it in
+    -- terms of the existing 'Bluefin.Reader' effect.
+    --
+    -- @
+    -- data DynamicReader r e = DynamicReader
+    --   { askLRImpl :: forall e'. Eff (e' :& e) r,
+    --     localLRImpl :: forall e' a. (r -> r) -> Eff e' a -> Eff (e' :& e) a
+    --   }
+    --
+    -- instance Handle (DynamicReader r) where
+    --   mapHandle h =
+    --     DynamicReader
+    --       { askLRImpl = useImplUnder (askLRImpl h),
+    --         localLRImpl = \f k -> useImplUnder (localLRImpl h f k)
+    --       }
+    --
+    -- askLR ::
+    --   (e :> es) =>
+    --   DynamicReader r e ->
+    --   Eff es r
+    -- askLR c = makeOp (askLRImpl (mapHandle c))
+    --
+    -- localLR ::
+    --   (e :> es) =>
+    --   DynamicReader r e ->
+    --   (r -> r) ->
+    --   Eff es a ->
+    --   Eff es a
+    -- localLR c f m = makeOp (localLRImpl (mapHandle c) f m)
+    --
+    -- runDynamicReader ::
+    --   r ->
+    --   (forall e. DynamicReader r e -> Eff (e :& es) a) ->
+    --   Eff es a
+    -- runDynamicReader r k =
+    --   runReader r $ \h -> do
+    --     useImplIn
+    --       k
+    --       DynamicReader
+    --         { askLRImpl = ask h,
+    --           localLRImpl = \f k' -> makeOp (local h f (useImpl k'))
+    --         }
+    -- @
+
     -- ** A dynamic file system effect
 
     -- | The @effectful@ library has [an example of a dynamic effect
