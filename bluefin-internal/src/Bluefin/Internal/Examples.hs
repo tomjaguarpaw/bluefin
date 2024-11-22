@@ -834,7 +834,6 @@ exampleCounter7B = runPureEff $ yieldToList $ \y -> do
 -- > exampleCounter7B
 -- (["Count was even","Count was even","Count was even","Count was even","Count was even","Count was even"],-42)
 
-
 -- FileSystem
 
 data FileSystem es = MkFileSystem
