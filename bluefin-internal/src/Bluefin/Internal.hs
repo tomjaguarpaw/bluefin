@@ -1369,3 +1369,15 @@ runHandleReader h k = do
     useImplIn k h'
 
 instance (Handle h) => Handle (HandleReader h) where mapHandle = mapHandleReader
+
+newtype ConstEffect r e = MkConstEffect r
+
+runConstEffect ::
+  r ->
+  (forall e. ConstEffect r e -> Eff (e :& es) a) ->
+  -- | ͘
+  Eff es a
+runConstEffect r k = useImplIn k (MkConstEffect r)
+
+instance Handle (ConstEffect r) where
+  mapHandle = coerce

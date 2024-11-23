@@ -1,5 +1,7 @@
 * Add `hGetLine` and `hIsEOF`
 
+* Add `ConstEffect`, `runConstEffect`
+
 * Add `HandleReader`, `mapHandleReader`, `localHandle`, `askHandle`,
   `runHandleReader`
 
