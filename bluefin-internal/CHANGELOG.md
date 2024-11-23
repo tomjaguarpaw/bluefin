@@ -1,5 +1,8 @@
 * Add `hGetLine` and `hIsEOF`
 
+* Add `HandleReader`, `mapHandleReader`, `localHandle`, `askHandle`,
+  `runHandleReader`
+
 ## 0.0.12.0
 
 * Add `asks` and `local`

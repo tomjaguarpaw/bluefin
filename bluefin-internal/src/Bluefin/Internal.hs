@@ -19,9 +19,11 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
 import Control.Monad.Trans.Control (MonadBaseControl, StM, liftBaseWith, restoreM)
 import qualified Control.Monad.Trans.Reader as Reader
+import Data.Coerce (coerce)
 import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
+import Data.Type.Coercion (Coercion (Coercion))
 import qualified Data.Unique
 import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
@@ -1302,3 +1304,68 @@ local (MkReader st) f k = do
     (put st (f orig))
     (\() -> put st orig)
     (\() -> k)
+
+newtype HandleReader h e = UnsafeMkHandleReader (State (h e) e)
+
+-- In general this is really tremendously unsafe because we could take
+-- an `HandleReader h e`, map it to `HandleReader h es`, write an `h
+-- es` to it and then use the original handle to use the `h es` at
+-- type `h e`.  We must be very careful to only ever write to the
+-- mapped handle in such a way that we can only use the new value at
+-- the correct effect tag.  That is, we should only ever write to the
+-- handle via `localHandle`.
+mapHandleReader ::
+  forall h e es.
+  (Handle h, e :> es) =>
+  HandleReader h e ->
+  -- | ͘
+  HandleReader h es
+mapHandleReader = case coerceH of Coercion -> coerce
+  where
+    coerceH :: Coercion (h e) (h es)
+    coerceH = unsafeCoerce (Coercion :: Coercion (h e) (h e))
+
+localHandle ::
+  (e :> es, Handle h) =>
+  HandleReader h e ->
+  (h es -> h es) ->
+  Eff es r ->
+  -- | ͘
+  Eff es r
+localHandle hh@(UnsafeMkHandleReader st) f k = do
+  let UnsafeMkHandleReader st' = mapHandle hh
+  orig <- get st
+  bracket
+    (put st' (f (mapHandle orig)))
+    (\() -> put st orig)
+    (\() -> k)
+
+askHandle ::
+  (e :> es, Handle h) =>
+  HandleReader h e ->
+  -- | ͘
+  Eff es (h es)
+askHandle hh = let UnsafeMkHandleReader st = mapHandle hh in get st
+
+runHandleReader ::
+  (e1 :> es, Handle h) =>
+  h e1 ->
+  (forall e. HandleReader h e -> Eff (e :& es) r) ->
+  -- | ͘
+  Eff es r
+runHandleReader h k = do
+  evalState (mapHandle h) $ \(st :: State (h es) e) -> do
+    let coerceH :: Coercion (h es) (h (e :& es))
+        coerceH = unsafeCoerce (Coercion :: Coercion (h es) (h es))
+
+    let mapS :: State (h es) e' -> State (h (e :& es)) e'
+        mapS = case coerceH of Coercion -> coerce
+
+    let h' :: HandleReader h (e :& es)
+        h' = case coerceH of
+          Coercion ->
+            UnsafeMkHandleReader (mapS (mapHandle st))
+
+    useImplIn k h'
+
+instance (Handle h) => Handle (HandleReader h) where mapHandle = mapHandleReader
