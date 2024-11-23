@@ -35,6 +35,8 @@ main = runEff $ \io -> do
       (runPureEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
       ([20, 30, 40], "Hello")
 
+    test_localInHandler y
+
 -- A SpecH yields pairs of
 --
 --   (name, Maybe (stream of error text))
@@ -154,3 +156,9 @@ listEff :: (e1 :> es) => ([a], r) -> Stream a e1 -> Eff es r
 listEff (as, r) y = do
   for_ as (yield y)
   pure r
+
+test_localInHandler :: (e :> es) => SpecH e -> Eff es ()
+test_localInHandler y = runReader "global" $ \re ->
+  forEach
+    (\y2 -> local re (const "local") (yield y2 ()))
+    (\() -> assertEqual y "Reader local" "local" =<< ask re)
