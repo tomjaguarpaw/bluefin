@@ -58,7 +58,7 @@ effReader = MkEffReader
 runEffReader :: r -> EffReader r es a -> Eff es a
 runEffReader r (MkEffReader m) = m r
 
--- | Deprecated.  Use @withEffToIO_@ instead.
+-- | Deprecated.  Use 'withEffToIO_' instead.
 withEffToIO ::
   (e2 :> es) =>
   -- | Continuation with the unlifting function in scope.
