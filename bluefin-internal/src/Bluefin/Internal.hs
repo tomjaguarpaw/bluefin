@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RoleAnnotations #-}
@@ -9,9 +10,24 @@
 
 module Bluefin.Internal where
 
+import Control.Concurrent
+  ( ThreadId,
+    forkIO,
+    killThread,
+    myThreadId,
+  )
+import Control.Concurrent.MVar (newEmptyMVar, takeMVar, putMVar)
+import Control.Exception
+  ( SomeException,
+    evaluate,
+    mask,
+    throwIO,
+    throwTo,
+  )
+import Data.Function (fix)
+
 import qualified Control.Concurrent.Async as Async
-import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
-import Control.Exception (throwIO, tryJust)
+import Control.Exception (tryJust)
 import qualified Control.Exception
 import Control.Monad (forever)
 import Control.Monad.Base (MonadBase (liftBase))
@@ -1302,3 +1318,51 @@ local (MkReader st) f k = do
     (put st (f orig))
     (\() -> put st orig)
     (\() -> k)
+
+runPureEffAsyncSafe :: forall r. (forall es. Eff es r) -> r
+runPureEffAsyncSafe effBody = unsafePerformIO $ mask \restore -> do
+  tidVar <- newEmptyMVar @ThreadId
+  done <- newEmptyMVar @(Either SomeException r)
+
+  let body = do
+        tid <- forkIO do
+          putStrLn "Child running"
+          r <- Control.Exception.try @SomeException $ restore do
+            unsafeUnEff do
+              effBody
+
+          case r of
+            Left l -> do
+              putStrLn "Child received async exception:"
+              print l
+            Right {} -> putStrLn "Child terminated normally"
+
+          putMVar done r
+
+        putMVar tidVar tid
+
+        takeMVar done
+
+  r <- fix \again -> restore $
+    Control.Exception.catch @SomeException body $ \ex ->
+      -- I'm not sure if this mask is necessary
+      mask $ \_ -> do
+        putStrLn "Eff thunk handling async exception"
+        tid <- takeMVar tidVar
+        putStrLn "Killing child"
+        killThread tid
+        putStrLn "Waiting for child"
+        _ <- takeMVar done
+        putStrLn "Throwing to self"
+        myself <- myThreadId
+        throwTo myself ex
+        putStrLn "Looping"
+        again
+
+  case r of
+    Left l -> do
+      putStrLn "In L 2"
+      throwIO l
+    Right r' -> do
+      putStrLn "Returning"
+      pure r'

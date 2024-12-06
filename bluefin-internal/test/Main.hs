@@ -1,9 +1,14 @@
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# OPTIONS_GHC -fno-omit-yields #-}
 
 module Main (main) where
 
 import Bluefin.Internal
+import Control.Concurrent (forkIO, killThread)
+import Control.Exception (SomeException, evaluate)
+import qualified Control.Exception
 import Control.Monad (when)
 import Data.Foldable (for_)
 import Data.Monoid (All (All))
@@ -11,29 +16,56 @@ import System.Exit (ExitCode (ExitFailure), exitWith)
 import Prelude hiding (break, read)
 
 main :: IO ()
-main = runEff $ \io -> do
-  runSpecH io $ \y -> do
-    let assertEqual' = assertEqual y
+main = do
+  runEff $ \io -> do
+    runSpecH io $ \y -> do
+      let assertEqual' = assertEqual y
 
-    assertEqual' "oddsUntilFirstGreaterThan5" oddsUntilFirstGreaterThan5 [1, 3, 5, 7]
-    assertEqual' "index 1" ([0, 1, 2, 3] !? 2) (Just 2)
-    assertEqual' "index 2" ([0, 1, 2, 3] !? 4) Nothing
-    assertEqual'
-      "Exception 1"
-      (runPureEff (try (eitherEff (Left True))))
-      (Left True :: Either Bool ())
-    assertEqual'
-      "Exception 2"
-      (runPureEff (try (eitherEff (Right True))))
-      (Right True :: Either () Bool)
-    assertEqual'
-      "State"
-      (runPureEff (runState 10 (stateEff (\n -> (show n, n * 2)))))
-      ("10", 20)
-    assertEqual'
-      "List"
-      (runPureEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
-      ([20, 30, 40], "Hello")
+      assertEqual' "oddsUntilFirstGreaterThan5" oddsUntilFirstGreaterThan5 [1, 3, 5, 7]
+      assertEqual' "index 1" ([0, 1, 2, 3] !? 2) (Just 2)
+      assertEqual' "index 2" ([0, 1, 2, 3] !? 4) Nothing
+      assertEqual'
+        "Exception 1"
+        (runPureEff (try (eitherEff (Left True))))
+        (Left True :: Either Bool ())
+      assertEqual'
+        "Exception 2"
+        (runPureEff (try (eitherEff (Right True))))
+        (Right True :: Either () Bool)
+      assertEqual'
+        "State"
+        (runPureEff (runState 10 (stateEff (\n -> (show n, n * 2)))))
+        ("10", 20)
+      assertEqual'
+        "List"
+        (runPureEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
+        ([20, 30, 40], "Hello")
+
+  putStrLn "Starting"
+
+  let n = 200_000_000
+
+      eff_thunk = runPureEffAsyncSafe do
+        handle (\() -> pure False) \_ -> do
+          delay n do
+            pure True
+
+  putStrLn "Launching thread to evaluate Eff thunk"
+  eval_thread <- forkIO do
+    Control.Exception.try @SomeException (evaluate eff_thunk) >>= \case
+      Left {} -> putStrLn "Eff thunk thread threw exception"
+      Right {} -> putStrLn "UNEXPECTED: Eff thunk thread did not throw exception"
+
+  delay (n `div` 2) do
+    killThread eval_thread
+  putStrLn "Killed thread evaluating Eff thunk"
+
+  putStrLn "Forcing Eff thunk again"
+
+  print eff_thunk
+  where
+    delay :: Int -> a -> a
+    delay n x = sum [1 .. n] `seq` x
 
 -- A SpecH yields pairs of
 --
