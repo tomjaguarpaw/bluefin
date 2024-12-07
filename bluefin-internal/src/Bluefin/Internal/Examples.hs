@@ -1108,36 +1108,6 @@ effIOI = effIO ?io
 --
 --    <https://github.com/tomjaguarpaw/bluefin/issues/21>
 
--- When we're not using effects in the scope of a handler there is no
--- problem.
-countExampleImplEasy ::
-  (?st :: State Int e1, e1 :> es) =>
-  (?io :: IOE e, e :> es) =>
-  Eff es ()
-countExampleImplEasy = do
-  n <- getI
-  effIOI (print n)
-  modifyI (+ 1)
-
--- When we do use effects in the scope of a handler we have to
--- disambiguate them
-countExampleImpl ::
-  forall e e1 es.
-  (?st :: State Int e1, e1 :> es) =>
-  (?io :: IOE e, e :> es) =>
-  Eff es ()
-countExampleImpl = do
-  withJump $ \break -> forever $ do
-    n <- getI @e1
-    when (n >= 10) (jumpTo break)
-    effIOI @e (print n)
-    modifyI @e1 (+ 1)
-
-countExampleI :: IO ()
-countExampleI = runEff $ \(io :: IOE e) -> do
-  evalState @Int 0 $ \(st :: State Int e1) ->
-    let ?st = st; ?io = io in countExampleImpl
-
 -- We might want to resolve 1 by putting the ImplicitParam as an
 -- argument to the handler.
 evalStateI ::
@@ -1152,6 +1122,25 @@ evalStateI s f = evalState s (\x -> let ?st = x in f)
 runEffI :: (forall es. (?io :: IOE es) => Eff es r) -> IO r
 runEffI f = runEff (\io -> let ?io = io in pushFirst f)
 
+countExampleImpl ::
+  forall e e1 es.
+  (?st :: State Int e1, e1 :> es) =>
+  (?io :: IOE e, e :> es) =>
+  Eff es ()
+countExampleImpl = do
+  withJump $ \break -> forever $ do
+    n <- getI
+    when (n >= 10) (jumpTo break)
+    effIOI (print n)
+    modifyI (+ 1)
+
+countExampleI :: IO ()
+countExampleI = runEffI $ do
+  evalStateI @Int 0 $ do
+    countExampleImpl
+
+-- When we try to use an effect bound in a local handler we get stuck.
+-- We have to annotate the type.
 countExampleI2 :: IO ()
 countExampleI2 = runEffI $ do
   evalStateI @Int 0 $ do
