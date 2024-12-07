@@ -1099,13 +1099,13 @@ runDynamicReader r k =
 -- 2. Type inference gets stuck. I don't understand why.
 countExampleI :: IO ()
 countExampleI = runEff $ \(io :: IOE e) -> do
-  evalState @Int 0 $ \(st :: State Int st) -> do
+  evalState @Int 0 $ \(st :: State Int e1) -> do
     let ?st = st
     withJump $ \break -> forever $ do
-      n <- getI @st
+      n <- getI @e1
       when (n >= 10) (jumpTo break)
       effIO io (print n)
-      modifyI @st (+ 1)
+      modifyI @e1 (+ 1)
 
 -- We might want to resolve 1 by putting the ImplicitParam as an
 -- argument to the handler, but I can't work out how to get that to
