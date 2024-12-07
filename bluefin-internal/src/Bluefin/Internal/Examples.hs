@@ -422,32 +422,6 @@ compoundExample = runPureEff $ runMyHandle $ \h -> do
   myInc h
   myBail h
 
-throwI ::
-  (e1 :> es) =>
-  (?ex :: Exception e e1) =>
-  -- | Value to throw
-  e ->
-  Eff es a
-throwI = throw ?ex
-
-modifyI ::
-  forall st s es.
-  (st :> es) =>
-  (?st  :: State s st) =>
-  -- | Apply this function to the state.  The new value of the state
-  -- is forced before writing it to the state.
-  (s -> s) ->
-  Eff es ()
-modifyI = modify ?st
-
-getI ::
-  forall st s es.
-  (st :> es) =>
-  (?st :: State s st) =>
-  -- | The current value of the state
-  Eff es s
-getI = get ?st
-
 countExample :: IO ()
 countExample = runEff $ \io -> do
   evalState @Int 0 $ \sn -> do
@@ -1087,6 +1061,32 @@ runDynamicReader r k =
         { askLRImpl = ask h,
           localLRImpl = \f k' -> makeOp (local h f (useImpl k'))
         }
+
+throwI ::
+  (e1 :> es) =>
+  (?ex :: Exception e e1) =>
+  -- | Value to throw
+  e ->
+  Eff es a
+throwI = throw ?ex
+
+modifyI ::
+  forall st s es.
+  (st :> es) =>
+  (?st :: State s st) =>
+  -- | Apply this function to the state.  The new value of the state
+  -- is forced before writing it to the state.
+  (s -> s) ->
+  Eff es ()
+modifyI = modify ?st
+
+getI ::
+  forall st s es.
+  (st :> es) =>
+  (?st :: State s st) =>
+  -- | The current value of the state
+  Eff es s
+getI = get ?st
 
 -- welltypedwitch raised the intriguing possibility of using
 -- ImplicitParams to avoid having to pass effect handles explicitly.
