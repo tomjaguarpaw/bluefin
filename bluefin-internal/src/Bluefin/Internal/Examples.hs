@@ -1107,15 +1107,22 @@ effIOI = effIO ?io
 --    incoherent instances, the same as in
 --
 --    <https://github.com/tomjaguarpaw/bluefin/issues/21>
+countExampleImpl ::
+  forall e e1 es.
+  (?st :: State Int e1, e1 :> es) =>
+  (?io :: IOE e, e :> es) =>
+  Eff es ()
+countExampleImpl = do
+  withJump $ \break -> forever $ do
+    n <- getI @e1
+    when (n >= 10) (jumpTo break)
+    effIOI @e (print n)
+    modifyI @e1 (+ 1)
+
 countExampleI :: IO ()
 countExampleI = runEff $ \(io :: IOE e) -> do
-  evalState @Int 0 $ \(st :: State Int e1) -> do
-    let ?st = st; ?io = io
-    withJump $ \break -> forever $ do
-      n <- getI @e1
-      when (n >= 10) (jumpTo break)
-      effIOI @e (print n)
-      modifyI @e1 (+ 1)
+  evalState @Int 0 $ \(st :: State Int e1) ->
+    let ?st = st; ?io = io in countExampleImpl
 
 -- We might want to resolve 1 by putting the ImplicitParam as an
 -- argument to the handler, but I can't work out how to get that to
