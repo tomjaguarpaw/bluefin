@@ -1107,6 +1107,20 @@ effIOI = effIO ?io
 --    incoherent instances, the same as in
 --
 --    <https://github.com/tomjaguarpaw/bluefin/issues/21>
+
+-- When we're not using effects in the scope of a handler there is no
+-- problem.
+countExampleImplEasy ::
+  (?st :: State Int e1, e1 :> es) =>
+  (?io :: IOE e, e :> es) =>
+  Eff es ()
+countExampleImplEasy = do
+  n <- getI
+  effIOI (print n)
+  modifyI (+ 1)
+
+-- When we do use effects in the scope of a handler we have to
+-- disambiguate them
 countExampleImpl ::
   forall e e1 es.
   (?st :: State Int e1, e1 :> es) =>
