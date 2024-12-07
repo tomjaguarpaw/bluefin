@@ -1088,6 +1088,13 @@ getI ::
   Eff es s
 getI = get ?st
 
+effIOI ::
+  (e :> es) =>
+  (?io :: IOE e) =>
+  IO r ->
+  Eff es r
+effIOI = effIO ?io
+
 -- welltypedwitch raised the intriguing possibility of using
 -- ImplicitParams to avoid having to pass effect handles explicitly.
 -- Unfortunately I've been snagged on two issues:
@@ -1103,11 +1110,11 @@ getI = get ?st
 countExampleI :: IO ()
 countExampleI = runEff $ \(io :: IOE e) -> do
   evalState @Int 0 $ \(st :: State Int e1) -> do
-    let ?st = st
+    let ?st = st; ?io = io
     withJump $ \break -> forever $ do
       n <- getI @e1
       when (n >= 10) (jumpTo break)
-      effIO io (print n)
+      effIOI @e (print n)
       modifyI @e1 (+ 1)
 
 -- We might want to resolve 1 by putting the ImplicitParam as an
