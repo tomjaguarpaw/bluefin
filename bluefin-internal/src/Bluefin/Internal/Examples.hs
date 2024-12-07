@@ -1096,7 +1096,10 @@ runDynamicReader r k =
 --    lambda.  (See
 --    https://discourse.haskell.org/t/why-cant-an-implicitparam-be-bound-by-a-lambda/8936/2)
 --
--- 2. Type inference gets stuck. I don't understand why.
+-- 2. Type inference gets stuck, because of the difficulty resolving
+--    incoherent instances, the same as in
+--
+--    <https://github.com/tomjaguarpaw/bluefin/issues/21>
 countExampleI :: IO ()
 countExampleI = runEff $ \(io :: IOE e) -> do
   evalState @Int 0 $ \(st :: State Int e1) -> do
