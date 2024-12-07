@@ -1125,8 +1125,7 @@ countExampleI = runEff $ \(io :: IOE e) -> do
     let ?st = st; ?io = io in countExampleImpl
 
 -- We might want to resolve 1 by putting the ImplicitParam as an
--- argument to the handler, but I can't work out how to get that to
--- type check at all
+-- argument to the handler.
 evalStateI ::
   -- | Initial state
   s ->
@@ -1136,17 +1135,12 @@ evalStateI ::
   Eff es a
 evalStateI s f = evalState s (\x -> let ?st = x in f)
 
--- This just doesn't work.  Have a made a silly mistake?
-
-{-
 countExampleI2 :: IO ()
-countExampleI2 = runEff $ ((\io -> do
-  evalStateI @Int 0 $ (do
+countExampleI2 = runEff $ \(io :: IOE e) -> do
+  evalStateI @Int 0 $ do
     withJump $ \break -> forever $ do
+      _ :: State Int st <- pure ?st
       n <- getI @st
       when (n >= 10) (jumpTo break)
       effIO io (print n)
-      modifyI @st (+ 1))
-      :: forall st. (?st :: State Int st) => Eff (st :& e :& effes) ())
-  :: forall e effes. IOE e -> Eff (e :& effes) ())
--}
+      modifyI @st (+ 1)
