@@ -1149,12 +1149,15 @@ evalStateI ::
   Eff es a
 evalStateI s f = evalState s (\x -> let ?st = x in f)
 
+runEffI :: (forall es. (?io :: IOE es) => Eff es r) -> IO r
+runEffI f = runEff (\io -> let ?io = io in pushFirst f)
+
 countExampleI2 :: IO ()
-countExampleI2 = runEff $ \(io :: IOE e) -> do
+countExampleI2 = runEffI $ do
   evalStateI @Int 0 $ do
     withJump $ \break -> forever $ do
       _ :: State Int st <- pure ?st
       n <- getI @st
       when (n >= 10) (jumpTo break)
-      effIO io (print n)
+      effIOI (print n)
       modifyI @st (+ 1)
