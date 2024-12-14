@@ -1,6 +1,12 @@
+## 0.0.14.0
+
 * Add `hGetLine` and `hIsEOF` to `Bluefin.System.IO`
 
 * Add `Bluefin.HandleReader`
+
+## 0.0.13.0
+
+* No release
 
 ## 0.0.12.0
 

@@ -1,9 +1,15 @@
+## 0.0.14.0
+
 * Add `hGetLine` and `hIsEOF`
 
 * Add `ConstEffect`, `runConstEffect`
 
 * Add `HandleReader`, `mapHandleReader`, `localHandle`, `askHandle`,
   `runHandleReader`
+
+## 0.0.13.0
+
+* Added some examples
 
 ## 0.0.12.0
 
