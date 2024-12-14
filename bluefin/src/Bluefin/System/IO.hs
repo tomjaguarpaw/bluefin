@@ -1,4 +1,4 @@
--- | A safer interface to "System.IO.Handle"
+-- | A safer interface to @System.IO.'System.IO.Handle'@
 
 module Bluefin.System.IO
   ( -- * Handle
