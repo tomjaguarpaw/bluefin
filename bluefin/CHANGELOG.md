@@ -1,5 +1,7 @@
 * Add `hGetLine` and `hIsEOF` to `Bluefin.System.IO`
 
+* Add `Bluefin.HandleReader`
+
 ## 0.0.12.0
 
 * Add `asks` and `local` to `Bluefin.Reader`
