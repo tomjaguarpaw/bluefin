@@ -1,3 +1,5 @@
+* Add `hGetLine` and `hIsEOF`
+
 ## 0.0.12.0
 
 * Add `asks` and `local`

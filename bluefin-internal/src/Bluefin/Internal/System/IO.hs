@@ -72,6 +72,20 @@ hFlush ::
   Eff es ()
 hFlush h = unsafeWithHandle h System.IO.hFlush
 
+hGetLine ::
+  (e :> es) =>
+  Handle e ->
+  -- | ͘
+  Eff es String
+hGetLine h = unsafeWithHandle h System.IO.hGetLine
+
+hIsEOF ::
+  (e :> es) =>
+  Handle e ->
+  -- | ͘
+  Eff es Bool
+hIsEOF h = unsafeWithHandle h System.IO.hIsEOF
+
 -- | If there's a "System.IO.Handle"-using function you need that
 -- isn't included here then you can [open an
 -- issue](https://github.com/tomjaguarpaw/bluefin/issues/new) to

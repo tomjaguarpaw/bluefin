@@ -11,6 +11,8 @@ module Bluefin.System.IO
     hPutChar,
     hPutStr,
     hPutStrLn,
+    hGetLine,
+    hIsEOF,
     hFlush,
 
     -- * Unsafe
