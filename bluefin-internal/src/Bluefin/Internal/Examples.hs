@@ -1,4 +1,5 @@
 {-# LANGUAGE NoMonoLocalBinds #-}
+{-# LANGUAGE ImpredicativeTypes #-} -- FIXME: don't merge ImpredicativeTypes
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Bluefin.Internal.Examples where
@@ -12,7 +13,18 @@ import Bluefin.Internal.Pipes
     takeWhile',
     (>->),
   )
+import Control.Monad (replicateM_, forever, when)
+import Data.Foldable (for_)
+import Data.Function (fix)
+import Data.List (sort)
+import Data.Maybe hiding (mapMaybe)
+import System.Directory
+import System.IO (IOMode (ReadMode))
+import qualified System.IO
+import Data.Function (fix)
 import qualified Bluefin.Internal.Pipes as P
+import Bluefin.Internal.System.IO hiding (Handle)
+import qualified Bluefin.Internal.System.IO as BISO
 import Control.Exception (IOException)
 import qualified Control.Exception
 import Control.Monad (forever, replicateM_, unless, when)
@@ -28,6 +40,7 @@ import Prelude hiding
     readFile,
     return,
     writeFile,
+    take,
   )
 import qualified Prelude
 
@@ -1060,3 +1073,150 @@ runDynamicReader r k =
         { askLRImpl = ask h,
           localLRImpl = \f k' -> makeOp (local h f (useImpl k'))
         }
+
+connectMany ::
+  [forall e. Stream a e -> Eff (e :& es) r] ->
+  (forall e. [Consume a e] -> Eff (e :& es) r) ->
+  Eff es r
+connectMany ss k =
+  makeOp (connectMany' ss k [])
+
+connectMany' ::
+  [forall e. Stream a e -> Eff (e :& es) r] ->
+  (forall e. [Consume a e] -> Eff (e :& es) r) ->
+  (forall e. [Consume a e] -> Eff (e :& es) r)
+connectMany' [] k = k
+connectMany' (s : ss) k =
+  connectMany'
+    ss
+    ( \cs ->
+        consumeStream
+          (\c -> useImplIn k (mapHandle c : map mapHandle cs))
+          (useImplWithin s)
+    )
+
+mixExample :: IO ()
+mixExample = runEff $ \io -> do
+  effIO io $ do
+    Prelude.writeFile "a" (unlines (map (\i -> "a" <> show i) [0 :: Int .. 5]))
+    Prelude.writeFile "b" (unlines (map (\i -> "b" <> show i) [0 :: Int .. 5]))
+
+  let timings =
+        [ (0, "a"),
+          (2, "b"),
+          (4, "a")
+        ]
+
+  forEach (mix timings io) $ \out ->
+    effIO io (print out)
+
+mix ::
+  forall e1 e2 es.
+  (e1 :> es, e2 :> es) =>
+  [(Int, FilePath)] ->
+  IOE e2 ->
+  Stream [Maybe String] e1 ->
+  Eff es ()
+mix timings io y = do
+  let itersStreams ::
+        [ forall e.
+          Stream (Maybe String) e ->
+          Eff (e :& es) ()
+        ]
+      itersStreams = map (\x -> nothingOnEnd (pad io x)) timings
+
+  connectMany itersStreams $ \itersStart -> do
+    flip fix itersStart $ \again iters -> do
+      when (not (null iters)) $ do
+        outs <- traverse await iters
+        yield y outs
+        let iters' =
+              [ iter
+                | (iter, o) <- zip iters outs,
+                  not (isNothing o)
+              ]
+        again iters'
+
+nothingOnEnd ::
+  e :> es =>
+  (forall e. Stream a e -> Eff (e :& es) r) ->
+  Stream (Maybe a) e ->
+  Eff es r
+nothingOnEnd s y = do
+  forEach s $ \a -> yield y (Just a)
+  forever (yield y Nothing)
+
+pad ::
+  (e1 :> es, e2 :> es) =>
+  IOE e1 ->
+  (Int, FilePath) ->
+  Stream String e2 ->
+  Eff es ()
+pad io (start, fname) y = do
+  replicateM_ start (yield y "")
+  take 3 (linesOfFile fname io) y
+
+main :: IO ()
+main = runEff $ \io -> do
+  let dir = "/tmp/test-dir"
+  forEach (firstThreeLinesOfEach dir io) $ \line -> do
+    effIO io (putStrLn line)
+
+firstThreeLinesOfEach ::
+  (e1 :> es, e2 :> es) =>
+  FilePath ->
+  IOE e1 ->
+  Stream String e2 ->
+  Eff es ()
+firstThreeLinesOfEach dir io y = do
+  filenames <- effIO io (listDirectory dir)
+  let sortedFilenames = sort filenames
+
+  for_ sortedFilenames $ \filename -> do
+    let filepath = dir <> "/" <> filename
+    let firstThree = take 3 (linesOfFile filepath io)
+
+    forEach firstThree (yield y)
+
+-- General purpose Bluefin function for streaming the
+-- lines of a file
+linesOfFile ::
+  (e1 :> es, e2 :> es) =>
+  String ->
+  IOE e1 ->
+  Stream String e2 ->
+  Eff es ()
+linesOfFile filename io y = do
+  withJump $ \onEOF -> do
+    withFile io filename ReadMode $ \h -> do
+      -- This bracket is only so we can observe the
+      -- prompt closing of the file.
+      bracket
+--        (effIO io (putStrLn ("File opened: " <> filename)))
+        (pure ())
+        (\() -> effIO io (putStrLn ("File closed: " <> filename)))
+        ( \() -> do
+            forever $ do
+              isEOF <- hIsEOF h
+              when isEOF $
+                jumpTo onEOF
+              yield y =<< hGetLine h
+        )
+
+-- This should be part of the Bluefin standard library
+take ::
+  (e1 :> es) =>
+  Integer ->
+  (forall e. Stream a e -> Eff (e :& es) ()) ->
+  Stream a e1 ->
+  Eff es ()
+take n k y =
+  withJump $ \done -> do
+    evalState n $ \s -> do
+      forEach (useImplUnder . k) $ \a -> do
+        s' <- get s
+        when (s' <= 0) $
+          jumpTo done
+
+        modify s (subtract 1)
+        yield y a
