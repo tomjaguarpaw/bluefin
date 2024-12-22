@@ -76,6 +76,7 @@ library
     import:           warnings
     exposed-modules:
       Bluefin.Examples.DB,
+      Bluefin.Examples.Stream.InsideAndOut,
       Bluefin.Examples.Terminal
     build-depends:
       base, bluefin >= 0.0.12.0 && < 0.1
