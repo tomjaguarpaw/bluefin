@@ -17,10 +17,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # We must always use the latest version of cabal because
-        # otherwise ghc-paths, which is a dependency of doctest,
-        # can't be configured.
-        cabal: ["3.10"]
         ghc:
 # Can't do earlier than 8.10 because we use unlifted newtypes
 # If we're willing to fudge that then maybe we can extend
