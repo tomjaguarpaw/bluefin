@@ -78,7 +78,7 @@ library
     hs-source-dirs: src
     build-depends:
       async >= 2.2 && < 2.3,
-      base >= 4.12 && < 4.21,
+      base >= 4.12 && < 4.22,
       unliftio-core < 0.3,
       transformers < 0.7,
       transformers-base < 0.5,
