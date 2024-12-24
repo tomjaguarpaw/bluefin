@@ -321,7 +321,7 @@ useImplWithin ::
   t ->
   -- | ͘
   Eff (e1 :& es) r
-useImplWithin k = insertManySecond . k
+useImplWithin k = useImplUnder . k
 
 -- | Handle to a capability to create strict mutable state handles
 data StateSource (e :: Effects) = StateSource
