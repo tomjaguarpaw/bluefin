@@ -835,7 +835,7 @@ enumerateFrom ::
   Stream (Int, a) e2 ->
   Eff es r
 enumerateFrom n ss st =
-  evalState n $ \i -> forEach (insertSecond . ss) $ \s -> do
+  evalState n $ \i -> forEach (useImplUnder . ss) $ \s -> do
     ii <- get i
     yield st (ii, s)
     put i (ii + 1)
@@ -1040,7 +1040,7 @@ yieldToReverseList ::
   Eff es ([a], r)
 yieldToReverseList f = do
   evalState [] $ \(s :: State lo st) -> do
-    r <- forEach (insertSecond . f) $ \i ->
+    r <- forEach (useImplUnder . f) $ \i ->
       modify s (i :)
     as <- get s
     pure (as, r)
@@ -1210,7 +1210,7 @@ runWriter ::
   (forall e. Writer w e -> Eff (e :& es) r) ->
   Eff es (r, w)
 runWriter f = runState mempty $ \st -> do
-  forEach (insertSecond . f . Writer) $ \ww -> do
+  forEach (useImplUnder . f . Writer) $ \ww -> do
     modify st (<> ww)
 
 -- |
