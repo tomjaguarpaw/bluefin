@@ -25,6 +25,28 @@ print10 = runEff_ $ \io -> do
   for_ [1 :: Int .. 10] $ \i -> do
     effIO io (print i)
 
+printConsume ::
+  (e1 :> es, e2 :> es, Show a) =>
+  IOE e2 ->
+  Consume a e1 ->
+  Eff es ()
+printConsume io iterator =
+  forever $ do
+    -- We can't detect upstream termination so we just keep going.
+    -- Whoever connects us to upstream will terminate us when upstream
+    -- is done.
+    i <- await iterator
+    effIO io (print i)
+
+runPrintConsume :: IO ()
+runPrintConsume = runEff $ \io -> do
+  let elements :: [Int]
+      elements = [1, 2, 3, 4, 5]
+
+  consumeStream
+    (printConsume io)
+    (inFoldable elements)
+
 printConsumeTerminate ::
   (e1 :> es, e2 :> es, Show a) =>
   IOE e2 ->
@@ -33,6 +55,8 @@ printConsumeTerminate ::
 printConsumeTerminate io iterator =
   withJump $ \done -> do
     forever $ do
+      -- We can detect upstream termination, and when upstream has
+      -- terminated we finish too.
       i <- awaitOrTerminate iterator done
       effIO io (print i)
 
