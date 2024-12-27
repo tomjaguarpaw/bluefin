@@ -1,7 +1,6 @@
 module Bluefin.ConsumeTerminate
   ( -- * Handle
     ConsumeTerminate,
-    consumeTerminate,
     -- * Handlers
     consumeEachOrTerminate,
     consumeStreamOrTerminate,
