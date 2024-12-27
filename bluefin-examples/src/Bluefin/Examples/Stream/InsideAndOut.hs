@@ -65,19 +65,16 @@ find haystack needle = do
     pure False
 
 interleaveConsume ::
-  (e1 :> es, e2 :> es, e3 :> es, e4 :> es) =>
-  Jump e1 ->
-  Consume (Maybe a) e2 ->
-  Consume (Maybe a) e3 ->
-  Stream a e4 ->
+  (e1 :> es, e2 :> es, e3 :> es) =>
+  Consume a e1 ->
+  Consume a e2 ->
+  Stream a e3 ->
   Eff es z
-interleaveConsume done c1 c2 y = do
+interleaveConsume c1 c2 y = do
   forever $ do
-    await c1 >>= \case
-      Nothing -> jumpTo done
-      Just a -> do
-        yield y a
-        interleaveConsume done c2 c1 y
+    await c1 >>= \a -> do
+      yield y a
+      interleaveConsume c2 c1 y
 
 interleave ::
   (e1 :> es) =>
@@ -85,16 +82,16 @@ interleave ::
   (forall e. Stream a e -> Eff (e :& es) ()) ->
   Stream a e1 ->
   Eff es ()
-interleave s1 s2 y = withJump $ \done -> do
+interleave s1 s2 y = do
   consumeStream
     ( \c1 ->
         consumeStream
           ( \c2 ->
-              interleaveConsume done c1 c2 y
+              interleaveConsume c1 c2 y
           )
-          (nothingOnEnd (useImplWithin s2))
+          (useImplWithin s2)
     )
-    (nothingOnEnd (useImplWithin s1))
+    (useImplWithin s1)
 
 data Tree = MkTree
   { treeLeft :: Maybe Tree,
