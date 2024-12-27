@@ -28,8 +28,7 @@ printConsume ::
 printConsume io iterator =
   withJump $ \done -> do
     forever $ do
-      mi <- await iterator
-      case mi of
+      await iterator >>= \case
         Nothing -> jumpTo done
         Just i -> effIO io (print i)
 
