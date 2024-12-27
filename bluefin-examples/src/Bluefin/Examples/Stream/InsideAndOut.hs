@@ -33,8 +33,8 @@ printConsumeTerminate ::
 printConsumeTerminate io iterator =
   withJump $ \done -> do
     forever $ do
-      awaitOrTerminate iterator done >>= \i ->
-        effIO io (print i)
+      i <- awaitOrTerminate iterator done
+      effIO io (print i)
 
 runPrintConsumeTerminate :: IO ()
 runPrintConsumeTerminate = runEff_ $ \io -> do
