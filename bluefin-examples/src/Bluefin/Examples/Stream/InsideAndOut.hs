@@ -70,7 +70,7 @@ interleaveConsume ::
   Consume (Maybe a) e2 ->
   Consume (Maybe a) e3 ->
   Stream a e4 ->
-  Eff es ()
+  Eff es z
 interleaveConsume done c1 c2 y = do
   forever $ do
     await c1 >>= \case
