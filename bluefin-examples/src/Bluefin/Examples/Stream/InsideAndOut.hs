@@ -72,9 +72,9 @@ interleaveConsume ::
   Eff es z
 interleaveConsume c1 c2 y = do
   forever $ do
-    await c1 >>= \a -> do
-      yield y a
-      interleaveConsume c2 c1 y
+    a <- await c1
+    yield y a
+    interleaveConsume c2 c1 y
 
 interleave ::
   (e1 :> es) =>
