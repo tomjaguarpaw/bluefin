@@ -343,6 +343,26 @@ type Stream a = Coroutine a ()
 
 type Consume a = Coroutine () a
 
+newtype ConsumeTerminate a r e
+  = UnsafeMkConsumeTerminate (Consume (Either r a) e)
+
+instance Handle (ConsumeTerminate a r) where
+  mapHandle (UnsafeMkConsumeTerminate c) =
+    UnsafeMkConsumeTerminate (mapHandle c)
+
+-- | A @ConsumeTerminate a r e@ is implemented as a @'Consume' (Either
+-- r a) e@.  If you want to pass it to a function that expects a
+-- @Consume@ you can get one by using @consumeTerminate@.
+
+-- The Eff wrapper is not needed for the current implementation, but
+-- it seems prudent to keep it in case we change representation.
+consumeTerminate ::
+  (e :> es) =>
+  ConsumeTerminate a r e ->
+  -- | ͘
+  Eff es (Consume (Either r a) es)
+consumeTerminate (UnsafeMkConsumeTerminate c) = pure (mapHandle c)
+
 -- | You can define a @Handle@ instance for your compound handles.  As
 -- an example, an "application" handle with a dynamic effect for
 -- database queries, a concrete effect for application state and a
@@ -856,6 +876,58 @@ consumeEach k e = forEach k (\() -> e)
 
 await :: (e :> es) => Consume a e -> Eff es a
 await r = yieldCoroutine r ()
+
+consumeEachOrTerminate ::
+  -- | Body
+  ( forall e.
+    ConsumeTerminate b r e ->
+    Eff (e :& es) z
+  ) ->
+  -- | Value to send to each @awaitOrTerminate@ in the body.
+  ( forall e.
+    Exception r e ->
+    Eff (e :& es) b
+  ) ->
+  Eff es z
+consumeEachOrTerminate ck ek =
+  evalState Nothing $ \finishedWith -> do
+    consumeEach
+      (\c -> useImplWithin ck (UnsafeMkConsumeTerminate c))
+      ( do
+          get finishedWith >>= \case
+            Just r -> pure r
+            Nothing -> try $ \ex -> useImplWithin ek ex
+      )
+
+awaitOrTerminate ::
+  (e1 :> es, e2 :> es) =>
+  -- | Try to await an @a@ from here
+  ConsumeTerminate a r e1 ->
+  -- | If the 'ConsumeTerminate' has finished then throw this
+  -- exception
+  Exception r e2 ->
+  Eff es a
+awaitOrTerminate ct ex = do
+  c <- consumeTerminate ct
+  await c >>= \case
+    Left r -> throw ex r
+    Right a -> pure a
+
+consumeStreamOrTerminate ::
+  -- | Each 'awaitOrTerminate' from the @Consume@ ...
+  (forall e. ConsumeTerminate a r1 e -> Eff (e :& es) r2) ->
+  -- | ... receives the value 'yield'ed from the @Stream@ (or the
+  -- return value of the @Stream@, once it has terminated)
+  (forall e. Stream a e -> Eff (e :& es) r1) ->
+  Eff es r2
+consumeStreamOrTerminate r s =
+  receiveStream
+    (\c -> r (UnsafeMkConsumeTerminate c))
+    ( \y -> do
+        r1 <- forEach (useImplWithin s) $ \a -> do
+          yield y (Right a)
+        forever (yield y (Left r1))
+    )
 
 type EarlyReturn = Exception
 
