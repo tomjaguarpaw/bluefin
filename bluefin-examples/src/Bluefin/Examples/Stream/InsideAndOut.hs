@@ -50,10 +50,10 @@ runPrintConsume = runEff $ \io -> do
 printConsumeTerminate ::
   (e1 :> es, e2 :> es, Show a) =>
   IOE e2 ->
-  ConsumeTerminate a () e1 ->
-  Eff es ()
+  ConsumeTerminate a r e1 ->
+  Eff es r
 printConsumeTerminate io iterator =
-  withJump $ \done -> do
+  withEarlyReturn $ \done -> do
     forever $ do
       -- We can detect upstream termination, and when upstream has
       -- terminated we finish too.
