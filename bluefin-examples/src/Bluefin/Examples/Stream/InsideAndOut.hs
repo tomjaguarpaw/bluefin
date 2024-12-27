@@ -2,10 +2,15 @@ module Bluefin.Examples.Stream.InsideAndOut where
 
 import Bluefin.Compound (useImplWithin)
 import Bluefin.Consume (Consume, await, consumeEach, consumeStream)
+import Bluefin.ConsumeTerminate
+  ( ConsumeTerminate,
+    awaitOrTerminate,
+    consumeStreamOrTerminate,
+  )
 import Bluefin.EarlyReturn (returnEarly, withEarlyReturn)
 import Bluefin.Eff (Eff, runEff_, (:&), (:>))
 import Bluefin.IO (IOE, effIO)
-import Bluefin.Jump (Jump, jumpTo, withJump)
+import Bluefin.Jump (jumpTo, withJump)
 import Bluefin.State (evalState, get)
 import Bluefin.Stream (Stream, forEach, inFoldable, yield)
 import Control.Monad (forever, when)
@@ -20,36 +25,25 @@ print10 = runEff_ $ \io -> do
   for_ [1 :: Int .. 10] $ \i -> do
     effIO io (print i)
 
-printConsume ::
+printConsumeTerminate ::
   (e1 :> es, e2 :> es, Show a) =>
   IOE e2 ->
-  Consume (Maybe a) e1 ->
+  ConsumeTerminate a () e1 ->
   Eff es ()
-printConsume io iterator =
+printConsumeTerminate io iterator =
   withJump $ \done -> do
     forever $ do
-      await iterator >>= \case
-        Nothing -> jumpTo done
-        Just i -> effIO io (print i)
+      awaitOrTerminate iterator done >>= \i ->
+        effIO io (print i)
 
--- FIXME: This should probably be a Bluefin library function
-nothingOnEnd ::
-  (e1 :> es) =>
-  (forall e. Stream a e -> Eff (e :& es) r) ->
-  Stream (Maybe a) e1 ->
-  Eff es r
-nothingOnEnd s y = do
-  _ <- forEach s $ \a -> yield y (Just a)
-  forever $ yield y Nothing
-
-runPrintConsume :: IO ()
-runPrintConsume = runEff_ $ \io -> do
+runPrintConsumeTerminate :: IO ()
+runPrintConsumeTerminate = runEff_ $ \io -> do
   let elements :: [Int]
       elements = [1, 2, 3, 4, 5]
 
-  consumeStream
-    (printConsume io)
-    (nothingOnEnd (inFoldable elements))
+  consumeStreamOrTerminate
+    (printConsumeTerminate io)
+    (inFoldable elements)
 
 find ::
   (Eq a) =>
