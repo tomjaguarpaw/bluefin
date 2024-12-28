@@ -383,6 +383,19 @@ instance Handle (ConsumeTerminate a r) where
   mapHandle (UnsafeMkConsumeTerminate c) =
     UnsafeMkConsumeTerminate (mapHandle c)
 
+-- | A @ConsumeTerminate a r e@ is implemented as a @'Consume' (Either
+-- r a) e@.  If you want to pass it to a function that expects a
+-- @Consume@ you can get one by using @consumeTerminate@.
+
+-- The Eff wrapper is not needed for the current implementation, but
+-- it seems prudent to keep it in case we change representation.
+consumeTerminate ::
+  (e :> es) =>
+  ConsumeTerminate a r e ->
+  -- | ͘
+  Eff es (Consume (Either r a) es)
+consumeTerminate (UnsafeMkConsumeTerminate c) = pure (mapHandle c)
+
 -- | Every Bluefin handle should have an instance of class @Handle@.
 -- Built-in handles, such as 'Exception', 'State' and 'IOE', come with
 -- @Handle@ instances.
@@ -1086,7 +1099,8 @@ awaitOrTerminate ::
   -- exception
   Exception r e2 ->
   Eff es a
-awaitOrTerminate (UnsafeMkConsumeTerminate c) ex = do
+awaitOrTerminate ct ex = do
+  c <- consumeTerminate ct
   await c >>= \case
     Left r -> throw ex r
     Right a -> pure a
