@@ -23,6 +23,7 @@ library
       Bluefin,
       Bluefin.Compound,
       Bluefin.Consume,
+      Bluefin.ConsumeTerminate,
       Bluefin.Coroutine,
       Bluefin.CloneableHandle,
       Bluefin.DslBuilder,

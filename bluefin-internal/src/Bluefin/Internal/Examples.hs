@@ -392,6 +392,13 @@ zipCoroutinesExample = runEff_ $ \io -> do
     effIO io (print i)
     pure (i1 + i2)
 
+consumeTerminateToConsume ::
+  (e1 :> es) =>
+  (forall e. Consume (Either r1 b) e -> Eff (e :& es) r2) ->
+  ConsumeTerminate b r1 e1 ->
+  Eff es r2
+consumeTerminateToConsume k ct = consumeEach k (try (awaitOrTerminate ct))
+
 -- Count the number of (strictly) positives and (strictly) negatives
 -- in a list, unless we see a zero, in which case we bail with an
 -- error message.

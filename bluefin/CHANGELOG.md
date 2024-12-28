@@ -1,3 +1,5 @@
+* Add `Bluefin.Internal.ConsumeTerminate`
+
 # 0.2.5.0
 
 * Add `finally`

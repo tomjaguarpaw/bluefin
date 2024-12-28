@@ -5,7 +5,7 @@ module Main (main) where
 
 import Bluefin.Internal
 import Bluefin.Internal.DslBuilder
-import Control.Monad (when)
+import Control.Monad (replicateM_, when)
 import Data.Foldable (for_)
 import Data.Monoid (All (All))
 import System.Exit (ExitCode (ExitFailure), exitWith)
@@ -35,6 +35,14 @@ main = runEff_ $ \io -> do
       "List"
       (runPureEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
       ([20, 30, 40], "Hello")
+    assertEqual'
+      "consumeEachOrTerminate"
+      (runPureEff (yieldToList consumeEachOrTerminateEff))
+      ([Right 0, Right 1, Right 2, Left 3, Left 3], ())
+    assertEqual'
+      "consumeStreamOrTerminate"
+      (runPureEff (yieldToList consumeStreamOrTerminateEff))
+      ([Right 0, Right 1, Right 2, Left 3, Left 3], ())
 
     test_localInHandler y
 
@@ -143,6 +151,36 @@ listEff :: (e1 :> es) => ([a], r) -> Stream a e1 -> Eff es r
 listEff (as, r) y = do
   for_ as (yield y)
   pure r
+
+consumeEachOrTerminateEff ::
+  (e1 :> es) => Stream (Either Int Int) e1 -> Eff es ()
+consumeEachOrTerminateEff y =
+  evalState @Int 0 $ \st -> do
+    consumeEachOrTerminate
+      ( \ct -> replicateM_ 5 $ do
+          a <- try (awaitOrTerminate ct)
+          yield y a
+      )
+      ( \ex -> do
+          n <- get st
+          modify st (+ 1)
+          when (n == 3) $ do
+            throw ex n
+          pure n
+      )
+
+consumeStreamOrTerminateEff ::
+  (e1 :> es) => Stream (Either Int Int) e1 -> Eff es ()
+consumeStreamOrTerminateEff y =
+  consumeStreamOrTerminate
+      ( \ct -> replicateM_ 5 $ do
+          a <- try (awaitOrTerminate ct)
+          yield y a
+      )
+      ( \y' -> do
+          inFoldable [0 .. 2] y'
+          pure 3
+      )
 
 test_localInHandler :: (e :> es) => SpecH e -> Eff es ()
 test_localInHandler y = runReader "global" $ \re ->

@@ -376,6 +376,13 @@ type Stream a = Coroutine a ()
 
 type Consume a = Coroutine () a
 
+newtype ConsumeTerminate a r e
+  = UnsafeMkConsumeTerminate (Consume (Either r a) e)
+
+instance Handle (ConsumeTerminate a r) where
+  mapHandle (UnsafeMkConsumeTerminate c) =
+    UnsafeMkConsumeTerminate (mapHandle c)
+
 -- | Every Bluefin handle should have an instance of class @Handle@.
 -- Built-in handles, such as 'Exception', 'State' and 'IOE', come with
 -- @Handle@ instances.
@@ -1043,6 +1050,62 @@ consumeEach k e = forEach k (\() -> e)
 
 await :: (e :> es) => Consume a e -> Eff es a
 await r = yieldCoroutine r ()
+
+consumeEachOrTerminate ::
+  -- | Body
+  ( forall e.
+    ConsumeTerminate b r e ->
+    Eff (e :& es) z
+  ) ->
+  -- | Value to send to each @awaitOrTerminate@ in the body.
+  ( forall e.
+    Exception r e ->
+    Eff (e :& es) b
+  ) ->
+  Eff es z
+consumeEachOrTerminate ck ek =
+  evalState Nothing $ \finishedWith -> do
+    consumeEach
+      (\c -> useImplWithin ck (UnsafeMkConsumeTerminate c))
+      ( do
+          get finishedWith >>= \case
+            Nothing -> do
+              try (useImplWithin ek) >>= \case
+                Right b_ -> pure (Right b_)
+                Left r -> do
+                  put finishedWith (Just r)
+                  pure (Left r)
+            Just r -> pure (Left r)
+      )
+
+awaitOrTerminate ::
+  (e1 :> es, e2 :> es) =>
+  -- | Try to await an @a@ from here
+  ConsumeTerminate a r e1 ->
+  -- | If the 'ConsumeTerminate' has finished then throw this
+  -- exception
+  Exception r e2 ->
+  Eff es a
+awaitOrTerminate (UnsafeMkConsumeTerminate c) ex = do
+  await c >>= \case
+    Left r -> throw ex r
+    Right a -> pure a
+
+consumeStreamOrTerminate ::
+  -- | Each 'awaitOrTerminate' from the @ConsumeTerminate@ ...
+  (forall e. ConsumeTerminate a r1 e -> Eff (e :& es) r2) ->
+  -- | ... receives the value 'yield'ed from the @Stream@ (or the
+  -- return value of the @Stream@, once it has terminated)
+  (forall e. Stream a e -> Eff (e :& es) r1) ->
+  Eff es r2
+consumeStreamOrTerminate r s =
+  receiveStream
+    (\c -> r (UnsafeMkConsumeTerminate c))
+    ( \y -> do
+        r1 <- forEach (useImplWithin s) $ \a -> do
+          yield y (Right a)
+        forever (yield y (Left r1))
+    )
 
 type EarlyReturn = Exception
 

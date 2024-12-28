@@ -56,6 +56,10 @@
   `Bluefin.Internal.Exception.Scoped.Exception` and
   `Bluefin.Internal.ConstEffect` to `Effects`
 
+* Add `ConsumeTerminate(UnsafeMkConsumeTerminate)`,
+  `consumeEachOrTerminate`, `awaitOrTerminate`,
+  `consumeStreamOrTerminate`
+
 ## 0.1.0.0
 
 * WARNING: `Bluefin.State.put` accidentally became lazy in this
@@ -68,20 +72,6 @@
 * Add `unsafeCoerceEff`
 
 * Rename `UnsafeMkException` to `MkException`
-
-* Add type roles for `StateSource`, `State`, `IOE`
-
-* Correct implementation of `have`
-
-* Add `withStateInIO`
-
-* Correct type signature of `newState`
-
-* Add safe scoped exceptions implementation
-
-  * `Bluefin.Internal.Exception.Scoped`
-
-  * `Bluefin.Internal..Scoped`
 
 ## 0.0.15.0
 
