@@ -45,15 +45,15 @@ type SpecH = Stream (String, Maybe (SpecInfo ()))
 
 assertEqual ::
   (e :> es, Eq a, Show a) => SpecH e -> String -> a -> a -> Eff es ()
-assertEqual y n c1 c2 =
+assertEqual y n got expected =
   yield
     y
     ( n,
-      if c1 == c2
+      if got == expected
         then Nothing
         else Just $ dslBuilder $ \y2 -> do
-          yield y2 ("Expected: " ++ show c2)
-          yield y2 ("But got: " ++ show c1)
+          yield y2 ("Expected: " ++ show expected)
+          yield y2 ("But got: " ++ show got)
     )
 
 type SpecInfo r = DslBuilder (Stream String) r
