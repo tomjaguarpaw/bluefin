@@ -7,6 +7,7 @@ module Bluefin.Ki
     scoped,
     fork,
     withAsync,
+    atomicallySTM,
     -- * Effectful operations
     exclusively,
     exclusiveAccessOfScopeEff,
