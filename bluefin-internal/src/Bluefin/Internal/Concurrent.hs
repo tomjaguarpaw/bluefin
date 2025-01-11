@@ -178,49 +178,52 @@ example = runEff $ \io -> do
   chan <- effIO io STM.newTChanIO
 
   scoped $ \scope -> do
-    _ <- fork scope $ \excl -> do
+    t <- fork scope $ \excl -> do
       stm <- stmeOfExclusiveAccess excl
-      forever $ do
+      replicateM_ 20 $ do
         a <- atomicallySTM stm (STM.readTChan chan)
         exclusively excl $ do
           effIO io (putStrLn a)
-    pure ()
 
-  evalState () $ \stTop -> do
-    scoped $ \scope1 -> do
-      voidThread $ fork scope1 $ \excl1 -> do
-        stm <- stmeOfExclusiveAccess excl1
-        replicateM_ 20 $ do
-          atomicallySTM stm $ STM.writeTChan chan "Hello"
+    evalState () $ \stTop -> do
+      scoped $ \scope1 -> do
+        voidThread $ fork scope1 $ \excl1 -> do
+          stm <- stmeOfExclusiveAccess excl1
+          replicateM_ 20 $ do
+            atomicallySTM stm $ STM.writeTChan chan "Hello"
 
-      t1 <- fork scope1 $ \excl1 -> do
-        exclusively excl1 $ get stTop
+        t1 <- fork scope1 $ \excl1 -> do
+          exclusively excl1 $ get stTop
 
-        evalState @Int 0 $ \st -> do
-          scoped $ \scope2 -> do
-            t2 <- fork scope2 $ \excl2 -> do
-              replicateM_ 3 $ do
-                exclusively excl2 $ do
-                  modify st (+ 1)
-                  exclusively excl1 $
-                    insertFirst $
-                      notThreadSafe 1
+          evalState @Int 0 $ \st -> do
+            scoped $ \scope2 -> do
+              t2 <- fork scope2 $ \excl2 -> do
+                replicateM_ 3 $ do
+                  exclusively excl2 $ do
+                    modify st (+ 1)
+                    exclusively excl1 $ do
+                      excl <- exclusiveAccessOfScopeEff scope
+                      exclusively excl $ do
+                        notThreadSafe 1
 
-            scope2' <- exclusiveAccessOfScopeEff scope2
-            exclusively scope2' $ put st 0
+              scope2' <- exclusiveAccessOfScopeEff scope2
+              exclusively scope2' $ put st 0
 
-            t3 <- fork scope2 $ \excl2 -> do
-              replicateM_ 3 $ do
-                exclusively excl2 $ do
-                  modify st (+ 1)
-                  exclusively excl1 $
-                    insertFirst $
-                      notThreadSafe 2
+              t3 <- fork scope2 $ \excl2 -> do
+                replicateM_ 3 $ do
+                  exclusively excl2 $ do
+                    modify st (+ 1)
+                    exclusively excl1 $ do
+                      excl <- exclusiveAccessOfScopeEff scope
+                      exclusively excl $ do
+                        notThreadSafe 2
 
-            awaitEff t2
-            awaitEff t3
+              awaitEff t2
+              awaitEff t3
 
-      awaitEff t1
+        awaitEff t1
+
+    awaitEff t
 
 staggeredSpawner :: [IO ()] -> IO ()
 staggeredSpawner actions = do
