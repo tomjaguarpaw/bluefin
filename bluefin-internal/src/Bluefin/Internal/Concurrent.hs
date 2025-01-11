@@ -13,17 +13,23 @@ import Data.Maybe (isJust)
 import Data.Proxy (Proxy (Proxy))
 import qualified Ki
 
-newtype ExclusiveAccess (e1 :: Effects) (e2 :: Effects)
+newtype ExclusiveAccess (es' :: Effects) (es :: Effects)
   = UnsafeMkExclusiveAccess (MVar ())
 
-instance Handle (ExclusiveAccess e1) where
+instance Handle (ExclusiveAccess es') where
   mapHandle (UnsafeMkExclusiveAccess v) = UnsafeMkExclusiveAccess v
 
-data Scope (e1 :: Effects) (e2 :: Effects)
-  = UnsafeMkScope Ki.Scope (ExclusiveAccess e1 e2)
+data Scope (es' :: Effects) (es :: Effects)
+  = UnsafeMkScope Ki.Scope (ExclusiveAccess es' es)
 
-newtype Thread (e :: Effects) r
-  = UnsafeMkThread (Ki.Thread r)
+instance Handle (Scope es') where
+  mapHandle (UnsafeMkScope scope excl) = UnsafeMkScope scope (mapHandle excl)
+
+newtype Thread a (e :: Effects)
+  = UnsafeMkThread (Ki.Thread a)
+
+instance Handle (Thread r) where
+  mapHandle (UnsafeMkThread t) = UnsafeMkThread t
 
 scoped ::
   (forall e. Scope es e -> Eff e r) ->
@@ -35,11 +41,11 @@ scoped k = UnsafeMkEff $ Ki.scoped $ \scope -> do
   unsafeUnEff (k (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock)))
 
 exclusiveAccessOfScopeEff ::
-  (e :> es) =>
-  Scope es' e ->
+  (e1 :> es) =>
+  Scope es' e1 ->
   -- | ͘
-  Eff es (ExclusiveAccess es' es)
-exclusiveAccessOfScopeEff (UnsafeMkScope _ excl) = pure (mapHandle excl)
+  Eff es (ExclusiveAccess es' e1)
+exclusiveAccessOfScopeEff (UnsafeMkScope _ excl) = pure excl
 
 exclusively ::
   (e1 :> es) =>
@@ -58,18 +64,32 @@ fork ::
   Scope es' e1 ->
   (forall e. ExclusiveAccess es' e -> Eff e r) ->
   -- | ͘
-  Eff es (Thread es r)
+  Eff es (Thread r es)
 fork (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock)) body = do
   thread <- UnsafeMkEff $ Ki.fork scope $ do
     unsafeUnEff (body (UnsafeMkExclusiveAccess lock))
   pure (UnsafeMkThread thread)
 
-awaitEff :: Thread e a -> Eff es a
+awaitEff ::
+  Thread a e ->
+  -- | ͘
+  Eff es a
 awaitEff (UnsafeMkThread t) =
   UnsafeMkEff (atomically (Ki.await t))
 
 getEffStack :: Eff es (Proxy es)
 getEffStack = pure Proxy
+
+--  ::  IO a -> (Async a -> IO b) -> IO b
+withAsync ::
+  (forall e. ExclusiveAccess es e -> Eff e r1) ->
+  (forall e. Scope es e -> Thread r1 e -> Eff e r2) ->
+  -- | ͘
+  Eff es r2
+withAsync
+  forkIt
+  body = scoped $ \scope ->
+    body scope =<< fork scope forkIt
 
 example :: IO ()
 example = runEff $ \io -> do
@@ -81,31 +101,36 @@ example = runEff $ \io -> do
         threadDelay 1_000
         putStrLn ("Exiting " ++ show i)
 
-  scoped $ \scope1 -> do
-    t1 <- fork scope1 $ \excl1 -> do
-      evalState @Int 0 $ \st -> do
-        scoped $ \scope2 -> do
-          t2 <- fork scope2 $ \excl2 -> do
-            replicateM_ 3 $ do
-              exclusively excl2 $ do
-                modify st (+ 1)
-                exclusively excl1 $
-                  notThreadSafe 1
+  evalState () $ \stTop -> do
+    scoped $ \scope1 -> do
+      t1 <- fork scope1 $ \excl1 -> do
+        exclusively excl1 $ get stTop
 
-          scope2' <- exclusiveAccessOfScopeEff scope2
-          exclusively scope2' $ put st 0
+        evalState @Int 0 $ \st -> do
+          scoped $ \scope2 -> do
+            t2 <- fork scope2 $ \excl2 -> do
+              replicateM_ 3 $ do
+                exclusively excl2 $ do
+                  modify st (+ 1)
+                  exclusively excl1 $
+                    insertFirst $
+                      notThreadSafe 1
 
-          t3 <- fork scope2 $ \excl2 -> do
-            replicateM_ 3 $ do
-              exclusively excl2 $ do
-                modify st (+ 1)
-                exclusively excl1 $
-                  notThreadSafe 2
+            scope2' <- exclusiveAccessOfScopeEff scope2
+            exclusively scope2' $ put st 0
 
-          awaitEff t2
-          awaitEff t3
+            t3 <- fork scope2 $ \excl2 -> do
+              replicateM_ 3 $ do
+                exclusively excl2 $ do
+                  modify st (+ 1)
+                  exclusively excl1 $
+                    insertFirst $
+                      notThreadSafe 2
 
-    awaitEff t1
+            awaitEff t2
+            awaitEff t3
+
+      awaitEff t1
 
 staggeredSpawner :: [IO ()] -> IO ()
 staggeredSpawner actions = do

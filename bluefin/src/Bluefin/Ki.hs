@@ -1,14 +1,17 @@
 module Bluefin.Ki
-  ( ExclusiveAccess,
+  ( -- * Handles
     Scope,
+    ExclusiveAccess,
     Thread,
+    -- * Handlers
     scoped,
+    fork,
+    withAsync,
+    -- * Effectful operations
     exclusively,
     exclusiveAccessOfScopeEff,
-    fork,
     awaitEff,
   )
 where
 
 import Bluefin.Internal.Concurrent
-
