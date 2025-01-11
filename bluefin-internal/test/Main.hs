@@ -4,6 +4,7 @@
 module Main (main) where
 
 import Bluefin.Internal
+import Bluefin.Internal.Concurrent (example)
 import Control.Monad (when)
 import Data.Foldable (for_)
 import Data.Monoid (All (All))

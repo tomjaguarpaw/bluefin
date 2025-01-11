@@ -30,6 +30,7 @@ library
       Bluefin.HandleReader,
       Bluefin.IO,
       Bluefin.Jump,
+      Bluefin.Ki,
       Bluefin.Pipes,
       Bluefin.Pipes.Prelude,
       Bluefin.Reader,

@@ -82,10 +82,13 @@ library
       unliftio-core < 0.3,
       transformers < 0.7,
       transformers-base < 0.5,
-      monad-control < 1.1
+      monad-control < 1.1,
+      ki,
+      stm
     ghc-options: -Wall
     exposed-modules:
       Bluefin.Internal,
+      Bluefin.Internal.Concurrent,
       Bluefin.Internal.Examples,
       Bluefin.Internal.Pipes,
       Bluefin.Internal.System.IO
