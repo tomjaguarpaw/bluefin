@@ -6,7 +6,7 @@ import Bluefin.Internal
 import Control.Concurrent (MVar, threadDelay)
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar, tryPutMVar)
 import qualified Control.Concurrent.STM as STM
-import Control.Monad (forever, replicateM_, when, (<=<))
+import Control.Monad (replicateM_, when, forever)
 import Data.Functor (void)
 import qualified Data.List as List
 import Data.Maybe (isJust)
@@ -170,16 +170,16 @@ accessSTME ::
   (e1' :> es', e1 :> es) =>
   ExclusiveAccess es' e1 ->
   STME e1' ->
-  Eff es (STME es)
+  Eff es (STME e1)
 accessSTME (UnsafeMkExclusiveAccess _ _) UnsafeMkSTME =
   pure UnsafeMkSTME
 
 accessSTME2 ::
   (e1'' :> es'', es'1 :> es', e1 :> es) =>
-  ExclusiveAccess es'' es'1  ->
+  ExclusiveAccess es'' es'1 ->
   ExclusiveAccess es' e1 ->
   STME e1'' ->
-  Eff es (STME es)
+  Eff es (STME (e1 :: Effects))
 accessSTME2 excl1 excl2 stm = do
   r <- exclusively excl2 $ do
     r <- accessSTME excl1 stm
@@ -201,22 +201,29 @@ example = runEff $ \io -> runSTM io $ \stm -> do
   chan <- effIO io STM.newTChanIO
 
   scoped $ \scope -> do
-    t <- fork scope $ \excl -> do
+    t <- fork scope $ \excl -> withJump $ \j -> do
       stm' <- accessSTME excl stm
-      replicateM_ 20 $ do
-        a <- atomicallySTM stm' (STM.readTChan chan)
-        exclusively excl $ do
-          effIO io (putStrLn a)
+
+      forever $ do
+        atomicallySTM stm' (STM.readTChan chan) >>= \case
+          Nothing -> jumpTo j
+          Just a -> do
+            exclusively excl $ do
+              effIO io (putStrLn a)
 
     evalState () $ \stTop -> do
       scoped $ \scope1 -> do
         voidThread $ fork scope1 $ \excl1 -> do
-          excl <- exclusively excl1 $
-            exclusiveAccessOfScopeEff scope
+          -- This seems too complicated
+          excl <-
+            exclusively excl1 $
+              exclusiveAccessOfScopeEff scope
           stm' <- accessSTME2 excl excl1 stm
 
-          replicateM_ 20 $ do
-            atomicallySTM stm' $ STM.writeTChan chan "Hello"
+          replicateM_ 10 $ do
+            atomicallySTM stm' $ STM.writeTChan chan (Just "Hello")
+
+          atomicallySTM stm' (STM.writeTChan chan Nothing)
 
         t1 <- fork scope1 $ \excl1 -> do
           exclusively excl1 $ get stTop
