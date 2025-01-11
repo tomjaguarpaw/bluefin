@@ -5,8 +5,8 @@ module Bluefin.Internal.Concurrent where
 import Bluefin.Internal
 import Control.Concurrent (MVar, threadDelay)
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar, tryPutMVar)
+import qualified Control.Concurrent.STM as STM
 import Control.Monad (replicateM_, when)
-import Control.Monad.STM (atomically)
 import Data.Functor (void)
 import qualified Data.List as List
 import Data.Maybe (isJust)
@@ -75,12 +75,49 @@ awaitEff ::
   -- | ͘
   Eff es a
 awaitEff (UnsafeMkThread t) =
-  UnsafeMkEff (atomically (Ki.await t))
+  -- This is safe, presumably, because it doesn't change any STM
+  -- variables observably, presumably.
+  UnsafeMkEff (STM.atomically (Ki.await t))
 
 getEffStack :: Eff es (Proxy es)
 getEffStack = pure Proxy
 
---  ::  IO a -> (Async a -> IO b) -> IO b
+newtype EffSTM (e :: Effects) a = UnsafeMkEffSTM {unsafeUnEffSTM :: STM.STM a}
+
+data STME (e :: Effects) = UnsafeMkSTME
+
+effSTM ::
+  (e :> es) =>
+  STME e ->
+  STM.STM a ->
+  -- | ͘
+  EffSTM es a
+effSTM UnsafeMkSTME = UnsafeMkEffSTM
+
+newtype TChan a (e :: Effects) = UnsafeMkTChan (STM.TChan a)
+
+withTChan ::
+  (forall e. TChan a e -> EffSTM (e :& es) r) ->
+  EffSTM es r
+withTChan body = UnsafeMkEffSTM $ do
+  chan <- STM.newTChan
+  unsafeUnEffSTM $ body $ UnsafeMkTChan chan
+
+readTChan ::
+  e :> es =>
+  TChan a e ->
+  EffSTM es a
+readTChan (UnsafeMkTChan chan) = UnsafeMkEffSTM $ do
+  STM.readTChan chan
+
+writeTChan ::
+  e :> es =>
+  TChan a e ->
+  a ->
+  EffSTM es ()
+writeTChan (UnsafeMkTChan chan) a = UnsafeMkEffSTM $ do
+  STM.writeTChan chan a
+
 withAsync ::
   (forall e. ExclusiveAccess es e -> Eff e r1) ->
   (forall e. Scope es e -> Thread r1 e -> Eff e r2) ->
@@ -139,7 +176,7 @@ staggeredSpawner actions = do
       & map (\action -> void (Ki.fork scope action))
       & List.intersperse (threadDelay 250_000)
       & sequence_
-    atomically (Ki.awaitAll scope)
+    STM.atomically (Ki.awaitAll scope)
   where
     (&) = flip ($)
 
@@ -167,7 +204,7 @@ staggeredSpawnerBf actions = do
       & map (\action -> void (Ki.fork scope action))
       & List.intersperse (threadDelay 250_000)
       & sequence_
-    atomically (Ki.awaitAll scope)
+    STM.atomically (Ki.awaitAll scope)
   where
     (&) = flip ($)
 
