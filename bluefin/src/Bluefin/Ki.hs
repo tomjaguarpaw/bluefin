@@ -8,10 +8,12 @@ module Bluefin.Ki
     fork,
     withAsync,
     atomicallySTM,
+    runSTM,
     -- * Effectful operations
     exclusively,
     exclusiveAccessOfScopeEff,
     awaitEff,
+    accessSTME,
   )
 where
 

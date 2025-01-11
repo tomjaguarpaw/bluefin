@@ -72,6 +72,7 @@ fork (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock stm)) body = do
   pure (UnsafeMkThread thread)
 
 awaitEff ::
+  e :> es =>
   Thread a e ->
   -- | ͘
   Eff es a
@@ -163,6 +164,7 @@ runSTM ::
   (e1 :> es) =>
   IOE e1 ->
   (forall e. STME e -> Eff (e :& es) r) ->
+  -- | ͘
   Eff es r
 runSTM MkIOE body = makeOp (body UnsafeMkSTME)
 
@@ -170,6 +172,7 @@ accessSTME ::
   (e1' :> es', e1 :> es) =>
   ExclusiveAccess es' e1 ->
   STME e1' ->
+  -- | ͘
   Eff es (STME e1)
 accessSTME (UnsafeMkExclusiveAccess _ _) UnsafeMkSTME =
   pure UnsafeMkSTME
