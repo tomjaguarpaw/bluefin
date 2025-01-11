@@ -6,18 +6,19 @@ import Bluefin.Internal
 import Control.Concurrent (MVar, threadDelay)
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar, tryPutMVar)
 import qualified Control.Concurrent.STM as STM
-import Control.Monad (replicateM_, when)
+import Control.Monad (forever, replicateM_, when)
 import Data.Functor (void)
 import qualified Data.List as List
 import Data.Maybe (isJust)
 import Data.Proxy (Proxy (Proxy))
 import qualified Ki
+import System.IO.Unsafe (unsafePerformIO)
 
-newtype ExclusiveAccess (es' :: Effects) (es :: Effects)
-  = UnsafeMkExclusiveAccess (MVar ())
+data ExclusiveAccess (es' :: Effects) (es :: Effects)
+  = UnsafeMkExclusiveAccess (MVar ()) (STME es)
 
 instance Handle (ExclusiveAccess es') where
-  mapHandle (UnsafeMkExclusiveAccess v) = UnsafeMkExclusiveAccess v
+  mapHandle (UnsafeMkExclusiveAccess v stm) = UnsafeMkExclusiveAccess v (mapHandle stm)
 
 data Scope (es' :: Effects) (es :: Effects)
   = UnsafeMkScope Ki.Scope (ExclusiveAccess es' es)
@@ -38,7 +39,7 @@ scoped ::
 scoped k = UnsafeMkEff $ Ki.scoped $ \scope -> do
   -- Unlocked when it's empty
   lock <- newEmptyMVar
-  unsafeUnEff (k (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock)))
+  unsafeUnEff (k (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock UnsafeMkSTME)))
 
 exclusiveAccessOfScopeEff ::
   (e1 :> es) =>
@@ -47,13 +48,20 @@ exclusiveAccessOfScopeEff ::
   Eff es (ExclusiveAccess es' e1)
 exclusiveAccessOfScopeEff (UnsafeMkScope _ excl) = pure excl
 
+stmeOfExclusiveAccess ::
+  (e1 :> es) =>
+  ExclusiveAccess es' e1 ->
+  -- | ͘
+  Eff es (STME e1)
+stmeOfExclusiveAccess (UnsafeMkExclusiveAccess _ stm) = pure stm
+
 exclusively ::
   (e1 :> es) =>
   ExclusiveAccess e e1 ->
   Eff e r ->
   -- | ͘
   Eff es r
-exclusively (UnsafeMkExclusiveAccess lock) body = do
+exclusively (UnsafeMkExclusiveAccess lock _) body = do
   () <- UnsafeMkEff (putMVar lock ())
   r <- UnsafeMkEff (unsafeUnEff body)
   UnsafeMkEff (takeMVar lock)
@@ -65,9 +73,9 @@ fork ::
   (forall e. ExclusiveAccess es' e -> Eff e r) ->
   -- | ͘
   Eff es (Thread r es)
-fork (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock)) body = do
+fork (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock stm)) body = do
   thread <- UnsafeMkEff $ Ki.fork scope $ do
-    unsafeUnEff (body (UnsafeMkExclusiveAccess lock))
+    unsafeUnEff (body (UnsafeMkExclusiveAccess lock stm))
   pure (UnsafeMkThread thread)
 
 awaitEff ::
@@ -86,6 +94,9 @@ newtype EffSTM (e :: Effects) a = UnsafeMkEffSTM {unsafeUnEffSTM :: STM.STM a}
 
 data STME (e :: Effects) = UnsafeMkSTME
 
+instance Handle STME where
+  mapHandle UnsafeMkSTME = UnsafeMkSTME
+
 effSTM ::
   (e :> es) =>
   STME e ->
@@ -96,6 +107,29 @@ effSTM UnsafeMkSTME = UnsafeMkEffSTM
 
 newtype TChan a (e :: Effects) = UnsafeMkTChan (STM.TChan a)
 
+atomicallySTM ::
+  STME e ->
+  STM.STM a ->
+  -- | ͘
+  Eff es a
+atomicallySTM UnsafeMkSTME stm = UnsafeMkEff (STM.atomically stm)
+
+atomically ::
+  (e1 :> es) =>
+  IOE e1 ->
+  -- | ͘
+  (forall e. STME e -> EffSTM e r) ->
+  Eff es r
+atomically MkIOE body =
+  UnsafeMkEff (STM.atomically (unsafeUnEffSTM (body UnsafeMkSTME)))
+
+atomicallyPure ::
+  EffSTM e r ->
+  -- | ͘
+  r
+atomicallyPure body =
+  unsafePerformIO (STM.atomically (unsafeUnEffSTM body))
+
 withTChan ::
   (forall e. TChan a e -> EffSTM (e :& es) r) ->
   EffSTM es r
@@ -104,14 +138,14 @@ withTChan body = UnsafeMkEffSTM $ do
   unsafeUnEffSTM $ body $ UnsafeMkTChan chan
 
 readTChan ::
-  e :> es =>
+  (e :> es) =>
   TChan a e ->
   EffSTM es a
 readTChan (UnsafeMkTChan chan) = UnsafeMkEffSTM $ do
   STM.readTChan chan
 
 writeTChan ::
-  e :> es =>
+  (e :> es) =>
   TChan a e ->
   a ->
   EffSTM es ()
@@ -128,6 +162,9 @@ withAsync
   body = scoped $ \scope ->
     body scope =<< fork scope forkIt
 
+voidThread :: (Functor m) => m (t () e) -> m ()
+voidThread = fmap (\_ -> ())
+
 example :: IO ()
 example = runEff $ \io -> do
   Proxy :: Proxy e <- getEffStack
@@ -138,8 +175,24 @@ example = runEff $ \io -> do
         threadDelay 1_000
         putStrLn ("Exiting " ++ show i)
 
+  chan <- effIO io STM.newTChanIO
+
+  scoped $ \scope -> do
+    _ <- fork scope $ \excl -> do
+      stm <- stmeOfExclusiveAccess excl
+      forever $ do
+        a <- atomicallySTM stm (STM.readTChan chan)
+        exclusively excl $ do
+          effIO io (putStrLn a)
+    pure ()
+
   evalState () $ \stTop -> do
     scoped $ \scope1 -> do
+      voidThread $ fork scope1 $ \excl1 -> do
+        stm <- stmeOfExclusiveAccess excl1
+        replicateM_ 20 $ do
+          atomicallySTM stm $ STM.writeTChan chan "Hello"
+
       t1 <- fork scope1 $ \excl1 -> do
         exclusively excl1 $ get stTop
 
