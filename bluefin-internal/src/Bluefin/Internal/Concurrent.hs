@@ -13,25 +13,36 @@ import Data.Maybe (isJust)
 import Data.Proxy (Proxy (Proxy))
 import qualified Ki
 
-data ExclusiveAccess (e1 :: Effects) (e2 :: Effects)
+newtype ExclusiveAccess (e1 :: Effects) (e2 :: Effects)
   = UnsafeMkExclusiveAccess (MVar ())
 
-newtype Scope (e :: Effects) = UnsafeMkScope Ki.Scope
+instance Handle (ExclusiveAccess e1) where
+  mapHandle (UnsafeMkExclusiveAccess v) = UnsafeMkExclusiveAccess v
+
+data Scope (e1 :: Effects) (e2 :: Effects)
+  = UnsafeMkScope Ki.Scope (ExclusiveAccess e1 e2)
 
 newtype Thread (e :: Effects) r
   = UnsafeMkThread (Ki.Thread r)
 
 scoped ::
-  (forall e. Scope e -> ExclusiveAccess es e -> Eff e r) ->
+  (forall e. Scope es e -> Eff e r) ->
   -- | ͘
   Eff es r
 scoped k = UnsafeMkEff $ Ki.scoped $ \scope -> do
   -- Unlocked when it's empty
   lock <- newEmptyMVar
-  unsafeUnEff (k (UnsafeMkScope scope) (UnsafeMkExclusiveAccess lock))
+  unsafeUnEff (k (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock)))
+
+exclusiveAccessOfScope ::
+  (e :> es) =>
+  Scope es' e ->
+  -- | ͘
+  Eff es (ExclusiveAccess es' es)
+exclusiveAccessOfScope (UnsafeMkScope _ excl) = pure (mapHandle excl)
 
 exclusively ::
-  e1 :> es =>
+  (e1 :> es) =>
   ExclusiveAccess e e1 ->
   Eff e r ->
   -- | ͘
@@ -43,13 +54,12 @@ exclusively (UnsafeMkExclusiveAccess lock) body = do
   pure r
 
 fork ::
-  (e1 :> es, e2 :> es) =>
-  Scope e1 ->
-  ExclusiveAccess es' e2 ->
+  (e1 :> es) =>
+  Scope es' e1 ->
   (forall e. ExclusiveAccess es' e -> Eff e r) ->
   -- | ͘
   Eff es (Thread es r)
-fork (UnsafeMkScope scope) (UnsafeMkExclusiveAccess lock) body = do
+fork (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock)) body = do
   thread <- UnsafeMkEff $ Ki.fork scope $ do
     unsafeUnEff (body (UnsafeMkExclusiveAccess lock))
   pure (UnsafeMkThread thread)
@@ -71,18 +81,21 @@ example = runEff $ \io -> do
         threadDelay 1_000
         putStrLn ("Exiting " ++ show i)
 
-  scoped $ \scope1 excl1 -> do
-    t1 <- fork scope1 excl1 $ \excl2 -> do
+  scoped $ \scope1 -> do
+    t1 <- fork scope1 $ \excl2 -> do
       evalState @Int 0 $ \st -> do
-        scoped $ \scope2 excl3 -> do
-          t2 <- fork scope2 excl3 $ \excl4 -> do
+        scoped $ \scope2 -> do
+          t2 <- fork scope2 $ \excl4 -> do
             replicateM_ 3 $ do
               exclusively excl4 $ do
                 modify st (+ 1)
                 exclusively excl2 $
                   notThreadSafe 1
 
-          t3 <- fork scope2 excl3 $ \excl4 -> do
+          scope2' <- exclusiveAccessOfScope scope2
+          exclusively scope2' $ put st 0
+
+          t3 <- fork scope2 $ \excl4 -> do
             replicateM_ 3 $ do
               exclusively excl4 $ do
                 modify st (+ 1)
