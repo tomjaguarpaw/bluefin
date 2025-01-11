@@ -6,7 +6,7 @@ import Bluefin.Internal
 import Control.Concurrent (MVar, threadDelay)
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar, tryPutMVar)
 import qualified Control.Concurrent.STM as STM
-import Control.Monad (replicateM_, when, forever)
+import Control.Monad (forever, replicateM_, when)
 import Data.Functor (void)
 import qualified Data.List as List
 import Data.Maybe (isJust)
@@ -215,10 +215,12 @@ example = runEff $ \io -> runSTM io $ \stm -> do
       scoped $ \scope1 -> do
         voidThread $ fork scope1 $ \excl1 -> do
           -- This seems too complicated
-          excl <-
-            exclusively excl1 $
-              exclusiveAccessOfScopeEff scope
-          stm' <- accessSTME2 excl excl1 stm
+          stm' <- do
+            stm' <- exclusively excl1 $ do
+              excl <- exclusiveAccessOfScopeEff scope
+              accessSTME excl stm
+
+            accessSTME excl1 stm'
 
           replicateM_ 10 $ do
             atomicallySTM stm' $ STM.writeTChan chan (Just "Hello")
