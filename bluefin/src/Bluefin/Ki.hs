@@ -4,8 +4,11 @@ module Bluefin.Ki
     Thread,
     scoped,
     exclusively,
+    exclusiveAccessOfScopeEff,
     fork,
+    awaitEff,
   )
 where
 
 import Bluefin.Internal.Concurrent
+

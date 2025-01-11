@@ -34,12 +34,12 @@ scoped k = UnsafeMkEff $ Ki.scoped $ \scope -> do
   lock <- newEmptyMVar
   unsafeUnEff (k (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock)))
 
-exclusiveAccessOfScope ::
+exclusiveAccessOfScopeEff ::
   (e :> es) =>
   Scope es' e ->
   -- | ͘
   Eff es (ExclusiveAccess es' es)
-exclusiveAccessOfScope (UnsafeMkScope _ excl) = pure (mapHandle excl)
+exclusiveAccessOfScopeEff (UnsafeMkScope _ excl) = pure (mapHandle excl)
 
 exclusively ::
   (e1 :> es) =>
@@ -82,24 +82,24 @@ example = runEff $ \io -> do
         putStrLn ("Exiting " ++ show i)
 
   scoped $ \scope1 -> do
-    t1 <- fork scope1 $ \excl2 -> do
+    t1 <- fork scope1 $ \excl1 -> do
       evalState @Int 0 $ \st -> do
         scoped $ \scope2 -> do
-          t2 <- fork scope2 $ \excl4 -> do
+          t2 <- fork scope2 $ \excl2 -> do
             replicateM_ 3 $ do
-              exclusively excl4 $ do
+              exclusively excl2 $ do
                 modify st (+ 1)
-                exclusively excl2 $
+                exclusively excl1 $
                   notThreadSafe 1
 
-          scope2' <- exclusiveAccessOfScope scope2
+          scope2' <- exclusiveAccessOfScopeEff scope2
           exclusively scope2' $ put st 0
 
-          t3 <- fork scope2 $ \excl4 -> do
+          t3 <- fork scope2 $ \excl2 -> do
             replicateM_ 3 $ do
-              exclusively excl4 $ do
+              exclusively excl2 $ do
                 modify st (+ 1)
-                exclusively excl2 $
+                exclusively excl1 $
                   notThreadSafe 2
 
           awaitEff t2
