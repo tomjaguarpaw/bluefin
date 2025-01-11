@@ -72,7 +72,7 @@ fork (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock stm)) body = do
   pure (UnsafeMkThread thread)
 
 awaitEff ::
-  e :> es =>
+  (e :> es) =>
   Thread a e ->
   -- | ͘
   Eff es a
