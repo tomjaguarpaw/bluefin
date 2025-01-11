@@ -175,8 +175,8 @@ accessSTME (UnsafeMkExclusiveAccess _ _) UnsafeMkSTME =
   pure UnsafeMkSTME
 
 accessSTME2 ::
-  (e1'' :> es'', e1 :> es) =>
-  ExclusiveAccess es'' es'  ->
+  (e1'' :> es'', es'1 :> es', e1 :> es) =>
+  ExclusiveAccess es'' es'1  ->
   ExclusiveAccess es' e1 ->
   STME e1'' ->
   Eff es (STME es)
@@ -213,7 +213,7 @@ example = runEff $ \io -> runSTM io $ \stm -> do
         voidThread $ fork scope1 $ \excl1 -> do
           excl <- exclusively excl1 $
             exclusiveAccessOfScopeEff scope
-          stm' <- accessSTME2 (mapHandle excl) excl1 stm
+          stm' <- accessSTME2 excl excl1 stm
 
           replicateM_ 20 $ do
             atomicallySTM stm' $ STM.writeTChan chan "Hello"
