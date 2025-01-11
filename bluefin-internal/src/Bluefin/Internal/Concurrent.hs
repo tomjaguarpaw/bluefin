@@ -4,9 +4,12 @@ module Bluefin.Internal.Concurrent where
 
 import Bluefin.Internal
 import Control.Concurrent (MVar, threadDelay)
-import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
-import Control.Monad (replicateM_)
+import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar, tryPutMVar)
+import Control.Monad (replicateM_, when)
 import Control.Monad.STM (atomically)
+import Data.Functor (void)
+import qualified Data.List as List
+import Data.Maybe (isJust)
 import Data.Proxy (Proxy (Proxy))
 import qualified Ki
 
@@ -28,7 +31,8 @@ scoped k = UnsafeMkEff $ Ki.scoped $ \scope -> do
   unsafeUnEff (k (UnsafeMkScope scope) (UnsafeMkExclusiveAccess lock))
 
 exclusively ::
-  ExclusiveAccess e es ->
+  e1 :> es =>
+  ExclusiveAccess e e1 ->
   Eff e r ->
   -- | ͘
   Eff es r
@@ -69,20 +73,79 @@ example = runEff $ \io -> do
 
   scoped $ \scope1 excl1 -> do
     t1 <- fork scope1 excl1 $ \excl2 -> do
-      scoped $ \scope2 excl3 -> do
-        t2 <- fork scope2 excl3 $ \excl4 -> do
-          replicateM_ 3 $ do
-            exclusively excl4 $
-              exclusively excl2 $
-                notThreadSafe 1
+      evalState @Int 0 $ \st -> do
+        scoped $ \scope2 excl3 -> do
+          t2 <- fork scope2 excl3 $ \excl4 -> do
+            replicateM_ 3 $ do
+              exclusively excl4 $ do
+                modify st (+ 1)
+                exclusively excl2 $
+                  notThreadSafe 1
 
-        t3 <- fork scope2 excl3 $ \excl4 -> do
-          replicateM_ 3 $ do
-            exclusively excl4 $
-              exclusively excl2 $
-                notThreadSafe 2
+          t3 <- fork scope2 excl3 $ \excl4 -> do
+            replicateM_ 3 $ do
+              exclusively excl4 $ do
+                modify st (+ 1)
+                exclusively excl2 $
+                  notThreadSafe 2
 
-        awaitEff t2
-        awaitEff t3
+          awaitEff t2
+          awaitEff t3
 
     awaitEff t1
+
+staggeredSpawner :: [IO ()] -> IO ()
+staggeredSpawner actions = do
+  Ki.scoped $ \scope -> do
+    actions
+      & map (\action -> void (Ki.fork scope action))
+      & List.intersperse (threadDelay 250_000)
+      & sequence_
+    atomically (Ki.awaitAll scope)
+  where
+    (&) = flip ($)
+
+happyEyeballs :: [IO (Maybe a)] -> IO (Maybe a)
+happyEyeballs actions = do
+  resultVar <- newEmptyMVar
+
+  let worker action = do
+        result <- action
+        when (isJust result) $ do
+          _ <- tryPutMVar resultVar result
+          pure ()
+
+  Ki.scoped $ \scope -> do
+    _ <-
+      Ki.fork scope $ do
+        staggeredSpawner (map worker actions)
+        tryPutMVar resultVar Nothing
+    takeMVar resultVar
+
+staggeredSpawnerBf :: [IO ()] -> IO ()
+staggeredSpawnerBf actions = do
+  Ki.scoped $ \scope -> do
+    actions
+      & map (\action -> void (Ki.fork scope action))
+      & List.intersperse (threadDelay 250_000)
+      & sequence_
+    atomically (Ki.awaitAll scope)
+  where
+    (&) = flip ($)
+
+happyEyeballsBf :: [IO (Maybe a)] -> IO (Maybe a)
+happyEyeballsBf actions = do
+  resultVar <- newEmptyMVar
+
+  let worker action = do
+        result <- action
+        when (isJust result) $ do
+          _ <- tryPutMVar resultVar result
+          pure ()
+
+  Ki.scoped $ \scope -> do
+    _ <-
+      Ki.fork scope $ do
+        staggeredSpawner (map worker actions)
+        tryPutMVar resultVar Nothing
+    takeMVar resultVar
