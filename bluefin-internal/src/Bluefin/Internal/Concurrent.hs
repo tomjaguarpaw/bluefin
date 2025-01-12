@@ -235,66 +235,67 @@ example = runEff $ \io -> runSTM io $ \stm -> do
 
   chan <- effIO io STM.newTChanIO
 
-  withNonDet io $ \nonDet ->
-    scoped nonDet $ \scope -> do
-      t <- fork scope $ \excl -> withJump $ \j -> do
-        stm' <- accessSTME excl stm
+  evalState () $ \_dummy ->
+    withNonDet io $ \nonDet ->
+      scoped nonDet $ \scope -> do
+        t <- fork scope $ \excl -> withJump $ \j -> do
+          stm' <- accessSTME excl stm
 
-        forever $ do
-          atomicallySTM stm' (STM.readTChan chan) >>= \case
-            Nothing -> jumpTo j
-            Just a -> do
-              exclusively excl $ do
-                effIO io (putStrLn a)
+          forever $ do
+            atomicallySTM stm' (STM.readTChan chan) >>= \case
+              Nothing -> jumpTo j
+              Just a -> do
+                exclusively excl $ do
+                  effIO io (putStrLn a)
 
-      evalState () $ \stTop -> do
-        scoped (nonDetOfScope scope) $ \scope1 -> do
-          voidThread $ fork scope1 $ \excl1 -> do
-            -- This seems too complicated
-            stm' <- do
-              stm' <- exclusively excl1 $ do
-                excl <- exclusiveAccessOfScopeEff scope
-                accessSTME excl stm
+        evalState () $ \stTop -> do
+          scoped (nonDetOfScope scope) $ \scope1 -> do
+            voidThread $ fork scope1 $ \excl1 -> do
+              -- This seems too complicated
+              stm' <- do
+                stm' <- exclusively excl1 $ do
+                  excl <- exclusiveAccessOfScopeEff scope
+                  accessSTME excl stm
 
-              accessSTME excl1 stm'
+                accessSTME excl1 stm'
 
-            replicateM_ 10 $ do
-              atomicallySTM stm' $ STM.writeTChan chan (Just "Hello")
+              replicateM_ 10 $ do
+                atomicallySTM stm' $ STM.writeTChan chan (Just "Hello")
 
-            atomicallySTM stm' (STM.writeTChan chan Nothing)
+              atomicallySTM stm' (STM.writeTChan chan Nothing)
 
-          t1 <- fork scope1 $ \excl1 -> do
-            exclusively excl1 $ get stTop
+            t1 <- fork scope1 $ \excl1 -> do
+              exclusively excl1 $ get stTop
 
-            evalState @Int 0 $ \st -> do
-              scoped (nonDetOfExclusiveAccess excl1) $ \scope2 -> do
-                t2 <- fork scope2 $ \excl2 -> do
-                  replicateM_ 3 $ do
-                    exclusively excl2 $ do
-                      modify st (+ 1)
-                      exclusively excl1 $ do
-                        excl <- exclusiveAccessOfScopeEff scope
-                        exclusively excl $ do
-                          insertFirst (notThreadSafe 1)
+              evalState @Int 0 $ \st -> do
+                scoped (nonDetOfExclusiveAccess excl1) $ \scope2 -> do
+                  t2 <- fork scope2 $ \excl2 -> do
+                    replicateM_ 3 $ do
+                      exclusively excl2 $ do
+                        modify st (+ 1)
+                        exclusively excl1 $ do
+                          excl <- exclusiveAccessOfScopeEff scope
+                          exclusively excl $ do
+                            useImpl (notThreadSafe 1)
 
-                scope2' <- exclusiveAccessOfScopeEff scope2
-                exclusively scope2' $ put st 0
+                  scope2' <- exclusiveAccessOfScopeEff scope2
+                  exclusively scope2' $ put st 0
 
-                t3 <- fork scope2 $ \excl2 -> do
-                  replicateM_ 3 $ do
-                    exclusively excl2 $ do
-                      modify st (+ 1)
-                      exclusively excl1 $ do
-                        excl <- exclusiveAccessOfScopeEff scope
-                        exclusively excl $ do
-                          insertFirst (notThreadSafe 2)
+                  t3 <- fork scope2 $ \excl2 -> do
+                    replicateM_ 3 $ do
+                      exclusively excl2 $ do
+                        modify st (+ 1)
+                        exclusively excl1 $ do
+                          excl <- exclusiveAccessOfScopeEff scope
+                          exclusively excl $ do
+                            useImpl (notThreadSafe 2)
 
-                awaitEff t2
-                awaitEff t3
+                  awaitEff t2
+                  awaitEff t3
 
-          awaitEff t1
+            awaitEff t1
 
-      awaitEff t
+        awaitEff t
 
 staggeredSpawner :: [IO ()] -> IO ()
 staggeredSpawner actions = do
