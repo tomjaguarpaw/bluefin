@@ -445,11 +445,11 @@ subsume2 i = cmp (bimap i (eq (# #))) (merge (# #))
 class (es1 :: Effects) :> (es2 :: Effects)
 
 -- | A set of effects @e@ is a subset of itself
-instance {-# INCOHERENT #-} e :> e
+instance e :> e
 
 -- | If @e@ is subset of @es@ then @e@ is a subset of a larger set, @x
 -- :& es@
-instance (e :> es) => e :> (x :& es)
+instance {-# INCOHERENT #-} (e :> es) => e :> (x :& es)
 
 -- Do we want this?
 -- instance {-# incoherent #-} (e :> es) => (e' :& e) :> (e' :> es)
@@ -457,7 +457,7 @@ instance (e :> es) => e :> (x :& es)
 -- This seems a bit wobbly
 
 -- | @e@ is a subset of a larger set @e :& es@
-instance {-# INCOHERENT #-} e :> (e :& es)
+instance e :> (e :& es)
 
 -- |
 -- @
