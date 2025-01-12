@@ -53,7 +53,7 @@ nonDetOfExclusiveAccess :: ExclusiveAccess es' e -> NonDet e
 nonDetOfExclusiveAccess (UnsafeMkExclusiveAccess _ _ nonDet) = nonDet
 
 scoped ::
-  e1 :> es =>
+  (e1 :> es) =>
   NonDet e1 ->
   (forall e. Scope es e -> Eff e r) ->
   -- | ͘
@@ -180,17 +180,14 @@ writeTChan (UnsafeMkTChan chan) a = UnsafeMkEffSTM $ do
   STM.writeTChan chan a
 
 withAsync ::
-  e1 :> es =>
+  (e1 :> es) =>
   NonDet e1 ->
   (forall e. ExclusiveAccess es e -> Eff e r1) ->
   (forall e. Scope es e -> Thread r1 e -> Eff e r2) ->
   -- | ͘
   Eff es r2
-withAsync
-  nonDet
-  forkIt
-  body = scoped nonDet $ \scope ->
-    body scope =<< fork scope forkIt
+withAsync nonDet forkIt body = scoped nonDet $ \scope ->
+  body scope =<< fork scope forkIt
 
 voidThread :: (Functor m) => m (t () e) -> m ()
 voidThread = fmap (\_ -> ())
