@@ -15,16 +15,18 @@ import qualified Ki
 import System.IO.Unsafe (unsafePerformIO)
 
 data ExclusiveAccess (es' :: Effects) (es :: Effects)
-  = UnsafeMkExclusiveAccess (MVar ()) (STME es)
+  = UnsafeMkExclusiveAccess (MVar ()) (STME es) (NonDet es)
 
 instance Handle (ExclusiveAccess es') where
-  mapHandle (UnsafeMkExclusiveAccess v stm) = UnsafeMkExclusiveAccess v (mapHandle stm)
+  mapHandle (UnsafeMkExclusiveAccess v stm nonDet) =
+    UnsafeMkExclusiveAccess v (mapHandle stm) (mapHandle nonDet)
 
 data Scope (es' :: Effects) (es :: Effects)
   = UnsafeMkScope Ki.Scope (ExclusiveAccess es' es)
 
 instance Handle (Scope es') where
-  mapHandle (UnsafeMkScope scope excl) = UnsafeMkScope scope (mapHandle excl)
+  mapHandle (UnsafeMkScope scope excl) =
+    UnsafeMkScope scope (mapHandle excl)
 
 newtype Thread a (e :: Effects)
   = UnsafeMkThread (Ki.Thread a)
@@ -32,14 +34,41 @@ newtype Thread a (e :: Effects)
 instance Handle (Thread r) where
   mapHandle (UnsafeMkThread t) = UnsafeMkThread t
 
+newtype NonDet e = UnsafeMkNonDet (IOE e)
+
+instance Handle NonDet where
+  mapHandle (UnsafeMkNonDet io) = UnsafeMkNonDet (mapHandle io)
+
+withNonDet ::
+  (e1 :> es) =>
+  IOE e1 ->
+  (forall e. NonDet e -> Eff (e :& es) r) ->
+  Eff es r
+withNonDet io k = useImplIn k (UnsafeMkNonDet (mapHandle io))
+
+nonDetOfScope :: Scope es' e -> NonDet e
+nonDetOfScope (UnsafeMkScope _ excl) = nonDetOfExclusiveAccess excl
+
+nonDetOfExclusiveAccess :: ExclusiveAccess es' e -> NonDet e
+nonDetOfExclusiveAccess (UnsafeMkExclusiveAccess _ _ nonDet) = nonDet
+
 scoped ::
+  e1 :> es =>
+  NonDet e1 ->
   (forall e. Scope es e -> Eff e r) ->
   -- | ͘
   Eff es r
-scoped k = UnsafeMkEff $ Ki.scoped $ \scope -> do
-  -- Unlocked when it's empty
-  lock <- newEmptyMVar
-  unsafeUnEff (k (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock UnsafeMkSTME)))
+scoped nonDet@(UnsafeMkNonDet io) k =
+  withEffToIO_ io $ \effToIO -> Ki.scoped $ \scope -> do
+    -- Unlocked when it's empty
+    lock <- newEmptyMVar
+    effToIO
+      ( k
+          ( UnsafeMkScope
+              scope
+              (UnsafeMkExclusiveAccess lock UnsafeMkSTME (mapHandle nonDet))
+          )
+      )
 
 exclusiveAccessOfScopeEff ::
   (e1 :> es) =>
@@ -54,7 +83,7 @@ exclusively ::
   Eff e r ->
   -- | ͘
   Eff es r
-exclusively (UnsafeMkExclusiveAccess lock _) body = do
+exclusively (UnsafeMkExclusiveAccess lock _ _) body = do
   () <- UnsafeMkEff (putMVar lock ())
   r <- UnsafeMkEff (unsafeUnEff body)
   UnsafeMkEff (takeMVar lock)
@@ -66,9 +95,9 @@ fork ::
   (forall e. ExclusiveAccess es' e -> Eff e r) ->
   -- | ͘
   Eff es (Thread r es)
-fork (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock stm)) body = do
+fork (UnsafeMkScope scope (UnsafeMkExclusiveAccess lock stm nonDet)) body = do
   thread <- UnsafeMkEff $ Ki.fork scope $ do
-    unsafeUnEff (body (UnsafeMkExclusiveAccess lock stm))
+    unsafeUnEff (body (UnsafeMkExclusiveAccess lock stm nonDet))
   pure (UnsafeMkThread thread)
 
 awaitEff ::
@@ -92,8 +121,8 @@ instance Handle STME where
   mapHandle UnsafeMkSTME = UnsafeMkSTME
 
 effSTM ::
-  (e :> es) =>
-  STME e ->
+  (e1 :> es) =>
+  STME e1 ->
   STM.STM a ->
   -- | ͘
   EffSTM es a
@@ -104,11 +133,12 @@ newtype TChan a (e :: Effects) = UnsafeMkTChan (STM.TChan a)
 atomicallySTM ::
   (e1 :> es) =>
   STME e1 ->
-  STM.STM a ->
+  STM.STM r ->
   -- | ͘
-  Eff es a
+  Eff es r
 atomicallySTM UnsafeMkSTME stm = UnsafeMkEff (STM.atomically stm)
 
+-- Not sure about this
 atomically ::
   (e1 :> es) =>
   IOE e1 ->
@@ -118,6 +148,8 @@ atomically ::
 atomically MkIOE body =
   UnsafeMkEff (STM.atomically (unsafeUnEffSTM (body UnsafeMkSTME)))
 
+-- This is no good because it permits nested atomically, which is
+-- forbidden (apparently)
 atomicallyPure ::
   EffSTM e r ->
   -- | ͘
@@ -148,13 +180,16 @@ writeTChan (UnsafeMkTChan chan) a = UnsafeMkEffSTM $ do
   STM.writeTChan chan a
 
 withAsync ::
+  e1 :> es =>
+  NonDet e1 ->
   (forall e. ExclusiveAccess es e -> Eff e r1) ->
   (forall e. Scope es e -> Thread r1 e -> Eff e r2) ->
   -- | ͘
   Eff es r2
 withAsync
+  nonDet
   forkIt
-  body = scoped $ \scope ->
+  body = scoped nonDet $ \scope ->
     body scope =<< fork scope forkIt
 
 voidThread :: (Functor m) => m (t () e) -> m ()
@@ -174,7 +209,7 @@ accessSTME ::
   STME e1' ->
   -- | ͘
   Eff es (STME e1)
-accessSTME (UnsafeMkExclusiveAccess _ _) UnsafeMkSTME =
+accessSTME (UnsafeMkExclusiveAccess _ _ _) UnsafeMkSTME =
   pure UnsafeMkSTME
 
 accessSTME2 ::
@@ -203,65 +238,66 @@ example = runEff $ \io -> runSTM io $ \stm -> do
 
   chan <- effIO io STM.newTChanIO
 
-  scoped $ \scope -> do
-    t <- fork scope $ \excl -> withJump $ \j -> do
-      stm' <- accessSTME excl stm
+  withNonDet io $ \nonDet ->
+    scoped nonDet $ \scope -> do
+      t <- fork scope $ \excl -> withJump $ \j -> do
+        stm' <- accessSTME excl stm
 
-      forever $ do
-        atomicallySTM stm' (STM.readTChan chan) >>= \case
-          Nothing -> jumpTo j
-          Just a -> do
-            exclusively excl $ do
-              effIO io (putStrLn a)
+        forever $ do
+          atomicallySTM stm' (STM.readTChan chan) >>= \case
+            Nothing -> jumpTo j
+            Just a -> do
+              exclusively excl $ do
+                effIO io (putStrLn a)
 
-    evalState () $ \stTop -> do
-      scoped $ \scope1 -> do
-        voidThread $ fork scope1 $ \excl1 -> do
-          -- This seems too complicated
-          stm' <- do
-            stm' <- exclusively excl1 $ do
-              excl <- exclusiveAccessOfScopeEff scope
-              accessSTME excl stm
+      evalState () $ \stTop -> do
+        scoped (nonDetOfScope scope) $ \scope1 -> do
+          voidThread $ fork scope1 $ \excl1 -> do
+            -- This seems too complicated
+            stm' <- do
+              stm' <- exclusively excl1 $ do
+                excl <- exclusiveAccessOfScopeEff scope
+                accessSTME excl stm
 
-            accessSTME excl1 stm'
+              accessSTME excl1 stm'
 
-          replicateM_ 10 $ do
-            atomicallySTM stm' $ STM.writeTChan chan (Just "Hello")
+            replicateM_ 10 $ do
+              atomicallySTM stm' $ STM.writeTChan chan (Just "Hello")
 
-          atomicallySTM stm' (STM.writeTChan chan Nothing)
+            atomicallySTM stm' (STM.writeTChan chan Nothing)
 
-        t1 <- fork scope1 $ \excl1 -> do
-          exclusively excl1 $ get stTop
+          t1 <- fork scope1 $ \excl1 -> do
+            exclusively excl1 $ get stTop
 
-          evalState @Int 0 $ \st -> do
-            scoped $ \scope2 -> do
-              t2 <- fork scope2 $ \excl2 -> do
-                replicateM_ 3 $ do
-                  exclusively excl2 $ do
-                    modify st (+ 1)
-                    exclusively excl1 $ do
-                      excl <- exclusiveAccessOfScopeEff scope
-                      exclusively excl $ do
-                        notThreadSafe 1
+            evalState @Int 0 $ \st -> do
+              scoped (nonDetOfExclusiveAccess excl1) $ \scope2 -> do
+                t2 <- fork scope2 $ \excl2 -> do
+                  replicateM_ 3 $ do
+                    exclusively excl2 $ do
+                      modify st (+ 1)
+                      exclusively excl1 $ do
+                        excl <- exclusiveAccessOfScopeEff scope
+                        exclusively excl $ do
+                          insertFirst (notThreadSafe 1)
 
-              scope2' <- exclusiveAccessOfScopeEff scope2
-              exclusively scope2' $ put st 0
+                scope2' <- exclusiveAccessOfScopeEff scope2
+                exclusively scope2' $ put st 0
 
-              t3 <- fork scope2 $ \excl2 -> do
-                replicateM_ 3 $ do
-                  exclusively excl2 $ do
-                    modify st (+ 1)
-                    exclusively excl1 $ do
-                      excl <- exclusiveAccessOfScopeEff scope
-                      exclusively excl $ do
-                        notThreadSafe 2
+                t3 <- fork scope2 $ \excl2 -> do
+                  replicateM_ 3 $ do
+                    exclusively excl2 $ do
+                      modify st (+ 1)
+                      exclusively excl1 $ do
+                        excl <- exclusiveAccessOfScopeEff scope
+                        exclusively excl $ do
+                          insertFirst (notThreadSafe 2)
 
-              awaitEff t2
-              awaitEff t3
+                awaitEff t2
+                awaitEff t3
 
-        awaitEff t1
+          awaitEff t1
 
-    awaitEff t
+      awaitEff t
 
 staggeredSpawner :: [IO ()] -> IO ()
 staggeredSpawner actions = do
