@@ -3,12 +3,16 @@ module Bluefin.Ki
     Scope,
     ExclusiveAccess,
     Thread,
+    NonDet,
+    nonDetOfScope,
+    nonDetOfExclusiveAccess,
     -- * Handlers
     scoped,
     fork,
     withAsync,
     atomicallySTM,
     runSTM,
+    withNonDet,
     -- * Effectful operations
     exclusively,
     exclusiveAccessOfScopeEff,
