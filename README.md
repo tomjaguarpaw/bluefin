@@ -21,6 +21,15 @@ There is an `bluefin-examples` package which you can see in this
 repository at
 [`bluefin-examples/src/Bluefin/Examples`](bluefin-examples/src/Bluefin/Examples).
 
+## Contact
+
+If you have a question about Bluefin, you think you might have found a
+bug, you're stuck on something, or you want to make contact for any
+other reason then either [open an
+issue](https://github.com/tomjaguarpaw/bluefin/issues) or [start a
+discussion](https://github.com/tomjaguarpaw/bluefin/discussions),
+whichever you prefer.
+
 ## Acknowledgements
 
 Tom Ellis would like to thank many individuals for their work related
