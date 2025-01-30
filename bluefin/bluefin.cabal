@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               bluefin
-version:            0.0.14.0
+version:            0.0.14.1
 license:            MIT
 license-file:       LICENSE
 author:             Tom Ellis

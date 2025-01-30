@@ -1,3 +1,7 @@
+## 0.0.14.1
+
+* Documentation changes only
+
 ## 0.0.14.0
 
 * Add `hGetLine` and `hIsEOF` to `Bluefin.System.IO`
