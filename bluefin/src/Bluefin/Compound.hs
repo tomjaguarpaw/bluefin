@@ -502,7 +502,7 @@ module Bluefin.Compound
     --   mapHandle h =
     --     DynamicReader
     --       { askLRImpl = useImplUnder (askLRImpl h),
-    --         localLRImpl = \f k -> useImplUnder (localLRImpl h f k)
+    --         localLRImpl = \\f k -> useImplUnder (localLRImpl h f k)
     --       }
     --
     -- askLR ::
@@ -524,12 +524,12 @@ module Bluefin.Compound
     --   (forall e. DynamicReader r e -> Eff (e :& es) a) ->
     --   Eff es a
     -- runDynamicReader r k =
-    --   runReader r $ \h -> do
+    --   runReader r $ \\h -> do
     --     useImplIn
     --       k
     --       DynamicReader
     --         { askLRImpl = ask h,
-    --           localLRImpl = \f k' -> makeOp (local h f (useImpl k'))
+    --           localLRImpl = \\f k' -> makeOp (local h f (useImpl k'))
     --         }
     -- @
 
