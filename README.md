@@ -65,3 +65,6 @@ would not exist.
 * Ningning Xie and Daan Leijen, for their work on Koka
 
 * Andrej Bauer and Matija Pretnar, for their work on Eff
+
+* Sjoerd Visscher, for his work on
+  [`effects`](https://hackage.haskell.org/package/effects)
