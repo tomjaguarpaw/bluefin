@@ -57,7 +57,7 @@ main :: IO ()
 main = do
   let dbHandle = DbHandle "db"
 
-  result <- BF.runEff $ \io -> BF.try $ \ex ->
+  result <- BF.runEff_ $ \io -> BF.try $ \ex ->
     runDbEffIo ex io $ \db -> do
       u1 <- query db dbHandle (UserId "1")
       BF.effIO io $ print u1

@@ -3,6 +3,7 @@ module Bluefin.Eff
     Eff,
     -- * Run an 'Eff'
     runPureEff,
+    runEff_,
     runEff,
     -- * Resource management
     bracket,

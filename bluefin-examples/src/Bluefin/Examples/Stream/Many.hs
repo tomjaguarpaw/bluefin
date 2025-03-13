@@ -11,7 +11,7 @@ import Bluefin.Compound
     useImplWithin,
   )
 import Bluefin.Consume (Consume, await)
-import Bluefin.Eff (Eff, bracket, runEff, (:&), (:>))
+import Bluefin.Eff (Eff, bracket, runEff_, (:&), (:>))
 import Bluefin.IO (IOE, effIO)
 import Bluefin.Jump (jumpTo, withJump)
 import Bluefin.State (evalState, get, modify)
@@ -50,7 +50,7 @@ import qualified Prelude
 -- File closed: a
 -- [Nothing]
 mixExample :: IO ()
-mixExample = runEff $ \io -> do
+mixExample = runEff_ $ \io -> do
   effIO io $ do
     Prelude.writeFile "a" (unlines (map (\i -> "a" <> show i) [0 :: Int .. 5]))
     Prelude.writeFile "b" (unlines (map (\i -> "b" <> show i) [0 :: Int .. 5]))

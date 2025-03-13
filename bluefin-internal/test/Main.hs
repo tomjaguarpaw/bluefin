@@ -11,7 +11,7 @@ import System.Exit (ExitCode (ExitFailure), exitWith)
 import Prelude hiding (break, read)
 
 main :: IO ()
-main = runEff $ \io -> do
+main = runEff_ $ \io -> do
   runSpecH io $ \y -> do
     let assertEqual' = assertEqual y
 

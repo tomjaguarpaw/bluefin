@@ -32,7 +32,7 @@ import Prelude hiding
 import qualified Prelude
 
 monadIOExample :: IO ()
-monadIOExample = runEff $ \io -> withMonadIO io $ liftIO $ do
+monadIOExample = runEff_ $ \io -> withMonadIO io $ liftIO $ do
   name <- readLn
   putStrLn ("Hello " ++ name)
 
@@ -108,7 +108,7 @@ returnEarlyExample = runPureEff $ withEarlyReturn $ \e -> do
   pure "End of loop"
 
 effIOExample :: IO ()
-effIOExample = runEff $ \io -> do
+effIOExample = runEff_ $ \io -> do
   effIO io (putStrLn "Hello world!")
 
 example1_ :: (Int, Int)
@@ -156,7 +156,7 @@ example3' n = runPureEff $
 -- Count non-empty lines from stdin, and print a friendly message,
 -- until we see "STOP".
 example3_ :: IO ()
-example3_ = runEff $ \io -> do
+example3_ = runEff_ $ \io -> do
   let getLineUntilStop y = withJump $ \stop -> forever $ do
         line <- effIO io getLine
         when (line == "STOP") $
@@ -247,12 +247,12 @@ awaitUsage io x = do
           useImplUnder . x
 
 awaitExample :: IO ()
-awaitExample = runEff $ \io -> do
+awaitExample = runEff_ $ \io -> do
   awaitList [1 :: Int ..] io $ awaitUsage io $ \rec -> do
     replicateM_ 5 (await rec)
 
 consumeStreamExample :: IO (Either String String)
-consumeStreamExample = runEff $ \io -> do
+consumeStreamExample = runEff_ $ \io -> do
   try $ \ex -> do
     consumeStream
       ( \r ->
@@ -284,7 +284,7 @@ consumeStreamExample = runEff $ \io -> do
       )
 
 consumeStreamExample2 :: IO ()
-consumeStreamExample2 = runEff $ \io -> do
+consumeStreamExample2 = runEff_ $ \io -> do
   let counter yeven yodd = for_ [0 :: Int .. 10] $ \i -> do
         if even i
           then yield yeven i
@@ -309,7 +309,7 @@ consumeStreamExample2 = runEff $ \io -> do
   bar
 
 connectExample :: IO (Either String String)
-connectExample = runEff $ \io -> do
+connectExample = runEff_ $ \io -> do
   try $ \ex -> do
     connectCoroutines
       ( \y -> bracket
@@ -342,7 +342,7 @@ connectExample = runEff $ \io -> do
       )
 
 zipCoroutinesExample :: IO ()
-zipCoroutinesExample = runEff $ \io -> do
+zipCoroutinesExample = runEff_ $ \io -> do
   let m1 y = do
         r <- yieldCoroutine y 1
         evalState r $ \rs -> do
@@ -422,7 +422,7 @@ compoundExample = runPureEff $ runMyHandle $ \h -> do
   myBail h
 
 countExample :: IO ()
-countExample = runEff $ \io -> do
+countExample = runEff_ $ \io -> do
   evalState @Int 0 $ \sn -> do
     withJump $ \break -> forever $ do
       n <- get sn
@@ -480,7 +480,7 @@ incrementReadLine state exception io = do
     modify state (+ i)
 
 runIncrementReadLine :: IO (Either String Int)
-runIncrementReadLine = runEff $ \io -> do
+runIncrementReadLine = runEff_ $ \io -> do
   try $ \exception -> do
     ((), r) <- runState 0 $ \state -> do
       incrementReadLine state exception io
@@ -582,7 +582,7 @@ runCounter3B ::
 runCounter3B io k = useImplIn k (MkCounter3B (mapHandle io))
 
 exampleCounter3B :: IO ()
-exampleCounter3B = runEff $ \io -> runCounter3B io $ \c -> do
+exampleCounter3B = runEff_ $ \io -> runCounter3B io $ \c -> do
   incCounter3B c
   incCounter3B c
   incCounter3B c
@@ -914,7 +914,7 @@ exampleRunFileSystemPure = runPureEff $ try $ \ex ->
 -- Left "File not found: /tmp/doesn't exist"
 
 exampleRunFileSystemIO :: IO (Either String String)
-exampleRunFileSystemIO = runEff $ \io -> try $ \ex ->
+exampleRunFileSystemIO = runEff_ $ \io -> try $ \ex ->
   runFileSystemIO ex io action
 
 -- > exampleRunFileSystemIO
@@ -974,13 +974,13 @@ polymorphicBracketExample2 =
     pure st
 
 pipesExample1 :: IO ()
-pipesExample1 = runEff $ \io -> runEffect (count >-> P.print io)
+pipesExample1 = runEff_ $ \io -> runEffect (count >-> P.print io)
   where
     count :: (e :> es) => Producer Int e -> Eff es ()
     count p = for_ [1 .. 5] $ \i -> P.yield p i
 
 pipesExample2 :: IO String
-pipesExample2 = runEff $ \io -> runEffect $ do
+pipesExample2 = runEff_ $ \io -> runEffect $ do
   stdinLn io >-> takeWhile' (/= "quit") >-> stdoutLn io
 
 -- Acquiring resource
@@ -992,7 +992,7 @@ pipesExample2 = runEff $ \io -> runEffect $ do
 -- Releasing resource
 -- Finishing
 promptCoroutine :: IO ()
-promptCoroutine = runEff $ \io -> do
+promptCoroutine = runEff_ $ \io -> do
   -- consumeStream connects a consumer to a producer
   consumeStream
     -- Like a pipes Consumer.  Prints the first five elements it
@@ -1013,7 +1013,7 @@ promptCoroutine = runEff $ \io -> do
   effIO io (putStrLn "Finishing")
 
 rethrowIOExample :: IO ()
-rethrowIOExample = runEff $ \io -> do
+rethrowIOExample = runEff_ $ \io -> do
   r <- try $ \ex -> do
     rethrowIO @Control.Exception.IOException io ex $ do
       effIO io (Prelude.readFile "/tmp/doesnt-exist")

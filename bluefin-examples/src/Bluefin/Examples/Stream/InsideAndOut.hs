@@ -3,7 +3,7 @@ module Bluefin.Examples.Stream.InsideAndOut where
 import Bluefin.Compound (useImplWithin)
 import Bluefin.Consume (Consume, await, consumeEach, consumeStream)
 import Bluefin.EarlyReturn (returnEarly, withEarlyReturn)
-import Bluefin.Eff (Eff, runEff, (:&), (:>))
+import Bluefin.Eff (Eff, runEff_, (:&), (:>))
 import Bluefin.IO (IOE, effIO)
 import Bluefin.Jump (Jump, jumpTo, withJump)
 import Bluefin.State (evalState, get)
@@ -16,7 +16,7 @@ import Data.Foldable (for_)
 -- https://journal.stuffwithstuff.com/2013/01/13/iteration-inside-and-out/
 
 print10 :: IO ()
-print10 = runEff $ \io -> do
+print10 = runEff_ $ \io -> do
   for_ [1 :: Int .. 10] $ \i -> do
     effIO io (print i)
 
@@ -44,7 +44,7 @@ nothingOnEnd s y = do
   forever $ yield y Nothing
 
 runPrintConsume :: IO ()
-runPrintConsume = runEff $ \io -> do
+runPrintConsume = runEff_ $ \io -> do
   let elements :: [Int]
       elements = [1, 2, 3, 4, 5]
 
@@ -116,7 +116,7 @@ inOrder tree callback = do
     Just t -> inOrder t callback
 
 printTree :: Tree -> IO ()
-printTree tree = runEff $ \io -> do
+printTree tree = runEff_ $ \io -> do
   forEach (inOrder tree) $ \t -> do
     effIO io (putStrLn (treeLabel t))
 

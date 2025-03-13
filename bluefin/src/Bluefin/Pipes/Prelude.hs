@@ -13,7 +13,7 @@
 -- See also "Bluefin.Pipes".
 --
 -- @
--- >>> 'Bluefin.Eff.runEff' $ \\io -> 'runEffect' $ do
+-- >>> 'Bluefin.Eff.runEff_' $ \\io -> 'runEffect' $ do
 --       'stdinLn' io >-> 'takeWhile'' (/= "quit") >-> 'stdoutLn' io
 -- Test
 -- Test

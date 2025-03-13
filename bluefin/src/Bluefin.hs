@@ -209,7 +209,7 @@ module Bluefin
     -- must be handled by a corresponding handler, for example
     -- 'Bluefin.State.runState' for the state effect,
     -- 'Bluefin.Exception.try' for the exception effect and
-    -- 'Bluefin.Eff.runEff' for the @IO@ effect.  The type signatures
+    -- 'Bluefin.Eff.runEff_' for the @IO@ effect.  The type signatures
     -- of handlers also follow a common pattern, which looks like
     --
     -- @
@@ -219,13 +219,13 @@ module Bluefin
     -- This means that the effect @e@, corresponding to the handle
     -- @\<Handle\> e@, has been handled and removed from the set of
     -- remaining effects, @es@.  (The signatures for
-    -- 'Bluefin.Eff.runEff' and 'Bluefin.Eff.runPureEff' are slightly
+    -- 'Bluefin.Eff.runEff_' and 'Bluefin.Eff.runPureEff' are slightly
     -- different because they remove @Eff@ itself.)  Here, then, is
     -- how we can run @incrementReadLine@:
     --
     -- @
     -- runIncrementReadLine :: IO (Either String Int)
-    -- runIncrementReadLine = 'Bluefin.Eff.runEff' $ \\io -> do
+    -- runIncrementReadLine = 'Bluefin.Eff.runEff_' $ \\io -> do
     --   'Bluefin.Exception.try' $ \\exception -> do
     --     ((), r) \<- 'Bluefin.State.runState' 0 $ \\state -> do
     --       incrementReadLine state exception io

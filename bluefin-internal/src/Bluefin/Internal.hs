@@ -217,7 +217,7 @@ hoistReader f = Reader.ReaderT . (\m -> f . Reader.runReaderT m)
 -- | Run `MonadIO` operations in 'Eff'.
 --
 -- @
--- >>> runEff $ \\io -> withMonadIO io $ liftIO $ do
+-- >>> runEff_ $ \\io -> withMonadIO io $ liftIO $ do
 --       putStrLn "Hello world!"
 -- Hello, world!
 -- @
@@ -537,7 +537,7 @@ catch f h = handle h f
 -- due to pure exceptions being imprecise.
 --
 -- f :: IO (Either Ex1 (Either Ex2 a))
--- f = runEff $ \io -> do
+-- f = runEff_ $ \io -> do
 --   try $ \e1 -> do
 --     try $ \e2 -> do
 --       rethrowIO io e1 $ do
@@ -1134,7 +1134,7 @@ data IOE (e :: Effects) = MkIOE
 -- | Run an 'IO' operation in 'Eff'
 --
 -- @
--- >>> runEff $ \\io -> do
+-- >>> runEff_ $ \\io -> do
 --       effIO io (putStrLn "Hello world!")
 -- Hello, world!
 -- @
@@ -1149,15 +1149,34 @@ effIO MkIOE = UnsafeMkEff
 -- | Run an 'Eff' whose only unhandled effect is 'IO'.
 --
 -- @
--- >>> runEff $ \\io -> do
+-- >>> runEff_ $ \\io -> do
 --       effIO io (putStrLn "Hello world!")
 -- Hello, world!
 -- @
+--
+-- We suggest you use 'runEff_' instead, as it probably has better
+-- type inference properties.
 runEff ::
   (forall e es. IOE e -> Eff (e :& es) a) ->
   -- | ͘
   IO a
 runEff eff = unsafeUnEff (eff MkIOE)
+
+-- | Run an 'Eff' whose only unhandled effect is 'IO'.
+--
+-- @
+-- >>> runEff_ $ \\io -> do
+--       effIO io (putStrLn "Hello world!")
+-- Hello, world!
+-- @
+--
+-- This probably has better type inference properties than 'runEff'
+-- and so will probably replace it in a later version.
+runEff_ ::
+  (forall e. IOE e -> Eff e a) ->
+  -- | ͘
+  IO a
+runEff_ eff = unsafeUnEff (eff MkIOE)
 
 unsafeProvideIO ::
   (forall e. IOE e -> Eff (e :& es) a) ->
