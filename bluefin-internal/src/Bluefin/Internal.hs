@@ -753,6 +753,9 @@ yieldCoroutine ::
 yieldCoroutine (MkCoroutine f) = useImpl . f
 
 -- |
+--
+-- Yield an element to the stream.
+--
 -- @
 -- >>> runPureEff $ yieldToList $ \\y -> do
 --       yield y 1
@@ -778,6 +781,9 @@ handleCoroutine update finish f = do
   finish z
 
 -- |
+--
+-- Apply an effectful function to each element yielded to the stream.
+--
 -- @
 -- >>> runPureEff $ yieldToList $ \\y -> do
 --       for_ [0 .. 4] $ \\i -> do
@@ -793,6 +799,9 @@ forEach ::
 forEach f h = useImplIn f (MkCoroutine h)
 
 -- |
+--
+-- Ignore all elements yielded to the stream.
+--
 -- @
 -- >>> runPureEff $ ignoreStream $ \\y -> do
 --      for_ [0 .. 4] $ \\i -> do
@@ -1006,6 +1015,9 @@ runCompound ::
 runCompound e1 e2 k = assoc1Eff (k (compound e1 e2))
 
 -- |
+--
+-- Gather all yielded elements into a list.
+--
 -- @
 -- >>> runPureEff $ yieldToList $ \\y -> do
 --       yield y 1
