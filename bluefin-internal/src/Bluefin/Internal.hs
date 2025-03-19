@@ -794,6 +794,22 @@ forEach f h = useImplIn f (MkCoroutine h)
 
 -- |
 -- @
+-- >>> runPureEff $ ignoreStream $ \\y -> do
+--      for_ [0 .. 4] $ \\i -> do
+--        yield y i
+--        yield y (i * 10)
+--
+--      pure 42
+-- 42
+-- @
+ignoreStream ::
+  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
+  -- | ͘
+  Eff es r
+ignoreStream k = forEach k (\_ -> pure ())
+
+-- |
+-- @
 -- >>> runPureEff $ yieldToList $ inFoldable [1, 2, 100]
 -- ([1, 2, 100], ())
 -- @

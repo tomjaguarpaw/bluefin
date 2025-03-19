@@ -13,6 +13,7 @@ module Bluefin.Stream
     yieldToList,
     yieldToReverseList,
     withYieldToList,
+    ignoreStream,
     enumerate,
     enumerateFrom,
     mapMaybe,

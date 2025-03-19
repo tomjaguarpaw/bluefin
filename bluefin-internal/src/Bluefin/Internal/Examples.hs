@@ -94,6 +94,14 @@ forEachExample = runPureEff $ yieldToList $ \y -> do
     yield y i
     yield y (i * 10)
 
+ignoreStreamExample :: Int
+ignoreStreamExample = runPureEff $ ignoreStream $ \y -> do
+  for_ [0 .. 4] $ \i -> do
+    yield y i
+    yield y (i * 10)
+
+  pure 42
+
 inFoldableExample :: ([Int], ())
 inFoldableExample = runPureEff $ yieldToList $ inFoldable [1, 2, 100]
 
