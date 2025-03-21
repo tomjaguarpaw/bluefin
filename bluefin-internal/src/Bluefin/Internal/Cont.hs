@@ -3,7 +3,6 @@
 module Bluefin.Internal.Cont where
 
 import Bluefin.Internal (Eff, Effects, useImplIn, (:&), (:>))
-import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 
 newtype EffCont r m a = MkEffCont {unEffCont :: (a -> m r) -> m r}
