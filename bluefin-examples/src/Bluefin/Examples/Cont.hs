@@ -13,7 +13,7 @@ f = runEff $ \io -> do
     s1 <- new eff $ evalState 5
     s2 <- new eff $ evalState 10
     liftEff eff $ do
-      put s1 10
-      put s2 15
+      s <- get s1
+      modify s2 (+ s)
       hPutStr h "hello world"
       get s2
