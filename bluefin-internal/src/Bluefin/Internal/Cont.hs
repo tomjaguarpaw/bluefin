@@ -2,6 +2,7 @@
 
 module Bluefin.Internal.Cont where
 
+import Bluefin.Eff ((:>))
 import Bluefin.Internal (Eff, Effects, unsafeUnEff, useImplIn, (:&))
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
@@ -37,7 +38,7 @@ liftEff ::
   Cont newE ->
   Eff es a ->
   EffCont r (Eff es) a
-liftEff _ = return . unsafePerformIO . unsafeUnEff
+liftEff _ f = MkEffCont $ \cont -> f >>= cont
 
 new ::
   Cont newE ->
