@@ -37,7 +37,7 @@ liftEff ::
   Cont contE ->
   Eff es a ->
   EffCont r (Eff es) a
-liftEff _ f = MkEffCont $ \cont -> f >>= cont
+liftEff _ f = MkEffCont $ \effCont -> f >>= effCont
 
 new ::
   Cont contE ->
