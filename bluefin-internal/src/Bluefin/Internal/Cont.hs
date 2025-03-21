@@ -2,7 +2,7 @@
 
 module Bluefin.Internal.Cont where
 
-import Bluefin.Internal (Eff, Effects, useImplIn, (:&))
+import Bluefin.Internal (Eff, Effects, useImplIn, (:&), (:>))
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -34,6 +34,7 @@ runCont f = unsafeRunCont $ \cont -> do
     unsafeRunCont c = useImplIn c UnsafeMkCont
 
 liftEff ::
+  (contE :> es) =>
   Cont contE ->
   Eff es a ->
   EffCont r (Eff es) a
