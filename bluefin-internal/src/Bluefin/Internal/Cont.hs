@@ -2,8 +2,7 @@
 
 module Bluefin.Internal.Cont where
 
-import Bluefin.Eff ((:>))
-import Bluefin.Internal (Eff, Effects, unsafeUnEff, useImplIn, (:&))
+import Bluefin.Internal (Eff, Effects, useImplIn, (:&))
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -26,8 +25,8 @@ data Cont (e :: Effects) = UnsafeMkCont
 runCont ::
   (forall e. Cont e -> EffCont a (Eff (e :& es)) a) ->
   Eff es a
-runCont f = unsafeRunCont $ \eff -> do
-  unEffCont (f eff) return
+runCont f = unsafeRunCont $ \cont -> do
+  unEffCont (f cont) return
   where
     unsafeRunCont ::
       (forall e. Cont e -> Eff (e :& es) a) ->
@@ -35,19 +34,19 @@ runCont f = unsafeRunCont $ \eff -> do
     unsafeRunCont c = useImplIn c UnsafeMkCont
 
 liftEff ::
-  Cont newE ->
+  Cont contE ->
   Eff es a ->
   EffCont r (Eff es) a
 liftEff _ f = MkEffCont $ \cont -> f >>= cont
 
 new ::
-  Cont newE ->
+  Cont contE ->
   ((forall (e :: Effects). f e -> Eff (e :& es) r) -> Eff es r) ->
-  EffCont r (Eff (newE :& es)) (f newE)
+  EffCont r (Eff (contE :& es)) (f contE)
 new f = MkEffCont . forceEffTag f
   where
     forceEffTag ::
-      Cont newE ->
+      Cont contE ->
       ((forall e. f e -> Eff (e :& es) r) -> Eff es r) ->
-      ((f1 newE -> Eff (newE :& es) r) -> Eff (newE :& es) r)
+      ((f contE -> Eff (contE :& es) r) -> Eff (contE :& es) r)
     forceEffTag _ = unsafeCoerce
