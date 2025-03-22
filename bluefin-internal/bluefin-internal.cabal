@@ -88,7 +88,8 @@ library
       Bluefin.Internal,
       Bluefin.Internal.Examples,
       Bluefin.Internal.Pipes,
-      Bluefin.Internal.System.IO
+      Bluefin.Internal.System.IO,
+      Bluefin.Internal.With
 
 test-suite bluefin-test
     import:           defaults
