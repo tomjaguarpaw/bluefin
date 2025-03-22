@@ -1,3 +1,9 @@
+## 0.0.15.0
+
+* Add `runEff_` to `Bluefin.Eff`
+
+* Add `ignoreStream` to `Bluefin.Stream`
+
 ## 0.0.14.1
 
 * Documentation changes only

@@ -1,3 +1,7 @@
+## 0.0.15.0
+
+* Add `runEff_` and `ignoreStream`
+
 ## 0.0.14.0
 
 * Add `hGetLine` and `hIsEOF`
