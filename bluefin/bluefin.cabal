@@ -23,6 +23,7 @@ library
       Bluefin,
       Bluefin.Compound,
       Bluefin.Consume,
+      Bluefin.Cont,
       Bluefin.Coroutine,
       Bluefin.EarlyReturn,
       Bluefin.Eff,
