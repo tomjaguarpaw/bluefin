@@ -662,6 +662,7 @@ module Bluefin.Compound
     useImpl,
     useImplUnder,
     useImplIn,
+    useImplIn2,
 
     -- * Deprecated
 
