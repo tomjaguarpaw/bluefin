@@ -1107,8 +1107,14 @@ useImplIn2example = runEff_ $ \io -> do
       runEntangled io $ \alice bob -> do
         (r1, r2) <-
           if whoFirst
-            then liftA2 (,) (measure alice) (measure bob)
-            else liftA2 (,) (measure bob) (measure alice)
+            then do
+              ra <- measure alice
+              rb <- measure bob
+              pure (ra, rb)
+            else do
+              rb <- measure bob
+              ra <- measure alice
+              pure (rb, ra)
         when (r1 == r2) $ do
           throw ex "the universe is broken"
     pure "all good"
