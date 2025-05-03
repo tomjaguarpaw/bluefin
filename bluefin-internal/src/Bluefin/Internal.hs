@@ -716,6 +716,7 @@ withStateSource f = useImplIn f StateSource
 -- 15
 -- @
 newState ::
+  e :> es =>
   StateSource e ->
   -- | The initial value for the state handle
   s ->
