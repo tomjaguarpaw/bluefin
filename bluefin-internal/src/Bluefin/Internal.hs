@@ -326,11 +326,15 @@ useImplWithin k = useImplUnder . k
 -- | Handle to a capability to create strict mutable state handles
 data StateSource (e :: Effects) = StateSource
 
+type role StateSource nominal
+
 -- | Handle to an exception of type @exn@
 newtype Exception exn (e :: Effects) = UnsafeMkException (forall a. exn -> IO a)
 
 -- | A handle to a strict mutable state of type @s@
 newtype State s (e :: Effects) = UnsafeMkState (IORef s)
+
+type role State representational nominal
 
 -- | A handle to a coroutine that yields values of type @a@ and then
 -- expects values of type @b@.
@@ -1159,6 +1163,8 @@ unwrap j = \case
 
 -- | Handle that allows you to run 'IO' operations
 data IOE (e :: Effects) = MkIOE
+
+type role IOE nominal
 
 -- | Run an 'IO' operation in 'Eff'
 --
