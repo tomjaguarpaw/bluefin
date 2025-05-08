@@ -314,6 +314,16 @@ useImplIn ::
   Eff es r
 useImplIn f h = inContext (f h)
 
+-- | Used to define handlers of compound effects with two arguments.
+useImplIn2 ::
+  (e :> es) =>
+  (t1 -> t2 -> Eff (es :& e) r) ->
+  t1 ->
+  t2 ->
+  -- | ͘
+  Eff es r
+useImplIn2 f h1 h2 = inContext (f h1 h2)
+
 -- | Deprecated.  Use 'useImplUnder' instead.
 useImplWithin ::
   (e :> es) =>
