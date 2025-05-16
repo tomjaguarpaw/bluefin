@@ -564,12 +564,11 @@ rethrowIO ::
   Eff es r ->
   -- | ͘
   Eff es r
-rethrowIO MkIOE ex body =
-  UnsafeMkEff
-    ( Control.Exception.catch
-        (unsafeUnEff body)
-        (\e -> unsafeUnEff (throw @_ @es ex e))
-    )
+rethrowIO io ex body =
+  withEffToIO_ io $ \effToIO -> do
+    Control.Exception.catch
+      (effToIO body)
+      (\e -> effToIO (throw @_ @es ex e))
 
 -- | @bracket acquire release body@: @acquire@ a resource, perform the
 -- @body@ with it, and @release@ the resource even if @body@ threw an
