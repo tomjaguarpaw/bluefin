@@ -248,8 +248,11 @@ withMonadFail f m = unEffReader m f
 runPureEff :: (forall es. Eff es a) -> a
 runPureEff e = unsafePerformIO (runEff_ (\_ -> e))
 
+unsafeCoerceEff :: Eff t r -> Eff t' r
+unsafeCoerceEff = UnsafeMkEff . unsafeUnEff
+
 weakenEff :: t `In` t' -> Eff t r -> Eff t' r
-weakenEff _ = UnsafeMkEff . unsafeUnEff
+weakenEff _ = unsafeCoerceEff
 
 insertFirst :: Eff b r -> Eff (c1 :& b) r
 insertFirst = weakenEff (drop (eq (# #)))
