@@ -249,7 +249,7 @@ runPureEff :: (forall es. Eff es a) -> a
 runPureEff e = unsafePerformIO (runEff_ (\_ -> e))
 
 unsafeCoerceEff :: Eff t r -> Eff t' r
-unsafeCoerceEff = UnsafeMkEff . unsafeUnEff
+unsafeCoerceEff = coerce
 
 weakenEff :: t `In` t' -> Eff t r -> Eff t' r
 weakenEff _ = unsafeCoerceEff
