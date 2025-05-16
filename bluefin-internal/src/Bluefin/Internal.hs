@@ -611,6 +611,14 @@ bracket before after body =
         (effToIO . useImpl . after)
         (effToIO . useImpl . body)
 
+withStateInIO ::
+  (e1 :> es, e2 :> es) =>
+  IOE e1 ->
+  State s e2 ->
+  (IORef s -> IO r) ->
+  Eff es r
+withStateInIO io (UnsafeMkState r) k = effIO io (k r)
+
 -- |
 -- @
 -- >>> runPureEff $ runState 10 $ \\st -> do
@@ -623,7 +631,7 @@ get ::
   State s e ->
   -- | The current value of the state
   Eff es s
-get (UnsafeMkState r) = unsafeProvideIO $ \io -> effIO io (readIORef r)
+get st = unsafeProvideIO $ \io -> withStateInIO io st readIORef
 
 -- | Set the value of the state
 --
@@ -639,7 +647,7 @@ put ::
   -- writing it to the state.
   s ->
   Eff es ()
-put (UnsafeMkState r) s = unsafeProvideIO $ \io -> effIO io (writeIORef r $! s)
+put st s = unsafeProvideIO $ \io -> withStateInIO io st (flip writeIORef s)
 
 -- |
 -- @
