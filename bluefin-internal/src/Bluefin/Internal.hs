@@ -107,20 +107,10 @@ instance (e :> es) => MonadUnliftIO (EffReader (IOE e) es) where
     ((forall a. EffReader (IOE e) es a -> IO a) -> IO b) ->
     EffReader (IOE e) es b
   withRunInIO k =
-    MkEffReader
-      ( UnsafeMkEff
-          . Reader.runReaderT
-            ( withRunInIO
-                ( \f ->
-                    k
-                      ( f
-                          . Reader.ReaderT
-                          . (unsafeUnEff .)
-                          . unEffReader
-                      )
-                )
-            )
-      )
+    MkEffReader $ \io -> do
+      withEffToIO_ io $ \effToIO -> do
+        k $ \(MkEffReader f) -> do
+          effToIO (f io)
 
 race ::
   (e2 :> es) =>
