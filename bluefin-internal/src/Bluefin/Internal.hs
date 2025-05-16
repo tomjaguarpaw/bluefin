@@ -67,7 +67,7 @@ withEffToIO ::
   ((forall r. (forall e1. IOE e1 -> Eff (e1 :& es) r) -> IO r) -> IO a) ->
   IOE e2 ->
   Eff es a
-withEffToIO k io = effIO io (k (\f -> unsafeUnEff (f MkIOE)))
+withEffToIO k io = effIO io (k (\f -> unsafeUnEff (f io)))
 
 withEffToIO' ::
   (e2 :> es) =>
