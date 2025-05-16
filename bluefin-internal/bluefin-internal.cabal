@@ -86,6 +86,7 @@ library
     ghc-options: -Wall
     exposed-modules:
       Bluefin.Internal,
+      Bluefin.Internal.Cont,
       Bluefin.Internal.Examples,
       Bluefin.Internal.Pipes,
       Bluefin.Internal.System.IO

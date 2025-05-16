@@ -75,6 +75,7 @@ common warnings
 library
     import:           warnings
     exposed-modules:
+      Bluefin.Examples.Cont,
       Bluefin.Examples.DB,
       Bluefin.Examples.Stream.InsideAndOut,
       Bluefin.Examples.Stream.Many,
