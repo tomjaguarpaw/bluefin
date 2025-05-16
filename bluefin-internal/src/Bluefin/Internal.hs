@@ -474,9 +474,12 @@ has = In# (# #)
 data Dict c where
   Dict :: forall c. (c) => Dict c
 
+unsafeCoerceDict :: forall c c'. Dict c -> Dict c'
+unsafeCoerceDict = unsafeCoerce @(Dict c) @(Dict c')
+
 -- Seems like it could be better
 have :: forall a b. a `In` b -> Dict (a :> b)
-have _ = unsafeCoerce @(Dict (a :> (a :& b))) @(Dict (a :> b)) Dict
+have _ = unsafeCoerceDict @(a :> (a :& b)) @(a :> b) Dict
 
 -- |
 -- @
