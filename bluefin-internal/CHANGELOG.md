@@ -2,6 +2,8 @@
 
 * Implement `Exception` using `Eff` not naked `IO`
 
+* Remove unused `unsafeRemoveEff`
+
 ## 0.0.15.0
 
 * Add `runEff_` and `ignoreStream`
