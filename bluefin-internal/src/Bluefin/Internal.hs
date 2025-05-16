@@ -601,11 +601,12 @@ bracket ::
   (a -> Eff es b) ->
   Eff es b
 bracket before after body =
-  UnsafeMkEff $
-    Control.Exception.bracket
-      (unsafeUnEff before)
-      (unsafeUnEff . after)
-      (unsafeUnEff . body)
+  unsafeProvideIO $ \io -> do
+    withEffToIO_ io $ \effToIO -> do
+      Control.Exception.bracket
+        (effToIO (useImpl before))
+        (effToIO . useImpl . after)
+        (effToIO . useImpl . body)
 
 -- |
 -- @
