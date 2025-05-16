@@ -483,7 +483,7 @@ throw ::
   -- | Value to throw
   ex ->
   Eff es a
-throw (UnsafeMkException throw_) = UnsafeMkEff . throw_
+throw h = case h of UnsafeMkException throw_ -> UnsafeMkEff . throw_
 
 has :: forall a b. (a :> b) => a `In` b
 has = In# (# #)
