@@ -246,7 +246,7 @@ withMonadFail f m = unEffReader m f
 
 -- | Run an 'Eff' that doesn't contain any unhandled effects.
 runPureEff :: (forall es. Eff es a) -> a
-runPureEff e = unsafePerformIO (unsafeUnEff e)
+runPureEff e = unsafePerformIO (runEff_ (\_ -> e))
 
 weakenEff :: t `In` t' -> Eff t r -> Eff t' r
 weakenEff _ = UnsafeMkEff . unsafeUnEff
