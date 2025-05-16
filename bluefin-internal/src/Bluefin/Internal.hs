@@ -636,7 +636,7 @@ put ::
   -- writing it to the state.
   s ->
   Eff es ()
-put (UnsafeMkState r) s = UnsafeMkEff (writeIORef r $! s)
+put (UnsafeMkState r) s = unsafeProvideIO $ \io -> effIO io (writeIORef r $! s)
 
 -- |
 -- @
