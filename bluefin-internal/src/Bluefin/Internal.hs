@@ -476,8 +476,7 @@ data Dict c where
 
 -- Seems like it could be better
 have :: forall a b. a `In` b -> Dict (a :> b)
--- FIXME: this is wrong
-have = unsafeCoerce {- @_ @(Dict (a :> b)) -} (Dict @(a :> (a :& b)))
+have _ = unsafeCoerce @_ @(Dict (a :> b)) (Dict @(a :> (a :& b)))
 
 -- |
 -- @
