@@ -313,7 +313,7 @@ type role StateSource nominal
 
 -- | Handle to an exception of type @exn@
 newtype Exception exn (e :: Effects)
-  = UnsafeMkException (forall a. exn -> Eff e a)
+  = MkException (forall a. exn -> Eff e a)
 
 -- | A handle to a strict mutable state of type @s@
 newtype State s (e :: Effects) = UnsafeMkState (IORef s)
@@ -371,7 +371,7 @@ instance Handle (State s) where
   mapHandle (UnsafeMkState s) = UnsafeMkState s
 
 instance Handle (Exception s) where
-  mapHandle (UnsafeMkException s) = UnsafeMkException (weakenEff has . s)
+  mapHandle (MkException s) = MkException (weakenEff has . s)
 
 instance Handle (Coroutine a b) where
   mapHandle (MkCoroutine f) = MkCoroutine (fmap useImpl f)
@@ -466,7 +466,7 @@ throw ::
   -- | Value to throw
   ex ->
   Eff es a
-throw h = case mapHandle h of UnsafeMkException throw_ -> throw_
+throw h = case mapHandle h of MkException throw_ -> throw_
 
 has :: forall a b. (a :> b) => a `In` b
 has = In# (# #)
@@ -494,7 +494,7 @@ try f =
   unsafeProvideIO $ \io -> do
     withEffToIO_ io $ \effToIO -> do
       withScopedException_ $ \throw_ -> do
-        effToIO (f (UnsafeMkException (effIO io . throw_)))
+        effToIO (f (MkException (effIO io . throw_)))
 
 -- | 'handle', but with the argument order swapped
 --

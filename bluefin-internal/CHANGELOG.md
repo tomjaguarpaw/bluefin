@@ -4,6 +4,8 @@
 
 * Remove unused `unsafeRemoveEff`
 
+* Rename `UnsafeMkException` to `MkException`
+
 ## 0.0.15.0
 
 * Add `runEff_` and `ignoreStream`
