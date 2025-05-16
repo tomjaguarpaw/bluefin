@@ -1186,7 +1186,7 @@ runEff ::
   (forall e es. IOE e -> Eff (e :& es) a) ->
   -- | ͘
   IO a
-runEff eff = unsafeUnEff (eff MkIOE)
+runEff eff = runEff_ (makeOp . eff)
 
 -- | Run an 'Eff' whose only unhandled effect is 'IO'.
 --
