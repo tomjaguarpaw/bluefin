@@ -329,7 +329,8 @@ data StateSource (e :: Effects) = StateSource
 type role StateSource nominal
 
 -- | Handle to an exception of type @exn@
-newtype Exception exn (e :: Effects) = UnsafeMkException (forall a. exn -> IO a)
+newtype Exception exn (e :: Effects)
+  = UnsafeMkException (forall a. exn -> IO a)
 
 -- | A handle to a strict mutable state of type @s@
 newtype State s (e :: Effects) = UnsafeMkState (IORef s)
