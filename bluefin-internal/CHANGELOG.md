@@ -1,3 +1,7 @@
+## 0.1.0.0
+
+* Implement `Exception` using `Eff` not naked `IO`
+
 ## 0.0.15.0
 
 * Add `runEff_` and `ignoreStream`
