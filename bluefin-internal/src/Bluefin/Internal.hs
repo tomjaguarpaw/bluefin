@@ -508,9 +508,10 @@ try ::
   -- | @Left@ if the exception was thrown, @Right@ otherwise
   Eff es (Either exn a)
 try f =
-  UnsafeMkEff $ do
-    withScopedException_ $ \throw_ -> do
-      unsafeUnEff (f (UnsafeMkException throw_))
+  unsafeProvideIO $ \io -> do
+    withEffToIO_ io $ \effToIO -> do
+      withScopedException_ $ \throw_ -> do
+        effToIO (f (UnsafeMkException throw_))
 
 -- | 'handle', but with the argument order swapped
 --
