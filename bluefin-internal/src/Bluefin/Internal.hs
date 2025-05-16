@@ -620,7 +620,7 @@ get ::
   State s e ->
   -- | The current value of the state
   Eff es s
-get (UnsafeMkState r) = UnsafeMkEff (readIORef r)
+get (UnsafeMkState r) = unsafeProvideIO $ \io -> effIO io (readIORef r)
 
 -- | Set the value of the state
 --
