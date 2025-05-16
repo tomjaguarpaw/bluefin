@@ -716,7 +716,8 @@ newState ::
   s ->
   -- | A new state handle
   Eff es (State s e)
-newState StateSource s = UnsafeMkEff (fmap UnsafeMkState (newIORef s))
+newState StateSource s = unsafeProvideIO $ \io -> do
+  fmap UnsafeMkState (effIO io (newIORef s))
 
 -- |
 -- @
