@@ -14,13 +14,45 @@ module Bluefin
     -- ("Bluefin.Compound").
     -- Bluefin effects are accessed explicitly through
     -- value-level handles.
+    
+    -- * Why even use an Effect System?
 
-    -- * Introduction
+    -- In vanilla Haskell, there is an innate trade-off between encapsulation and fine-grained effects vs. resource safety and predictable performance. 
+    -- Bluefin manages to be both the _fine-grained encapsulation of effects_ and provide predictable performance.
+    
+    -- Bluefin, similar to _Effectful_, also defines its own @Eff@ monad, but in contrast,
+    -- effects are accessed explicitly through value-level handles which occur as arguments to effectful operations.
+    -- Passing effects at the value-level comes with some benefits over other effect systems like _Effectful_:
+    -- * Type inference is better (GHC gives good constraint and argument warnings)
+    -- * Multiple effects of the same type
+    -- * Creating new effects is the same as creating new data types in Haskell
 
-    -- | Bluefin is a Haskell effect system with a new style of API.
-    -- It is distinct from prior effect systems because effects are
-    -- accessed explicitly through value-level handles which occur as
-    -- arguments to effectful operations. Handles (such as
+    -- A Comparison of Effect Systems:
+
+    -- Encapsulation:
+    -- - **IO**: ❌  Can handle exceptions, but they are not reflected in the type
+    -- - **Transformers**: ✅  Exceptions can be handled, but it is not observable at the type level
+    -- - **Bluefin**: ✅  Proper encapsulation of effects in the type system
+
+    -- Fine-grained Effects:
+    -- - **IO**: ❌  No distinction between different effects (state, exceptions, I/O, etc.)
+    -- - **Transformers**: ✅  Fine-grained effect management
+    -- - **Bluefin**: ✅  Effects are represented at the type level
+
+    -- Resource Safety:
+    -- - **IO**: ✅  Operations can be bracketed (e.g., @bracket@)
+    -- - **Transformers**: ❌  Difficult to enforce
+    -- - **Bluefin**: ✅  Operations can also be bracketed
+
+    -- Predictable Performance:
+    -- - **IO**: ✅  Performance is easy to predict based on code structure
+    -- - **Transformers**: ❌  Performance depends on GHC optimization
+    -- - **Bluefin**: ✅  In Bluefin, effects are present in the type signature of a function and effect handles can be named in the body of said function. 
+    --     Making it easy to read and surmise the performance of the code.
+
+    -- * Bluefin
+
+    -- | In a Bluefin function, handles (such as
     -- 'Bluefin.State.State' handles, which allow access to mutable
     -- state) are introduced by handlers (such as
     -- 'Bluefin.State.evalState', which sets the initial state).
@@ -99,9 +131,9 @@ module Bluefin
     -- and that handler is where the exception, if thrown, will be
     -- handled.  This arrangement differs from normal Haskell
     -- exceptions in two ways.  Firstly, every Bluefin exception will
-    -- be handled – it is not possible to have an unhandled Bluefin
+    -- be handled ÔÇô it is not possible to have an unhandled Bluefin
     -- exception.  Secondly, a Bluefin exception can be handled in
-    -- only one place – normal Haskell exceptions can be handled in a
+    -- only one place ÔÇô normal Haskell exceptions can be handled in a
     -- variety of places, and the closest handler of matching type on
     -- the stack will be the one that will be chosen upon
     -- 'Control.Exception.throw'.
