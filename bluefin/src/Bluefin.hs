@@ -134,9 +134,9 @@ module Bluefin
     -- and that handler is where the exception, if thrown, will be
     -- handled.  This arrangement differs from normal Haskell
     -- exceptions in two ways.  Firstly, every Bluefin exception will
-    -- be handled ÔÇô it is not possible to have an unhandled Bluefin
+    -- be handled - it is not possible to have an unhandled Bluefin
     -- exception.  Secondly, a Bluefin exception can be handled in
-    -- only one place ÔÇô normal Haskell exceptions can be handled in a
+    -- only one place - normal Haskell exceptions can be handled in a
     -- variety of places, and the closest handler of matching type on
     -- the stack will be the one that will be chosen upon
     -- 'Control.Exception.throw'.
