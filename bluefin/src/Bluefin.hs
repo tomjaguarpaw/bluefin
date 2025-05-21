@@ -14,48 +14,69 @@ module Bluefin
     -- ("Bluefin.Compound").
     -- Bluefin effects are accessed explicitly through
     -- value-level handles.
-    
-    -- * Why even use an Effect System?
 
-    -- In vanilla Haskell, there is an innate trade-off between encapsulation and fine-grained effects vs. 
-    -- resource safety and predictable performance. Bluefin manages to be both the _fine-grained encapsulation of effects_
-    -- and still provides predictable performance.
-    
-    -- Bluefin, similar to _Effectful_, also defines its own @Eff@ monad, as an opaque wrapper around the IO monad,
-    -- but in contrast, effects are accessed explicitly through value-level handles which occur as arguments to effectful operations.
-    -- Passing effects at the value-level comes with some benefits over other effect systems like _Effectful_:
-    -- * Type inference is better (GHC gives good constraint and argument warnings)
-    -- * Multiple effects of the same type
-    -- * Creating new effects is the same as creating new data types in Haskell
+    -- * Why even use an effect system?
 
-    -- A Comparison of Effect Systems:
+    -- | In vanilla Haskell, there is an innate trade-off between
+    -- encapsulation and fine-grained effects vs.  resource safety and
+    -- predictable performance. Bluefin manages to be both the
+    -- _fine-grained encapsulation of effects_ and still provides
+    -- predictable performance.
+    --
+    -- Bluefin, similar to @effectful@, also defines its own @Eff@
+    -- monad, as an opaque wrapper around the IO monad, but in
+    -- contrast, effects are accessed explicitly through value-level
+    -- handles which occur as arguments to effectful operations.
+    -- Passing effects at the value-level comes with some benefits
+    -- over other effect systems like @effectful@:
+    --
+    --  * Type inference is better (GHC gives good constraint and
+    --    argument warnings)
+    --  * Multiple effects of the same type
+    --  * Creating new effects is the same as creating new data types
+    --    in Haskell (see "Bluefin.Compound" for more information on
+    --    creating new data types).
 
-    -- Encapsulation:
+    -- * A Comparison of Effect Systems
+
+    -- ** Encapsulation
+
+    -- |
     -- - **IO**: ❌  Can handle exceptions, but they are not reflected in the type
     -- - **Transformers**: ✅  Handled exceptions in the function body are not present in the functions type signature
     -- - **Bluefin**: ✅  Proper encapsulation of effects in the type system
 
-    -- Fine-grained Effects:
+    -- ** Fine-grained Effects
+
+    -- |
     -- - **IO**: ❌  No distinction between different effects (state, exceptions, I/O, etc.)
     -- - **Transformers**: ✅  Fine-grained effect management
     -- - **Bluefin**: ✅  Effects are represented at the type level
 
-    -- Resource Safety:
+    -- ** Resource Safety
+
+    -- |
     -- - **IO**: ✅  Operations can be bracketed (e.g., @bracket@)
     -- - **Transformers**: ❌  Difficult to enforce
     -- - **Bluefin**: ✅  Operations can also be bracketed
 
-    -- Predictable Performance:
+    -- ** Predictable Performance
+
+    -- |
     -- - **IO**: ✅  Performance is easy to predict based on code structure
     -- - **Transformers**: ❌  Performance depends on GHC optimization
     -- - **Bluefin**: ✅  In Bluefin, effects are given named handles or are present in the type signature of the function if left unhandled
     --   Making it easy to read and surmise the performance of the code.
     --
-    -- Bluefin allows for explicit control over IO/State/Streams, and effective scoping the effects needed to make our code useful.
+    -- Bluefin allows for explicit control over IO/State/Streams, and
+    -- effective scoping the effects needed to make our code useful.
 
     -- * Bluefin
 
-    -- | In a Bluefin function, handles (such as
+    -- | Bluefin is a Haskell effect system with a new style of API.
+    -- It is distinct from prior effect systems because effects are
+    -- accessed explicitly through value-level handles which occur as
+    -- arguments to effectful operations. Handles (such as
     -- 'Bluefin.State.State' handles, which allow access to mutable
     -- state) are introduced by handlers (such as
     -- 'Bluefin.State.evalState', which sets the initial state).
@@ -134,9 +155,9 @@ module Bluefin
     -- and that handler is where the exception, if thrown, will be
     -- handled.  This arrangement differs from normal Haskell
     -- exceptions in two ways.  Firstly, every Bluefin exception will
-    -- be handled - it is not possible to have an unhandled Bluefin
+    -- be handled – it is not possible to have an unhandled Bluefin
     -- exception.  Secondly, a Bluefin exception can be handled in
-    -- only one place - normal Haskell exceptions can be handled in a
+    -- only one place – normal Haskell exceptions can be handled in a
     -- variety of places, and the closest handler of matching type on
     -- the stack will be the one that will be chosen upon
     -- 'Control.Exception.throw'.
@@ -176,51 +197,56 @@ module Bluefin
     -- finished running there is no way you can use the handle
     -- anymore.
     --
-    -- | Here in this safe lookup function we are scooping the underlying effect
-    -- @Exception (Maybe a) e@, which we have passed with the handle @ret@, @ret@ is used
-    -- to return early when we’ve reached the nth element in the list we want to return.
-    -- The Exception is scoped as it handled in the function body by the effect handler @withEarlyReturn@
-    -- and thus not present in the type signature of our early return function: @(!?) :: [a] -> Int -> Maybe a@.
-    -- 
+    -- Here in this safe lookup function we are scooping the
+    -- underlying effect @Exception (Maybe a) e@, which we have passed
+    -- with the handle @ret@, @ret@ is used to return early when we’ve
+    -- reached the nth element in the list we want to return.  The
+    -- Exception is scoped as it handled in the function body by the
+    -- effect handler @withEarlyReturn@ and thus not present in the
+    -- type signature of our early return function: @(!?) :: [a] ->
+    -- Int -> Maybe a@.
+    --
     -- @
     -- -- Safe lookup function using scoped exception handling
     -- (!?) :: [a] -> Int -> Maybe a
     -- xs !? n = runPureEff $
-    --     withEarlyReturn $
-    --         \ret ->
-    --         evalState n $ \countdown -> do
-    --             for_ xs $ \x -> do
-    --                 countdown' <- get countdown
-    --                 when (countdown' == 0) $ do
-    --                     returnEarly ret (Just x)
-    --                 modify countdown (subtract 1)
+    --   withEarlyReturn $ \\ret ->
+    --     evalState n $ \\countdown -> do
+    --       for_ xs $ \\x -> do
+    --         countdown' <- get countdown
+    --         when (countdown' == 0) $ do
+    --           returnEarly ret (Just x)
+    --         modify countdown (subtract 1)
     --
-    --             pure Nothing
+    --       pure Nothing
     -- @
-
-    -- | If we remove the top level effect handlers `withEarlyReturn` and `runPureEff`
-    --   we can see the type of the underlying function:
-
+    --
+    -- If we remove the top level effect handlers `withEarlyReturn`
+    -- and `runPureEff` we can see the type of the underlying
+    -- function:
+    --
     -- @
-    -- safeLookupUnhandled :: (e :> es)
-    --           => Exception (Maybe a) e
-    --           -> [a]
-    --           -> Int
-    --           -> Eff es (Maybe a)
+    -- safeLookupUnhandled ::
+    --   (e :> es) =>
+    --   Exception (Maybe a) e ->
+    --   [a] ->
+    --   Int ->
+    --   Eff es (Maybe a)
     -- safeLookupUnhandled ret xs n = do
-    --     evalState n $ \countdown -> do
-    --         for_ xs $ \x -> do
-    --             countdown' <- get countdown
-    --             when (countdown' == 0) $ do
-    --                 returnEarly ret (Just x)
-    --             modify countdown (subtract 1)
-
-    --         pure Nothing
+    --   evalState n $ \\countdown -> do
+    --     for_ xs $ \\x -> do
+    --       countdown' <- get countdown
+    --       when (countdown' == 0) $ do
+    --         returnEarly ret (Just x)
+    --       modify countdown (subtract 1)
+    --
+    --     pure Nothing
     -- @
-
-    -- | Notice that in `safeLookupUnhandled` we are still explicitly passing in the handle
-    --   for effect `Exception (Maybe a) e` as `ret`. In Bluefin it easy to define effectful
-    --   functions, and handle them later.
+    --
+    -- Notice that in `safeLookupUnhandled` we are still explicitly
+    -- passing in the handle for effect `Exception (Maybe a) e` as
+    -- `ret`. In Bluefin it easy to define effectful functions, and
+    -- handle them later.
 
     -- ** Type signatures
 
