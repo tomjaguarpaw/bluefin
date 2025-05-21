@@ -247,20 +247,20 @@ module Bluefin
 
     -- * Comparison to other effect systems
 
-    -- ** Everything except effectful
+    -- ** Everything except @effectful@
 
     -- | The design of Bluefin is strongly inspired by and based on
-    -- effectful.  All the points in [effectful's comparison of itself
+    -- @effectful@.  All the points in [@effectful@'s comparison of itself
     -- to other effect
     -- systems](https://github.com/haskell-effectful/effectful?tab=readme-ov-file#motivation)
     -- apply to Bluefin too.
 
-    -- ** effectful
+    -- ** @effectful@
 
-    -- | The major difference between Bluefin and effectful is that in
+    -- | The major difference between Bluefin and @effectful@ is that in
     -- Bluefin effects are represented as value-level handles whereas
-    -- in effectful they are represented only at the type level.
-    -- effectful could be described as "a well-typed implementation of
+    -- in @effectful@ they are represented only at the type level.
+    -- @effectful@ could be described as "a well-typed implementation of
     -- the @ReaderT@ @IO@ pattern", and Bluefin could be described as
     -- a well-typed implementation of something even simpler: the
     -- [Handle
@@ -274,15 +274,15 @@ module Bluefin
     -- lines :(
 
     -- | "/Why not just implement Bluefin as an alternative API on/
-    -- /top of effectful?/"
+    -- /top of @effectful@?/"
     --
     -- It would be great to share code between the two projects!  But
     --  I don't know to implement Bluefin's "Bluefin.Compound" effects
-    --  in effectful.
+    --  in @effectful@.
 
     -- * Implementation
 
-    -- | Bluefin has a similar implementation style to effectful.
+    -- | Bluefin has a similar implementation style to @effectful@.
     -- t'Bluefin.Eff.Eff' is an opaque wrapper around 'IO',
     -- t'Bluefin.State.State' is an opaque wrapper around
     -- 'Data.IORef.IORef', and 'Bluefin.Exception.throw' throws an
