@@ -9,9 +9,9 @@
 
 module Bluefin.Internal where
 
+import qualified Bluefin.Internal.Exception.Scoped as ScopedException
 import qualified Control.Concurrent.Async as Async
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
-import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
 import Control.Monad (forever)
 import Control.Monad.Base (MonadBase (liftBase))
@@ -24,7 +24,6 @@ import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
 import Data.Type.Coercion (Coercion (Coercion))
-import qualified Data.Unique
 import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
@@ -666,23 +665,9 @@ modify state f = do
   s <- get state
   put state (f s)
 
--- This is roughly how effectful does it
-data MyException where
-  MyException :: e -> Data.Unique.Unique -> MyException
-
-instance Show MyException where
-  show _ = "<MyException>"
-
-instance Control.Exception.Exception MyException
-
 withScopedException_ :: ((forall a. e -> IO a) -> IO r) -> IO (Either e r)
-withScopedException_ f = do
-  fresh <- Data.Unique.newUnique
-
-  flip tryJust (f (\e -> throwIO (MyException e fresh))) $ \case
-    MyException e tag ->
-      -- unsafeCoerce is very unpleasant
-      if tag == fresh then Just (unsafeCoerce e) else Nothing
+withScopedException_ f =
+  ScopedException.try (\ex -> f (ScopedException.throw ex))
 
 -- |
 -- @
