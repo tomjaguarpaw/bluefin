@@ -87,6 +87,8 @@ library
     exposed-modules:
       Bluefin.Internal,
       Bluefin.Internal.Examples,
+      Bluefin.Internal.Exception.Scoped,
+      Bluefin.Internal.Key,
       Bluefin.Internal.Pipes,
       Bluefin.Internal.System.IO
 
