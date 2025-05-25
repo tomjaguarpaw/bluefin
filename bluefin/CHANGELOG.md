@@ -1,3 +1,7 @@
+## 0.0.16.0
+
+* Export `runEff_` from `Bluefin.IO`
+
 ## 0.0.15.0
 
 * Add `runEff_` to `Bluefin.Eff`
