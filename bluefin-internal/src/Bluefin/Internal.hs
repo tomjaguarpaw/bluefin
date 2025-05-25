@@ -1411,7 +1411,7 @@ runHandleReader h k = do
 
 instance (Handle h) => Handle (HandleReader h) where mapHandle = mapHandleReader
 
-newtype ConstEffect r e = MkConstEffect r
+newtype ConstEffect r (e :: Effects) = MkConstEffect r
 
 runConstEffect ::
   r ->
