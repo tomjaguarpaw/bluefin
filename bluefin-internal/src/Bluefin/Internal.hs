@@ -333,7 +333,12 @@ type Stream a = Coroutine a ()
 
 type Consume a = Coroutine () a
 
--- | You can define a @Handle@ instance for your compound handles.  As
+-- | Every Bluefin handle should have an instance of class @Handle@.
+-- Built-in handles, such as 'Exception', 'State' and 'IOE', come with
+-- @Handle@ instances.
+--
+-- You should define a @Handle@ instance for each handle that you
+-- define yourself.  As
 -- an example, an "application" handle with a dynamic effect for
 -- database queries, a concrete effect for application state and a
 -- concrete effect for a logging effect might look like this:
