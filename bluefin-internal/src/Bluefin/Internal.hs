@@ -348,7 +348,7 @@ type Consume a = Coroutine () a
 --
 -- To define @mapHandle@ for @Application@ you should apply
 -- @mapHandle@ to all the fields that are themeselves handles and
--- apply @useImplUnder@ to all the fields that are dynamic effects:
+-- apply 'useImplUnder' to all the fields that are dynamic effects:
 --
 -- @
 -- instance Handle Application where
