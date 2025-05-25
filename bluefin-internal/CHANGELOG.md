@@ -4,7 +4,23 @@
 
 * Remove unused `unsafeRemoveEff`
 
+* Add `unsafeCoerceEff`
+
 * Rename `UnsafeMkException` to `MkException`
+
+* Add type roles for `StateSource`, `State`, `IOE`
+
+* Correct implementation of `have`
+
+* Add `withStateInIO`
+
+* Correct type signature of `newState`
+
+* Add safe scoped exceptions implementation
+
+  * `Bluefin.Internal.Exception.Scoped`
+
+  * `Bluefin.Internal..Scoped`
 
 ## 0.0.15.0
 
