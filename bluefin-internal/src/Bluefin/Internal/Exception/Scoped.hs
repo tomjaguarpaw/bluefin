@@ -9,6 +9,7 @@ import Bluefin.Internal.Key (Key, eqKey, newKey)
 import Control.Exception (throwIO, tryJust)
 import qualified Control.Exception
 import Data.Type.Equality ((:~~:) (HRefl))
+import Data.Kind (Type)
 
 try :: (Exception e -> IO a) -> IO (Either e a)
 try k = do
@@ -20,7 +21,7 @@ try k = do
 throw :: Exception e -> e -> IO a
 throw ex e = throwIO (MkInFlight ex e)
 
-newtype Exception e = MkException (Key e)
+newtype Exception (e :: Type) = MkException (Key e)
 
 data InFlight = forall e. MkInFlight !(Exception e) !e
 
