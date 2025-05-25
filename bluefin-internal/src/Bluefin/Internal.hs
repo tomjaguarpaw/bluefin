@@ -359,7 +359,7 @@ type Consume a = Coroutine () a
 --         logger = l
 --       } =
 --       MkApplication
---         { queryDatabase = \s i -> useImplUnder (q s i),
+--         { queryDatabase = \\s i -> useImplUnder (q s i),
 --           applicationState = mapHandle a,
 --           logger = mapHandle l
 --         }
