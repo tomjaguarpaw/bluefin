@@ -90,7 +90,8 @@ library
       Bluefin.Internal.Exception.Scoped,
       Bluefin.Internal.Key,
       Bluefin.Internal.Pipes,
-      Bluefin.Internal.System.IO
+      Bluefin.Internal.System.IO,
+      Bluefin.Internal.With
 
 test-suite bluefin-test
     import:           defaults
