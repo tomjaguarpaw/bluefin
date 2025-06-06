@@ -91,7 +91,8 @@ library
       Bluefin.Internal.Key,
       Bluefin.Internal.OneWayCoercible,
       Bluefin.Internal.Pipes,
-      Bluefin.Internal.System.IO
+      Bluefin.Internal.System.IO,
+      Bluefin.Internal.Transformers
 
 test-suite bluefin-test
     import:           defaults
