@@ -1,8 +1,12 @@
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Main (main) where
 
+import Data.Coerce
+import Data.Kind (Type)
 import Bluefin.Internal
 import Bluefin.Internal.DslBuilder
 import Control.Monad (when)
@@ -57,6 +61,32 @@ assertEqual y n c1 c2 =
     )
 
 type SpecInfo r = DslBuilder (Stream String) r
+
+type F :: [Effects -> Type] -> (Effects -> Type) -> Effects -> Type
+
+type family F ts h where
+  F '[] h = h
+  F (h1:hs) h = (h1 :~> F hs h)
+
+type M :: [Effects -> Type] -> (Effects -> Type) -> Effects -> Type
+
+newtype M ts h es = MkM (F ts h es)
+
+type N :: [Effects -> Type] -> Effects -> Type -> Type
+
+newtype N ts es a = MkN (M ts (WrapEff a) es)
+
+instance Functor (N '[] es) where
+  -- FIXME: Can we use coerce?
+  fmap f (MkN (MkM (MkWrapEff m))) = MkN (MkM (MkWrapEff (fmap f m)))
+
+instance (forall es. Functor (N hs es)) => (forall es. Functor (N (h1 : hs) es)) where
+  fmap f (MkN (MkM (Nest k)) :: N (h1 : hs) es a) =
+    MkN (MkM (Nest (\(h1 :: h e) -> case fmap f (MkN (MkM (k h1)) :: N hs (e :& es) a) of
+                             MkN (MkM r) -> r
+                   )))
+
+
 
 runTests ::
   forall es e3.
