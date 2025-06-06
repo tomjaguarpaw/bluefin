@@ -2,6 +2,7 @@
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 
 module Main (main) where
 
@@ -80,7 +81,7 @@ instance Functor (N '[] es) where
   -- FIXME: Can we use coerce?
   fmap f (MkN (MkM (MkWrapEff m))) = MkN (MkM (MkWrapEff (fmap f m)))
 
-instance (forall es. Functor (N hs es)) => (forall es. Functor (N (h1 : hs) es)) where
+instance (forall es'. Functor (N hs es')) => Functor (N (h1 : hs) es) where
   fmap f (MkN (MkM (Nest k)) :: N (h1 : hs) es a) =
     MkN (MkM (Nest (\(h1 :: h e) -> case fmap f (MkN (MkM (k h1)) :: N hs (e :& es) a) of
                              MkN (MkM r) -> r
