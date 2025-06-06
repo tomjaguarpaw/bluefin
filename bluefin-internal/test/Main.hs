@@ -102,9 +102,11 @@ instance (Handle h, Handle (M hs h)) => Handle (M (h : hs) h) where
   mapHandle m = abstractM $ \h ->
     mapHandleWith (bimap has has) (applyM m h)
 
--- apply :: e :> es => h e -> M (h : hs) b es -> M hs b es
--- apply h m = case m of
---  MkM (Nest f) -> MkM (makeOp (_ f))
+apply :: (e :> es, Handle (M hs b)) => h e -> M (h : hs) b es -> M hs b es
+apply h m = handleBoth (mapHandleWith (bimap has has) (applyM m h))
+
+handleBoth :: Handle h => h (e :& e) -> h e
+handleBoth = mapHandleWith (subsume1 has)
 
 runTests ::
   forall es e3.
