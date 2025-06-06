@@ -92,6 +92,22 @@ foo0 = coerce (fmap @(Eff es) @a @b)
 instance (forall es'. Functor (N hs es')) => Functor (N (h1 : hs) es) where
   fmap = foo fmap
 
+instance Applicative (N '[] es) where
+  pure a = MkN (MkM ((MkWrapEff (pure a))))
+  MkN (MkM (MkWrapEff f)) <*> MkN (MkM (MkWrapEff x)) =
+    MkN (MkM (MkWrapEff (f <*> x)))
+
+instance (forall es'. Applicative (N hs es')) => Applicative (N (h1 : hs) es) where
+  pure a = MkN $ abstractM $ \_ ->
+    case pure a of MkN n -> n
+
+  MkN f <*> MkN x = MkN $ abstractM $ \h ->
+    case MkN (applyM f h) <*> MkN (applyM x h) of MkN r -> r
+
+instance (forall es'. Monad (N hs es')) => Monad (N (h1 : hs) es) where
+  MkN m >>= f = MkN $ abstractM $ \h ->
+    case MkN (applyM m h) >>= (\a -> MkN (applyM (case f a of MkN r -> r) h)) of MkN r -> r
+
 foo ::
   (forall es' a b. (a -> b) -> (N hs es' a -> N hs es' b)) ->
   (forall es' a b. (a -> b) -> (N (h : hs) es' a -> N (h : hs) es' b))
