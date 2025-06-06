@@ -1,17 +1,17 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 
 module Main (main) where
 
-import Data.Coerce
-import Data.Kind (Type)
 import Bluefin.Internal
 import Bluefin.Internal.DslBuilder
 import Control.Monad (when)
+import Data.Coerce
 import Data.Foldable (for_)
+import Data.Kind (Type)
 import Data.Monoid (All (All))
 import System.Exit (ExitCode (ExitFailure), exitWith)
 import Prelude hiding (break, read)
@@ -64,17 +64,20 @@ assertEqual y n c1 c2 =
 type SpecInfo r = DslBuilder (Stream String) r
 
 type F :: [Effects -> Type] -> (Effects -> Type) -> Effects -> Type
-
 type family F ts h where
   F '[] h = h
-  F (h1:hs) h = (h1 :~> F hs h)
+  F (h1 : hs) h = (h1 :~> F hs h)
 
 type M :: [Effects -> Type] -> (Effects -> Type) -> Effects -> Type
-
 newtype M ts h es = MkM (F ts h es)
 
-type N :: [Effects -> Type] -> Effects -> Type -> Type
+applyM :: M (h : hs) b es -> h e -> M hs b (e :& es)
+applyM (MkM (Nest f)) h = MkM (f h)
 
+abstractM :: (forall e. h e -> M hs b (e :& es)) -> M (h : hs) b es
+abstractM k = MkM (Nest (\h -> case k h of MkM m -> m))
+
+type N :: [Effects -> Type] -> Effects -> Type -> Type
 newtype N ts es a = MkN (M ts (WrapEff a) es)
 
 instance Functor (N '[] es) where
@@ -83,11 +86,25 @@ instance Functor (N '[] es) where
 
 instance (forall es'. Functor (N hs es')) => Functor (N (h1 : hs) es) where
   fmap f (MkN (MkM (Nest k)) :: N (h1 : hs) es a) =
-    MkN (MkM (Nest (\(h1 :: h e) -> case fmap f (MkN (MkM (k h1)) :: N hs (e :& es) a) of
-                             MkN (MkM r) -> r
-                   )))
+    MkN
+      ( MkM
+          ( Nest
+              ( \(h1 :: h e) -> case fmap f (MkN (MkM (k h1)) :: N hs (e :& es) a) of
+                  MkN (MkM r) -> r
+              )
+          )
+      )
 
+instance (Handle h) => Handle (M '[] h) where
+  mapHandle (MkM h) = MkM (mapHandle h)
 
+instance (Handle h, Handle (M hs h)) => Handle (M (h : hs) h) where
+  mapHandle m = abstractM $ \h ->
+    mapHandleWith (bimap has has) (applyM m h)
+
+-- apply :: e :> es => h e -> M (h : hs) b es -> M hs b es
+-- apply h m = case m of
+--  MkM (Nest f) -> MkM (makeOp (_ f))
 
 runTests ::
   forall es e3.

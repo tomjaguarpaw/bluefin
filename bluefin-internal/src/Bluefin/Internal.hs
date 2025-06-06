@@ -459,6 +459,9 @@ handleOneWayCoercible ::
   HandleD h
 handleOneWayCoercible = MkHandleD oneWayCoerce
 
+mapHandleWith :: forall h es e. (Handle h) => e `In` es -> h e -> h es
+mapHandleWith in_ = case have in_ of Dict -> mapHandle
+
 handleOneWayCoercion ::
   (forall e es. (e :> es) => OneWayCoercion (h e) (h es)) ->
   -- | ͘
