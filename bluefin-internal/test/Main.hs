@@ -77,23 +77,29 @@ applyM (MkM (Nest f)) h = MkM (f h)
 abstractM :: (forall e. h e -> M hs b (e :& es)) -> M (h : hs) b es
 abstractM k = MkM (Nest (\h -> case k h of MkM m -> m))
 
+liftM0 :: (Handle h, e :> es) => h e -> M '[] h es
+liftM0 h = MkM (mapHandle h)
+
 type N :: [Effects -> Type] -> Effects -> Type -> Type
 newtype N ts es a = MkN (M ts (WrapEff a) es)
 
 instance Functor (N '[] es) where
-  -- FIXME: Can we use coerce?
-  fmap f (MkN (MkM (MkWrapEff m))) = MkN (MkM (MkWrapEff (fmap f m)))
+  fmap = foo0
+
+foo0 :: forall es a b. (a -> b) -> N '[] es a -> N '[] es b
+foo0 = coerce (fmap @(Eff es) @a @b)
 
 instance (forall es'. Functor (N hs es')) => Functor (N (h1 : hs) es) where
-  fmap f (MkN (MkM (Nest k)) :: N (h1 : hs) es a) =
-    MkN
-      ( MkM
-          ( Nest
-              ( \(h1 :: h e) -> case fmap f (MkN (MkM (k h1)) :: N hs (e :& es) a) of
-                  MkN (MkM r) -> r
-              )
-          )
-      )
+  fmap = foo fmap
+
+foo ::
+  (forall es' a b. (a -> b) -> (N hs es' a -> N hs es' b)) ->
+  (forall es' a b. (a -> b) -> (N (h : hs) es' a -> N (h : hs) es' b))
+foo fmap1 f (MkN m) =
+  MkN
+    ( abstractM $ \h ->
+        case fmap1 f (MkN (applyM m h)) of MkN n -> n
+    )
 
 instance (Handle h) => Handle (M '[] h) where
   mapHandle (MkM h) = MkM (mapHandle h)
@@ -105,7 +111,7 @@ instance (Handle h, Handle (M hs h)) => Handle (M (h : hs) h) where
 apply :: (e :> es, Handle (M hs b)) => h e -> M (h : hs) b es -> M hs b es
 apply h m = handleBoth (mapHandleWith (bimap has has) (applyM m h))
 
-handleBoth :: Handle h => h (e :& e) -> h e
+handleBoth :: (Handle h) => h (e :& e) -> h e
 handleBoth = mapHandleWith (subsume1 has)
 
 runTests ::
