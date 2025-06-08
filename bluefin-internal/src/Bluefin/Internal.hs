@@ -1139,6 +1139,25 @@ data Compound e1 e2 ss where
     e2 s2 ->
     Compound e1 e2 (s1 :& s2)
 
+data Product h1 h2 e = Pair (h1 e) (h2 e)
+
+uncurry ::
+  (e1 :> es) =>
+  (Handle h1, Handle h2) =>
+  (forall e. h1 e -> h2 e -> Eff (e :& es) r) ->
+  Product h1 h2 e1 ->
+  Eff es r
+uncurry k (Pair h1 h2) = useImplIn (k (mapHandle h1)) (mapHandle h2)
+
+curry ::
+  (e1 :> es, e2 :> es) =>
+  (Handle h1, Handle h2) =>
+  (forall e. Product h1 h2 e -> Eff (e :& es) r) ->
+  h1 e1 ->
+  h2 e2 ->
+  Eff es r
+curry k h1 h2 = useImplIn k (Pair (mapHandle h1) (mapHandle h2))
+
 compound ::
   h1 e1 ->
   -- | ͘
