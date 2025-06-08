@@ -13,6 +13,17 @@ import qualified Control.Monad.Trans.Writer as Writer
 import Data.Coerce (coerce)
 import Data.Kind (Type)
 
+bar ::
+  (Handle h1, Handle h2, e1 :> es1, e2 :> es1, es2 :> es1) =>
+  BetterEffReader (Product h1 h2) es2 r ->
+  h1 e1 ->
+  h2 e2 ->
+  Eff es1 r
+bar b h hs = do
+  case b of
+    MkBetterEffReader k -> do
+      curryP (useImplUnder . k) h hs
+
 toState ::
   (Handle h) =>
   BetterEffReader (Product (State s) h) es a ->
@@ -20,9 +31,7 @@ toState ::
 toState b = State.StateT $ \s -> do
   MkBetterEffReader $ \hs -> do
     runState s $ \st -> do
-      case b of
-        MkBetterEffReader k -> do
-          curryP (useImplUnder . k) st hs
+      bar b st hs
 
 toExcept ::
   (Handle h) =>
@@ -31,9 +40,7 @@ toExcept ::
 toExcept b = Except.ExceptT $ do
   MkBetterEffReader $ \hs -> do
     try $ \ex -> do
-      case b of
-        MkBetterEffReader k -> do
-          curryP (useImplUnder . k) ex hs
+      bar b ex hs
 
 toWriter ::
   (Handle h, Monoid w) =>
@@ -42,9 +49,7 @@ toWriter ::
 toWriter b = Writer.WriterT $ do
   MkBetterEffReader $ \hs -> do
     runWriter $ \w -> do
-     case b of
-       MkBetterEffReader k -> do
-         curryP (useImplUnder . k) w hs
+      bar b w hs
 
 toReader ::
   (Handle h, Monoid w) =>
@@ -53,9 +58,7 @@ toReader ::
 toReader b = Reader.ReaderT $ \r -> do
   MkBetterEffReader $ \hs -> do
     runReader r $ \rd -> do
-     case b of
-       MkBetterEffReader k -> do
-         curryP (useImplUnder . k) rd hs
+      bar b rd hs
 
 fooM ::
   (e1 :> es, e2 :> es) => State Int e1 -> Exception String e2 -> Eff es Bool
