@@ -1143,22 +1143,25 @@ data Compound e1 e2 ss where
 
 data Product h1 h2 e = Pair (h1 e) (h2 e)
 
-uncurry ::
+uncurryP ::
   (e1 :> es) =>
   (Handle h1, Handle h2) =>
   (forall e. h1 e -> h2 e -> Eff (e :& es) r) ->
   Product h1 h2 e1 ->
   Eff es r
-uncurry k (Pair h1 h2) = useImplIn (k (mapHandle h1)) (mapHandle h2)
+uncurryP k (Pair h1 h2) = useImplIn (k (mapHandle h1)) (mapHandle h2)
 
-curry ::
+curryP ::
   (e1 :> es, e2 :> es) =>
   (Handle h1, Handle h2) =>
   (forall e. Product h1 h2 e -> Eff (e :& es) r) ->
   h1 e1 ->
   h2 e2 ->
   Eff es r
-curry k h1 h2 = useImplIn k (Pair (mapHandle h1) (mapHandle h2))
+curryP k h1 h2 = useImplIn k (Pair (mapHandle h1) (mapHandle h2))
+
+newtype BetterEffReader h es r =
+  MkBetterEffReader (forall e. h e -> Eff (e :& es) r)
 
 compound ::
   h1 e1 ->
