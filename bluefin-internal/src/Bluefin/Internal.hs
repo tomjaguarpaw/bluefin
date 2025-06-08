@@ -373,7 +373,9 @@ class Handle (h :: Effects -> Type) where
   -- | Used to create compound effects, i.e. handles that contain
   -- other handles.
   mapHandle :: (e :> es) => h e -> h es
+
   mopHandle :: e `In` es -> h e -> h es
+  mopHandle d = case have d of Dict -> mapHandle
 
 instance Handle (State s) where
   mapHandle (UnsafeMkState s) = UnsafeMkState s
