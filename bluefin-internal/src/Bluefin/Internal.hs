@@ -441,7 +441,9 @@ class Handle (h :: Effects -> Type) where
   -- @
   mapHandle :: (e :> es) => h e -> h es
   mapHandle = case handleImpl of MkHandleD f -> f
+
   mopHandle :: e `In` es -> h e -> h es
+  mopHandle d = case have d of Dict -> mapHandle
 
 -- | The type of the 'handleImpl' method of the 'Handle' class.
 -- Create a @HandleD@ using 'handleMapHandle'.
