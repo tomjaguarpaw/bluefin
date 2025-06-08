@@ -10,8 +10,6 @@ import qualified Control.Monad.Trans.Except as Except
 import qualified Control.Monad.Trans.Reader as Reader
 import qualified Control.Monad.Trans.State as State
 import qualified Control.Monad.Trans.Writer as Writer
-import Data.Coerce (coerce)
-import Data.Kind (Type)
 
 bar ::
   (Handle h1, Handle h2, e1 :> es1, e2 :> es1, es2 :> es1) =>
