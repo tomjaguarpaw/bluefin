@@ -1143,6 +1143,9 @@ data Compound e1 e2 ss where
 
 data Product h1 h2 e = Pair (h1 e) (h2 e)
 
+instance (Handle h1, Handle h2) => Handle (Product h1 h2) where
+  mapHandle (Pair h1 h2) = Pair (mapHandle h1) (mapHandle h2)
+
 uncurryP ::
   (e1 :> es) =>
   (Handle h1, Handle h2) =>
@@ -1160,8 +1163,26 @@ curryP ::
   Eff es r
 curryP k h1 h2 = useImplIn k (Pair (mapHandle h1) (mapHandle h2))
 
-newtype BetterEffReader h es r =
-  MkBetterEffReader (forall e. h e -> Eff (e :& es) r)
+newtype BetterEffReader h es r
+  = MkBetterEffReader (forall e. h e -> Eff (e :& es) r)
+
+instance Functor (BetterEffReader h es) where
+  fmap f (MkBetterEffReader k) = MkBetterEffReader ((fmap . fmap) f k)
+
+instance Applicative (BetterEffReader h es) where
+
+instance Monad (BetterEffReader h es) where
+
+runBetterEffReader ::
+  (e1 :> es) =>
+  (Handle h) =>
+  h e1 ->
+  BetterEffReader h es r ->
+  Eff es r
+runBetterEffReader h (MkBetterEffReader k) = useImplIn k (mapHandle h)
+
+runConstReader :: forall es r. BetterEffReader (ConstEffect ()) es r -> Eff es r
+runConstReader = runBetterEffReader @es (MkConstEffect ())
 
 compound ::
   h1 e1 ->
