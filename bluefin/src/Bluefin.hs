@@ -17,6 +17,24 @@ module Bluefin
 
     -- * Why even use an effect system?
 
+    -- | The point of using an effect system is to "make invalid
+    -- behavior unrepresentable" by ensuring that effects that are
+    -- externally visible in the behavior of an operation are also
+    -- visible in the type of the operation.
+
+    -- | Historically in Haskell there has a been a tension between
+    -- achieving "fine-grained effects and encapsulation" on the one
+    -- hand and achieving "resource safety and predictable
+    -- performance" on the other.
+    --
+    -- Transformers (and effect systems built along similar principles
+    -- such as MTL, @polysemy@ and @fused-effects@) achieve
+    -- "encapsulation and fine-grained effects", that is, you can tell
+    -- which effects ... FIXME: continue
+
+
+
+
     -- | In vanilla Haskell, there is an innate trade-off between
     -- encapsulation and fine-grained effects vs.  resource safety and
     -- predictable performance. Bluefin manages to be both the
@@ -42,30 +60,30 @@ module Bluefin
     -- ** Encapsulation
 
     -- |
-    -- - __IO__: ❌  Can handle exceptions, but they are not reflected in the type
-    -- - __Transformers__: ✅  Exceptions handled in the function body are not present in the function's type signature
-    -- - __Bluefin__: ✅  Proper encapsulation of effects in the type system
+    -- - ❌ __IO__: Can handle exceptions, but they are not reflected in the type
+    -- - ✅ __Transformers__: Exceptions handled in the function body are not present in the function's type signature
+    -- - ✅ __Bluefin__: Proper encapsulation of effects in the type system
 
     -- ** Fine-grained Effects
 
     -- |
-    -- - __IO__: ❌  No distinction between different effects (state, exceptions, I/O, etc.)
-    -- - __Transformers__: ✅  Fine-grained effect management
-    -- - __Bluefin__: ✅  Effects are represented at the type level
+    -- - ❌ __IO__: No distinction between different effects (state, exceptions, I/O, etc.)
+    -- - ✅ __Transformers__: Fine-grained effect management
+    -- - ✅ __Bluefin__: Effects are represented at the type level
 
     -- ** Resource Safety
 
     -- |
-    -- - __IO__: ✅  Operations can be bracketed (e.g., @bracket@)
-    -- - __Transformers__: ❌  Difficult to enforce
-    -- - __Bluefin__: ✅  Operations can also be bracketed
+    -- - ✅ __IO__: Operations can be bracketed (e.g., @bracket@)
+    -- - ❌ __Transformers__: Difficult to enforce
+    -- - ✅ __Bluefin__: Operations can also be bracketed
 
     -- ** Predictable Performance
 
     -- |
-    -- - __IO__: ✅  Performance is easy to predict based on code structure
-    -- - __Transformers__: ❌  Good performance depends critically on GHC optimization
-    -- - __Bluefin__: ✅  In Bluefin, effects are given named handles or are present in the type signature of the function if left unhandled
+    -- - ✅ __IO__: Performance is easy to predict based on code structure
+    -- - ❌ __Transformers__: Good performance depends critically on GHC optimization
+    -- - ✅ __Bluefin__: In Bluefin, effects are given named handles or are present in the type signature of the function if left unhandled
     --   Making it easy to read and surmise the performance of the code.
     --
     -- Bluefin allows for explicit control over IO\/State\/Streams, and
