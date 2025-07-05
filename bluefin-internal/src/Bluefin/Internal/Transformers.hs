@@ -30,8 +30,15 @@ toState ::
   EffReaderList (State s : hs) es a ->
   State.StateT s (EffReaderList hs es) a
 toState b = State.StateT $ \s -> do
-  runState s $ \st ->
-    apply b _
+  withRunInEff $ \runInEff -> do
+    runState s $ \st ->
+      weakenEff (withBase $ \base -> bimap has (swap base) `cmp` assoc2 base `cmp` bimap (swap base) has `cmp` assoc1 base) $
+        runInEff $ apply'' b st
+
+-- forTransformers :: In (e :& (es :& e1)) (e1 :& (e :& es))
+-- forTransformers
+
+
 
 {-
   MkBetterEffReader $ \hs -> do

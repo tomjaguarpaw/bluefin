@@ -9,13 +9,16 @@ import Bluefin.Internal
     Eff,
     Effects,
     In,
+    assoc1Eff,
     bimap,
     has,
     have,
+    makeOp,
     subsume2,
     useImpl,
+    assoc2,
     (:&),
-    (:>), makeOp, assoc1Eff,
+    (:>), weakenEff, withBase,
   )
 import Control.Monad (ap)
 import Data.Coerce (coerce)
@@ -48,7 +51,10 @@ data FiniteD hs = MkFiniteD
       EffReaderList hs es r,
     withRunInEff_ ::
       forall es b.
-      (forall e. (forall a. EffReaderList hs es a -> Eff (e :& es) a) -> Eff (e :& es) b) ->
+      ( forall e.
+        (forall a es'. EffReaderList hs es' a -> Eff (e :& es') a) ->
+        Eff (e :& es) b
+      ) ->
       EffReaderList hs es b
   }
 
@@ -74,13 +80,10 @@ instance (Finite hs) => Finite (h : hs) where
         mapHandle_ = \e -> abstract $ \h -> apply' e h,
         withRunInEff_ = \toRun ->
           abstract $ \(h :: h e) ->
-            withRunInEff $ \runInEff ->
+            withRunInEff_ finiteImpl $ \runInEff ->
               assoc1Eff $ toRun $ \m -> do
-                assoc2Eff $ runInEff $ apply (mapEffReaderListEffect m) h
+                weakenEff (withBase assoc2) $ runInEff $ apply (mapEffReaderListEffect m) h
       }
-
-assoc2Eff :: Eff (e1 :& (e2 :& es)) r -> Eff ((e1 :& e2) :& es) r
-assoc2Eff = undefined
 
 instance (Finite hs) => Functor (EffReaderList hs es) where
   -- FIXME: use a more efficient implementation
@@ -138,11 +141,20 @@ apply (MkEffReaderList e) h =
   mapEffReaderListEffectIn (subsume2 has) (runEffReaderListArrow e h)
 
 apply' ::
+  forall es e1 e2 hs h r.
   (e1 :> es, e2 :> es, Finite hs) =>
   EffReaderList (h : hs) e1 r ->
   h e2 ->
   EffReaderList hs es r
 apply' = apply . mapEffReaderListEffect
+
+apply'' ::
+  forall e1 e2 hs h r.
+  (Finite hs) =>
+  EffReaderList (h : hs) e1 r ->
+  h e2 ->
+  EffReaderList hs (e1 :& e2) r
+apply'' = apply'
 
 abstract ::
   -- Finite is a redundant constraint, but it seems prudent to add it
@@ -167,6 +179,6 @@ runEffReaderList = coerce
 
 withRunInEff ::
   (Finite hs) =>
-  (forall e. (forall a. EffReaderList hs es a -> Eff (e :& es) a) -> Eff (e :& es) b) ->
+  (forall e. (forall a es'. EffReaderList hs es' a -> Eff (e :& es') a) -> Eff (e :& es) b) ->
   EffReaderList hs es b
 withRunInEff = withRunInEff_ finiteImpl
