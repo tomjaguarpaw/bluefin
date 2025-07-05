@@ -11,6 +11,7 @@ import qualified Control.Monad.Trans.Except as Except
 import qualified Control.Monad.Trans.Reader as Reader
 import qualified Control.Monad.Trans.State as State
 import qualified Control.Monad.Trans.Writer as Writer
+import Debug.Trace (trace, traceM)
 
 {-
 bar ::
@@ -31,14 +32,36 @@ toState ::
   State.StateT s (EffReaderList hs es) a
 toState b = State.StateT $ \s -> do
   withRunInEff $ \runInEff -> do
-    runState s $ \st ->
+    traceM "runState"
+    runState s $ \st -> do
+      traceM "weakenEff"
       weakenEff (withBase $ \base -> bimap has (swap base) `cmp` assoc2 base `cmp` bimap (swap base) has `cmp` assoc1 base) $
-        runInEff $ apply'' b st
+        runInEff $
+          apply'' b st
+
+example :: State.StateT Int (EffReaderList '[] es) ()
+example = toState $ abstract $ \st -> effReaderList $ do
+  n <- get st
+  put st (n + 1)
+
+exampleSmall :: State.StateT Int (EffReaderList '[] es) ()
+exampleSmall = toState $ pure ()
+
+example1 :: ((), Int)
+example1 = runPureEff $ do
+  traceM "runEffReaderList"
+  runEffReaderList $ do
+    traceM "flip"
+    flip State.runStateT 42 exampleSmall
+
+basic :: ()
+basic = runPureEff $ do
+  runEffReaderList $ do
+    trace "pure" (pure ())
+    pure ()
 
 -- forTransformers :: In (e :& (es :& e1)) (e1 :& (e :& es))
 -- forTransformers
-
-
 
 {-
   MkBetterEffReader $ \hs -> do
