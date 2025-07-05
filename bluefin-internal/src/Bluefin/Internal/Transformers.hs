@@ -31,13 +31,15 @@ toState ::
   EffReaderList (State s : hs) es a ->
   State.StateT s (EffReaderList hs es) a
 toState b = State.StateT $ \s -> do
-  withRunInEff $ \runInEff -> do
-    traceM "runState"
-    runState s $ \st -> do
-      traceM "weakenEff"
-      weakenEff (withBase $ \base -> bimap has (swap base) `cmp` assoc2 base `cmp` bimap (swap base) has `cmp` assoc1 base) $
-        runInEff $
-          apply'' b st
+  traceIt "A" $ do
+    withRunInEff $ \runInEff -> do
+      runState s $ \st -> do
+        traceIt "B" $ do
+          weakenEff (withBase $ \base -> bimap has (swap base) `cmp` assoc2 base `cmp` bimap (swap base) has `cmp` assoc1 base) $ do
+            traceIt "C" $ do
+              runInEff $ do
+                traceIt "D" $ do
+                  apply'' b (error "st")
 
 example :: State.StateT Int (EffReaderList '[] es) ()
 example = toState $ abstract $ \st -> effReaderList $ do
@@ -49,9 +51,7 @@ exampleSmall = toState $ pure ()
 
 example1 :: ((), Int)
 example1 = runPureEff $ do
-  traceM "runEffReaderList"
   runEffReaderList $ do
-    traceM "flip"
     flip State.runStateT 42 exampleSmall
 
 basic :: ()
