@@ -9,10 +9,13 @@ import Bluefin.Internal.EffReaderList
   ( EffReaderList,
     Finite,
     abstract,
-    apply',
+    apply,
     effReaderList,
+    mapEffReaderListEffect,
     runEffReaderList,
-    withRunInEff, apply, mapEffReaderListEffect, runInEff', withRunInEff',
+    runInEff',
+    withRunInEff,
+    withRunInEff',
   )
 import Control.Category ((>>>))
 import Control.Monad (when)
@@ -21,6 +24,18 @@ import qualified Control.Monad.Trans.Except as Except
 import qualified Control.Monad.Trans.Reader as Reader
 import qualified Control.Monad.Trans.State as State
 import qualified Control.Monad.Trans.Writer as Writer
+
+toStateAndUnit ::
+  (Finite hs, e :> es) =>
+  EffReaderList (State s : State () : Exception exn : hs) e a ->
+  State.StateT s (EffReaderList hs es) (Either exn a)
+toStateAndUnit b = State.StateT $ \s -> do
+  withRunInEff' $ \rie -> do
+    runState s $ \st -> do
+      evalState () {-GetRidOfThis-} $ \stu -> do
+        try $ \ex ->
+          runInEff' rie $ do
+            ((mapEffReaderListEffect b `apply` st) `apply` stu) `apply` ex
 
 toState ::
   (Finite hs) =>
@@ -31,7 +46,7 @@ toState b = State.StateT $ \s -> do
   withRunInEff' $ \rie -> do
     runState s $ \st -> do
       runInEff' rie $ do
-        apply' b st
+        mapEffReaderListEffect b `apply` st
 
 example :: EffReaderList [Exception String, State Int, Reader Bool] es ()
 example =
@@ -75,7 +90,7 @@ toExcept b = Except.ExceptT $ do
     try $ \ex -> do
       foo $ do
         runInEff $ do
-          apply' b ex
+          mapEffReaderListEffect b `apply` ex
 
 toReader ::
   (Finite hs) =>
@@ -87,7 +102,7 @@ toReader b = Reader.ReaderT $ \r -> do
     runReader r $ \re -> do
       foo $ do
         runInEff $ do
-          apply' b re
+          mapEffReaderListEffect b `apply` re
 
 toWriter ::
   (Finite hs, Monoid w) =>
@@ -96,10 +111,10 @@ toWriter ::
   Writer.WriterT w (EffReaderList hs es) a
 toWriter b = Writer.WriterT $ do
   withRunInEff $ \runInEff -> do
-    runWriter $ \re -> do
+    runWriter $ \wr -> do
       foo $ do
         runInEff $ do
-          apply' b re
+          mapEffReaderListEffect b `apply` wr
 
 foo :: Eff (e :& (es :& e1)) a -> Eff (e1 :& (e :& es)) a
 foo = weakenEff (withBase $ \base -> bimap has (swap base) `cmp` assoc2 base `cmp` bimap (swap base) has `cmp` assoc1 base)
