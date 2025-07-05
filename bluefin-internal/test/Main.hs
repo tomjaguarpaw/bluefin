@@ -57,6 +57,9 @@ assertEqual y n c1 c2 =
 
 type SpecInfo r = Forall (Stream String :~> WrapEff r)
 
+runSpecInfo :: SpecInfo r -> Coroutine String () e -> WrapEff r (e :& es)
+runSpecInfo s = unNest (unForall s)
+
 withSpecInfo ::
   (forall e es. Stream String e -> Eff (e :& es) r) ->
   SpecInfo r
@@ -95,7 +98,7 @@ runTests f y = do
         Nothing -> pure ()
         Just n -> do
           yield y "" :: Eff (e2 :& es) ()
-          _ <- forEach (unWrapEff . unNest (unForall n)) $ \entry -> do
+          _ <- forEach (unWrapEff . runSpecInfo n) $ \entry -> do
             yield y ("    " ++ entry)
           yield y ""
 
