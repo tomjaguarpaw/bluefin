@@ -5,7 +5,6 @@
 module Bluefin.Internal.EffReaderList where
 
 import Bluefin.Internal
-import Bluefin.Internal
   ( Dict (Dict),
     Eff,
     Effects,
@@ -16,7 +15,7 @@ import Bluefin.Internal
     subsume2,
     useImpl,
     (:&),
-    (:>),
+    (:>), makeOp, assoc1Eff,
   )
 import Control.Monad (ap)
 import Data.Coerce (coerce)
@@ -62,7 +61,8 @@ instance Finite '[] where
       { pure_ = effReaderList . pure,
         bind_ = (>>=),
         mapHandle_ = effReaderList . useImpl . runEffReaderList,
-        withRunInEff_ = \toRun -> effReaderList (toRun runEffReaderList)
+        withRunInEff_ =
+          \toRun -> effReaderList (makeOp (toRun (useImpl . runEffReaderList)))
       }
 
 instance (Finite hs) => Finite (h : hs) where
@@ -74,13 +74,13 @@ instance (Finite hs) => Finite (h : hs) where
         mapHandle_ = \e -> abstract $ \h -> apply' e h,
         withRunInEff_ = \toRun ->
           abstract $ \(h :: h e) ->
-            mapEffReaderListEffect $ withRunInEff_ finiteImpl $ \{- e -} runInEff ->
-              toRun $ \m -> do
-                runInEff (apply m h)
+            withRunInEff_ finiteImpl $ \{- e -} runInEff ->
+              assoc1Eff $ toRun $ \m -> do
+                assoc2Eff $ runInEff $ apply (mapEffReaderListEffect m) h
       }
 
-swap :: Eff (e1 :& (e2 :& es)) r -> Eff (e2 :& (e1 :& es)) r
-swap = undefined
+assoc2Eff :: Eff (e1 :& (e2 :& es)) r -> Eff ((e1 :& e2) :& es) r
+assoc2Eff = undefined
 
 instance (Finite hs) => Functor (EffReaderList hs es) where
   -- FIXME: use a more efficient implementation
@@ -169,4 +169,4 @@ withRunInEff ::
   (Finite hs) =>
   ((forall a e. EffReaderList hs (e :& es) a -> Eff (e :& es) a) -> Eff es b) ->
   EffReaderList hs es b
-withRunInEff = withRunInEff_ finiteImpl
+withRunInEff _ = undefined
