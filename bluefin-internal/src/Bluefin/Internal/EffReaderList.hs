@@ -197,7 +197,7 @@ runEffReaderList = coerce
 
 withRunInEff ::
   (Finite hs) =>
-  (forall j. (forall a es'. EffReaderList hs es' a -> Eff (j :& es') a) -> Eff (j :& es) b) ->
+  (forall e. (forall a es'. EffReaderList hs es' a -> Eff (e :& es') a) -> Eff (e :& es) b) ->
   EffReaderList hs es b
 withRunInEff = withRunInEff_ finiteImpl
 
