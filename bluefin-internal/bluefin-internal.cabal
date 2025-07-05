@@ -86,6 +86,7 @@ library
       Bluefin.Internal.CloneableHandle,
       Bluefin.Internal.DslBuilder,
       Bluefin.Internal.DslBuilderEffects,
+      Bluefin.Internal.EffReaderList,
       Bluefin.Internal.Examples,
       Bluefin.Internal.Exception.Scoped,
       Bluefin.Internal.Key,

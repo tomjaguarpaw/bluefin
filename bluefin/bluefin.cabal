@@ -28,6 +28,7 @@ library
       Bluefin.DslBuilder,
       Bluefin.EarlyReturn,
       Bluefin.Eff,
+      Bluefin.EffReaderList,
       Bluefin.Exception,
       Bluefin.HandleReader,
       Bluefin.IO,
