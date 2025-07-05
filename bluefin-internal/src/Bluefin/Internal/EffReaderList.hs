@@ -179,14 +179,6 @@ apply' ::
   EffReaderList hs es r
 apply' = apply . mapEffReaderListEffect
 
-apply'' ::
-  forall e1 e2 hs h r.
-  (Finite hs) =>
-  EffReaderList (h : hs) e1 r ->
-  h e2 ->
-  EffReaderList hs (e1 :& e2) r
-apply'' = apply'
-
 abstract ::
   -- Finite is a redundant constraint, but it seems prudent to add it
   -- in case it is needed in the future if we change representation.
