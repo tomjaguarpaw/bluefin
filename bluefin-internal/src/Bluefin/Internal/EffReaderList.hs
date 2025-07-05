@@ -219,8 +219,8 @@ runInEff' ier m = do
 
 withRunInEff' ::
   (Finite hs) =>
-  (forall e. InEffRunner hs e -> Eff (e :& es) b) ->
-  EffReaderList hs es b
+  (forall e. InEffRunner hs e -> Eff (e :& es) r) ->
+  EffReaderList hs es r
 withRunInEff' k = withRunInEff (\runInEff -> k (MkInEffRunner runInEff))
 
 liftEff :: (Finite hs) => Eff es b -> EffReaderList hs es b
