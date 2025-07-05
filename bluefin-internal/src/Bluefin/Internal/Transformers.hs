@@ -9,7 +9,7 @@ import Bluefin.Internal.EffReaderList
   ( EffReaderList,
     Finite,
     abstract,
-    apply'',
+    apply',
     effReaderList,
     runEffReaderList,
     withRunInEff,
@@ -32,7 +32,7 @@ toState b = State.StateT $ \s -> do
     runState s $ \st -> do
       foo $ do
         runInEff $ do
-          apply'' b st
+          apply' b st
 
 example :: EffReaderList [Exception String, State Int, Reader Bool] es ()
 example =
@@ -76,7 +76,7 @@ toExcept b = Except.ExceptT $ do
     try $ \ex -> do
       foo $ do
         runInEff $ do
-          apply'' b ex
+          apply' b ex
 
 toReader ::
   (Finite hs) =>
@@ -88,7 +88,7 @@ toReader b = Reader.ReaderT $ \r -> do
     runReader r $ \re -> do
       foo $ do
         runInEff $ do
-          apply'' b re
+          apply' b re
 
 toWriter ::
   (Finite hs, Monoid w) =>
@@ -100,7 +100,7 @@ toWriter b = Writer.WriterT $ do
     runWriter $ \re -> do
       foo $ do
         runInEff $ do
-          apply'' b re
+          apply' b re
 
 foo :: Eff (e :& (es :& e1)) a -> Eff (e1 :& (e :& es)) a
 foo = weakenEff (withBase $ \base -> bimap has (swap base) `cmp` assoc2 base `cmp` bimap (swap base) has `cmp` assoc1 base)
