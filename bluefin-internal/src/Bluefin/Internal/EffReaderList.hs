@@ -54,7 +54,7 @@ instance (Finite hs) => Monad (EffReaderListArrow h hs es) where
       runEffReaderListArrow (f a) h
 
 mapEffReaderListArrow ::
-  e :> es =>
+  (e :> es) =>
   EffReaderListArrow h hs e r ->
   EffReaderListArrow h hs es r
 -- FIXME: deal with unsafeCoerce
@@ -94,7 +94,7 @@ instance Finite '[] where
         bind_ = \m f -> effReaderList (runEffReaderList m >>= (runEffReaderList . f)),
         mapHandle_ = effReaderList . useImpl . runEffReaderList,
         withRunInEff_ =
-          \toRun -> traceIt "withRunInEff_ '[]" $ effReaderList (makeOp (toRun (useImpl . runEffReaderList)))
+          \toRun -> effReaderList (makeOp (toRun (useImpl . runEffReaderList)))
       }
 
 instance (Finite hs) => Finite (h : hs) where
@@ -104,8 +104,8 @@ instance (Finite hs) => Finite (h : hs) where
         bind_ = \m f ->
           MkEffReaderList $
             runEffReaderList_ m >>= \a -> runEffReaderList_ (f a),
-
-        mapHandle_ = \m -> MkEffReaderList (mapEffReaderListArrow (runEffReaderList_ m)),
+        mapHandle_ =
+          MkEffReaderList . mapEffReaderListArrow . runEffReaderList_,
         withRunInEff_ = \toRun -> do
           abstract $ \(h :: h e) -> do
             withRunInEff_ finiteImpl $ \runInEff ->
@@ -116,7 +116,8 @@ instance (Finite hs) => Finite (h : hs) where
       }
 
 instance (Finite hs) => Functor (EffReaderList hs es) where
-  -- FIXME: use a more efficient implementation
+  -- FIXME: Use a more efficient implementation. Will probably have to
+  -- put it in Finite.
   fmap = fmapFromMonad
 
 fmapFromMonad :: (Monad m) => (a -> b) -> m a -> m b
@@ -147,28 +148,21 @@ mapEffReaderListEffectIn ::
   e `In` es ->
   EffReaderList l e r ->
   EffReaderList l es r
-mapEffReaderListEffectIn in_ m = traceIt "mapEffReaderListEffectIn" $
-  case have in_ of Dict -> traceIt "done Dict" $ mapHandle_ finiteImpl m
-
-traceIt :: (Monad m) => String -> m b -> m b
-traceIt msg m = do
-  traceM ("Entering: " <> msg)
-  r <- m
-  traceM ("Leaving: " <> msg)
-  pure r
+mapEffReaderListEffectIn in_ m =
+  case have in_ of Dict -> mapHandle_ finiteImpl m
 
 mapEffReaderListEffect ::
   (e :> es, Finite l) =>
   EffReaderList l e r ->
   EffReaderList l es r
-mapEffReaderListEffect = traceIt "mapEffReaderListEffect" $ mapEffReaderListEffectIn has
+mapEffReaderListEffect = mapEffReaderListEffectIn has
 
 mapEffReaderListEffectUnder ::
   forall es e e1 l r.
   (e :> es, Finite l) =>
   EffReaderList l (e1 :& e) r ->
   EffReaderList l (e1 :& es) r
-mapEffReaderListEffectUnder = traceIt "mapEffReaderListEffectUnder" $ mapEffReaderListEffectIn (bimap has has)
+mapEffReaderListEffectUnder = mapEffReaderListEffectIn (bimap has has)
 
 apply ::
   (e :> es, Finite hs) =>
@@ -176,7 +170,7 @@ apply ::
   h e ->
   -- | ͘
   EffReaderList hs es r
-apply (MkEffReaderList e) h = traceIt "apply" $ do
+apply (MkEffReaderList e) h =
   mapEffReaderListEffectIn (subsume2 has) (runEffReaderListArrow e h)
 
 apply' ::
@@ -185,8 +179,7 @@ apply' ::
   EffReaderList (h : hs) e1 r ->
   h e2 ->
   EffReaderList hs es r
-apply' l h = traceIt "apply'" $ do
-  (apply . mapEffReaderListEffect) l h
+apply' = apply . mapEffReaderListEffect
 
 apply'' ::
   forall e1 e2 hs h r.
@@ -204,7 +197,7 @@ abstract ::
   -- | ͘
   EffReaderList (h : hs) es r
 -- TODO: maybe this should be unsafeCoerce for efficiency
-abstract f = traceIt "abstract" $ coerce (MkEffReaderListArrow f)
+abstract f = coerce (MkEffReaderListArrow f)
 
 effReaderList ::
   Eff es r ->
