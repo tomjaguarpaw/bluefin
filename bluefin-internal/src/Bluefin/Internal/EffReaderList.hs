@@ -10,15 +10,17 @@ import Bluefin.Internal
     Effects,
     In,
     assoc1Eff,
+    assoc2,
     bimap,
     has,
     have,
     makeOp,
     subsume2,
     useImpl,
-    assoc2,
+    weakenEff,
+    withBase,
     (:&),
-    (:>), weakenEff, withBase,
+    (:>),
   )
 import Control.Monad (ap)
 import Data.Coerce (coerce)
@@ -82,7 +84,9 @@ instance (Finite hs) => Finite (h : hs) where
           abstract $ \(h :: h e) ->
             withRunInEff_ finiteImpl $ \runInEff ->
               assoc1Eff $ toRun $ \m -> do
-                weakenEff (withBase assoc2) $ runInEff $ apply (mapEffReaderListEffect m) h
+                weakenEff (withBase assoc2) $
+                  runInEff $
+                    apply (mapEffReaderListEffect m) h
       }
 
 instance (Finite hs) => Functor (EffReaderList hs es) where
