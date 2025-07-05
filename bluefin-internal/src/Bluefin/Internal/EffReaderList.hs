@@ -74,7 +74,7 @@ instance (Finite hs) => Finite (h : hs) where
         mapHandle_ = \e -> abstract $ \h -> apply' e h,
         withRunInEff_ = \toRun ->
           abstract $ \(h :: h e) ->
-            withRunInEff_ finiteImpl $ \{- e -} runInEff ->
+            withRunInEff $ \runInEff ->
               assoc1Eff $ toRun $ \m -> do
                 assoc2Eff $ runInEff $ apply (mapEffReaderListEffect m) h
       }
@@ -167,6 +167,6 @@ runEffReaderList = coerce
 
 withRunInEff ::
   (Finite hs) =>
-  ((forall a e. EffReaderList hs (e :& es) a -> Eff (e :& es) a) -> Eff es b) ->
+  (forall e. (forall a. EffReaderList hs es a -> Eff (e :& es) a) -> Eff (e :& es) b) ->
   EffReaderList hs es b
-withRunInEff _ = undefined
+withRunInEff = withRunInEff_ finiteImpl
