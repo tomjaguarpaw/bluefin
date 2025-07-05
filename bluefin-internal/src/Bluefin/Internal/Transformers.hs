@@ -32,7 +32,7 @@ toStateAndUnit ::
 toStateAndUnit b = State.StateT $ \s -> do
   withRunInEff' $ \rie -> do
     runState s $ \st -> do
-      evalState () {-GetRidOfThis-} $ \stu -> do
+      evalState () $ \stu -> do
         try $ \ex ->
           runInEff' rie $ do
             ((mapEffReaderListEffect b `apply` st) `apply` stu) `apply` ex

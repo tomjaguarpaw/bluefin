@@ -201,8 +201,8 @@ withRunInEff ::
   EffReaderList hs es b
 withRunInEff = withRunInEff_ finiteImpl
 
-newtype InEffRunner hs j
-  = MkInEffRunner (forall a es'. EffReaderList hs es' a -> Eff (j :& es') a)
+newtype InEffRunner hs e
+  = MkInEffRunner (forall a es'. EffReaderList hs es' a -> Eff (e :& es') a)
 
 instance Handle (InEffRunner hs) where
   mapHandle (MkInEffRunner f) =
