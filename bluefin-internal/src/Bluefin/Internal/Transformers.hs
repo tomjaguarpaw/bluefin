@@ -25,6 +25,7 @@ import qualified Control.Monad.Trans.Writer as Writer
 toState ::
   (Finite hs) =>
   EffReaderList (State s : hs) es a ->
+  -- | ͘
   State.StateT s (EffReaderList hs es) a
 toState b = State.StateT $ \s -> do
   withRunInEff $ \runInEff -> do
@@ -68,6 +69,7 @@ runExample =
 toExcept ::
   (Finite hs) =>
   EffReaderList (Exception s : hs) es a ->
+  -- | ͘
   Except.ExceptT s (EffReaderList hs es) a
 toExcept b = Except.ExceptT $ do
   withRunInEff $ \runInEff -> do
@@ -79,6 +81,7 @@ toExcept b = Except.ExceptT $ do
 toReader ::
   (Finite hs) =>
   EffReaderList (Reader r : hs) es a ->
+  -- | ͘
   Reader.ReaderT r (EffReaderList hs es) a
 toReader b = Reader.ReaderT $ \r -> do
   withRunInEff $ \runInEff -> do
@@ -90,6 +93,7 @@ toReader b = Reader.ReaderT $ \r -> do
 toWriter ::
   (Finite hs, Monoid w) =>
   EffReaderList (Writer w : hs) es a ->
+  -- | ͘
   Writer.WriterT w (EffReaderList hs es) a
 toWriter b = Writer.WriterT $ do
   withRunInEff $ \runInEff -> do

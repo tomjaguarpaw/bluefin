@@ -1,5 +1,4 @@
 {-# LANGUAGE StandaloneKindSignatures #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 
 module Bluefin.Internal.EffReaderList where
@@ -25,7 +24,6 @@ import Bluefin.Internal
 import Control.Monad (ap)
 import Data.Coerce (coerce)
 import Data.Kind (Type)
-import Debug.Trace (traceM)
 import Unsafe.Coerce (unsafeCoerce)
 
 type EffReaderListF :: [Effects -> Type] -> Effects -> Type -> Type
