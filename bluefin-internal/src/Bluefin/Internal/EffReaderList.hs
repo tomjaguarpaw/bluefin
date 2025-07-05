@@ -7,6 +7,7 @@ import Bluefin.Internal
   ( Dict (Dict),
     Eff,
     Effects,
+    Handle,
     In,
     assoc1Eff,
     assoc2,
@@ -14,6 +15,7 @@ import Bluefin.Internal
     has,
     have,
     makeOp,
+    mapHandle,
     subsume2,
     useImpl,
     weakenEff,
@@ -171,14 +173,6 @@ apply ::
 apply (MkEffReaderList e) h =
   mapEffReaderListEffectIn (subsume2 has) (runEffReaderListArrow e h)
 
-apply' ::
-  forall es e1 e2 hs h r.
-  (e1 :> es, e2 :> es, Finite hs) =>
-  EffReaderList (h : hs) e1 r ->
-  h e2 ->
-  EffReaderList hs es r
-apply' = apply . mapEffReaderListEffect
-
 abstract ::
   -- Finite is a redundant constraint, but it seems prudent to add it
   -- in case it is needed in the future if we change representation.
@@ -207,21 +201,27 @@ withRunInEff ::
   EffReaderList hs es b
 withRunInEff = withRunInEff_ finiteImpl
 
-newtype InEffRunner hs j = MkInEffRunner ()
+newtype InEffRunner hs j
+  = MkInEffRunner (forall a es'. EffReaderList hs es' a -> Eff (j :& es') a)
+
+instance Handle (InEffRunner hs) where
+  mapHandle (MkInEffRunner f) =
+    MkInEffRunner (\m -> weakenEff (bimap has has) (f m))
 
 runInEff' ::
-  jj :> es =>
---  e :> es =>
-  InEffRunner hs jj ->
+  (e :> es) =>
+  InEffRunner hs e ->
   EffReaderList hs es r ->
   Eff es r
-runInEff' (MkInEffRunner ()) _ = error "runInEff'"
+runInEff' ier m = do
+  let MkInEffRunner f = mapHandle ier
+  makeOp (f m)
 
 withRunInEff' ::
   (Finite hs) =>
-  (forall j. InEffRunner hs j -> Eff (j :& es) b) ->
+  (forall e. InEffRunner hs e -> Eff (e :& es) b) ->
   EffReaderList hs es b
-withRunInEff' _ = error "withRunInEff'"
+withRunInEff' k = withRunInEff (\runInEff -> k (MkInEffRunner runInEff))
 
 liftEff :: (Finite hs) => Eff es b -> EffReaderList hs es b
 liftEff m = withRunInEff (\_ -> useImpl m)
