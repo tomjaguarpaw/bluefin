@@ -45,7 +45,11 @@ data FiniteD hs = MkFiniteD
       forall e es r.
       (e :> es) =>
       EffReaderList hs e r ->
-      EffReaderList hs es r
+      EffReaderList hs es r,
+    withRunInEff_ ::
+      forall es b.
+      ((forall a es'. EffReaderListF hs es' a -> Eff es' a) -> Eff es b) ->
+      EffReaderListF hs es b
   }
 
 class Finite hs where
@@ -57,6 +61,7 @@ instance Finite '[] where
       { pure_ = effReaderList . pure,
         bind_ = (>>=),
         mapHandle_ = effReaderList . useImpl . runEffReaderList
+        withRunInEff_ = \toRun -> toRun id
       }
 
 instance (Finite hs) => Finite (h : hs) where
@@ -66,6 +71,19 @@ instance (Finite hs) => Finite (h : hs) where
         bind_ = \m f ->
           abstract $ \r -> apply' m r >>= \a -> apply' (f a) r,
         mapHandle_ = \e -> abstract $ \h -> apply' e h
+        withRunInEff_ = \toRun -> MkEffReaderListArrow $ \h ->
+          withRunInEff $ \runInEff ->
+            _ $ toRun _
+
+{-
+          withRunInEff $ \runInEff ->
+            useImpl $ toRun $ \arr ->
+              _ (runEffReaderListArrow arr h)
+-}
+
+              {- \arr ->
+                                    _ (runInEff (runEffReaderListArrow arr h))
+              -}
       }
 
 instance (Finite hs) => Functor (EffReaderList hs es) where
@@ -150,3 +168,11 @@ runEffReaderList ::
   -- | ͘
   Eff es r
 runEffReaderList = coerce
+
+withRunInEff ::
+  (Finite hs) =>
+  ((forall a es'. EffReaderList hs es' a -> Eff es' a) -> Eff es b) ->
+  EffReaderList hs es b
+withRunInEff runInEff =
+  MkEffReaderList
+    (withRunInEff_ finiteImpl (\k -> runInEff (k . runEffReaderList_)))
