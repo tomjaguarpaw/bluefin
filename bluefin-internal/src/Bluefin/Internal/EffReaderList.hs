@@ -5,6 +5,7 @@
 module Bluefin.Internal.EffReaderList where
 
 import Bluefin.Internal
+import Bluefin.Internal
   ( Dict (Dict),
     Eff,
     Effects,
@@ -48,8 +49,8 @@ data FiniteD hs = MkFiniteD
       EffReaderList hs es r,
     withRunInEff_ ::
       forall es b.
-      ((forall a es'. EffReaderListF hs es' a -> Eff es' a) -> Eff es b) ->
-      EffReaderListF hs es b
+      (forall e. (forall a. EffReaderList hs es a -> Eff (e :& es) a) -> Eff (e :& es) b) ->
+      EffReaderList hs es b
   }
 
 class Finite hs where
@@ -60,8 +61,8 @@ instance Finite '[] where
     MkFiniteD
       { pure_ = effReaderList . pure,
         bind_ = (>>=),
-        mapHandle_ = effReaderList . useImpl . runEffReaderList
-        withRunInEff_ = \toRun -> toRun id
+        mapHandle_ = effReaderList . useImpl . runEffReaderList,
+        withRunInEff_ = \toRun -> effReaderList (toRun runEffReaderList)
       }
 
 instance (Finite hs) => Finite (h : hs) where
@@ -70,21 +71,16 @@ instance (Finite hs) => Finite (h : hs) where
       { pure_ = \r -> abstract $ \_ -> pure r,
         bind_ = \m f ->
           abstract $ \r -> apply' m r >>= \a -> apply' (f a) r,
-        mapHandle_ = \e -> abstract $ \h -> apply' e h
-        withRunInEff_ = \toRun -> MkEffReaderListArrow $ \h ->
-          withRunInEff $ \runInEff ->
-            _ $ toRun _
-
-{-
-          withRunInEff $ \runInEff ->
-            useImpl $ toRun $ \arr ->
-              _ (runEffReaderListArrow arr h)
--}
-
-              {- \arr ->
-                                    _ (runInEff (runEffReaderListArrow arr h))
-              -}
+        mapHandle_ = \e -> abstract $ \h -> apply' e h,
+        withRunInEff_ = \toRun ->
+          abstract $ \(h :: h e) ->
+            mapEffReaderListEffect $ withRunInEff_ finiteImpl $ \{- e -} runInEff ->
+              toRun $ \m -> do
+                runInEff (apply m h)
       }
+
+swap :: Eff (e1 :& (e2 :& es)) r -> Eff (e2 :& (e1 :& es)) r
+swap = undefined
 
 instance (Finite hs) => Functor (EffReaderList hs es) where
   -- FIXME: use a more efficient implementation
@@ -171,8 +167,6 @@ runEffReaderList = coerce
 
 withRunInEff ::
   (Finite hs) =>
-  ((forall a es'. EffReaderList hs es' a -> Eff es' a) -> Eff es b) ->
+  ((forall a e. EffReaderList hs (e :& es) a -> Eff (e :& es) a) -> Eff es b) ->
   EffReaderList hs es b
-withRunInEff runInEff =
-  MkEffReaderList
-    (withRunInEff_ finiteImpl (\k -> runInEff (k . runEffReaderList_)))
+withRunInEff = withRunInEff_ finiteImpl

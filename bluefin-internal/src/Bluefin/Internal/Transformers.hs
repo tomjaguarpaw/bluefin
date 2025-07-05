@@ -31,7 +31,7 @@ toState ::
   State.StateT s (EffReaderList hs es) a
 toState b = State.StateT $ \s -> do
   runState s $ \st ->
-    apply _ _
+    apply b _
 
 {-
   MkBetterEffReader $ \hs -> do
