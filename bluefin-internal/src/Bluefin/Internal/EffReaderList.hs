@@ -25,7 +25,7 @@ import Bluefin.Internal
 import Control.Monad (ap)
 import Data.Coerce (coerce)
 import Data.Kind (Type)
-import Debug.Trace (trace, traceM)
+import Debug.Trace (traceM)
 import Unsafe.Coerce (unsafeCoerce)
 
 type EffReaderListF :: [Effects -> Type] -> Effects -> Type -> Type
@@ -104,6 +104,7 @@ instance (Finite hs) => Finite (h : hs) where
         bind_ = \m f ->
           MkEffReaderList $
             runEffReaderList_ m >>= \a -> runEffReaderList_ (f a),
+
         mapHandle_ = \m -> MkEffReaderList (mapEffReaderListArrow (runEffReaderList_ m)),
         withRunInEff_ = \toRun -> do
           abstract $ \(h :: h e) -> do
@@ -193,8 +194,7 @@ apply'' ::
   EffReaderList (h : hs) e1 r ->
   h e2 ->
   EffReaderList hs (e1 :& e2) r
-apply'' l h = traceIt "apply''" $ do
-  apply' l h
+apply'' = apply'
 
 abstract ::
   -- Finite is a redundant constraint, but it seems prudent to add it
@@ -203,26 +203,26 @@ abstract ::
   (forall e. h e -> EffReaderList hs (e :& es) r) ->
   -- | ͘
   EffReaderList (h : hs) es r
+-- TODO: maybe this should be unsafeCoerce for efficiency
 abstract f = traceIt "abstract" $ coerce (MkEffReaderListArrow f)
 
 effReaderList ::
   Eff es r ->
   -- | ͘
   EffReaderList '[] es r
-effReaderList = traceIt "effReaderList" $ coerce
+effReaderList = coerce
 
 runEffReaderList ::
   EffReaderList '[] es r ->
   -- | ͘
   Eff es r
-runEffReaderList = traceIt "runEffReaderList" $ coerce
+runEffReaderList = coerce
 
 withRunInEff ::
   (Finite hs) =>
   (forall e. (forall a es'. EffReaderList hs es' a -> Eff (e :& es') a) -> Eff (e :& es) b) ->
   EffReaderList hs es b
-withRunInEff k = traceIt "withRunInEff" $ do
-  withRunInEff_ finiteImpl k
+withRunInEff = withRunInEff_ finiteImpl
 
 liftEff :: (Finite hs) => Eff es b -> EffReaderList hs es b
 liftEff m = withRunInEff (\_ -> useImpl m)
