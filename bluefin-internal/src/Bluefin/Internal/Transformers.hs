@@ -12,7 +12,7 @@ import Bluefin.Internal.EffReaderList
     apply',
     effReaderList,
     runEffReaderList,
-    withRunInEff,
+    withRunInEff, apply, mapEffReaderListEffect, runInEff', withRunInEff',
   )
 import Control.Category ((>>>))
 import Control.Monad (when)
@@ -28,11 +28,10 @@ toState ::
   -- | ͘
   State.StateT s (EffReaderList hs es) a
 toState b = State.StateT $ \s -> do
-  withRunInEff $ \runInEff -> do
+  withRunInEff' $ \rie -> do
     runState s $ \st -> do
-      foo $ do
-        runInEff $ do
-          apply' b st
+      runInEff' rie $ do
+        apply' b st
 
 example :: EffReaderList [Exception String, State Int, Reader Bool] es ()
 example =

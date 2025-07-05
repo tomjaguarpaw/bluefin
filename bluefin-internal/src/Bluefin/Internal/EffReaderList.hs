@@ -203,9 +203,25 @@ runEffReaderList = coerce
 
 withRunInEff ::
   (Finite hs) =>
-  (forall e. (forall a es'. EffReaderList hs es' a -> Eff (e :& es') a) -> Eff (e :& es) b) ->
+  (forall j. (forall a es'. EffReaderList hs es' a -> Eff (j :& es') a) -> Eff (j :& es) b) ->
   EffReaderList hs es b
 withRunInEff = withRunInEff_ finiteImpl
+
+newtype InEffRunner hs j = MkInEffRunner ()
+
+runInEff' ::
+  jj :> es =>
+--  e :> es =>
+  InEffRunner hs jj ->
+  EffReaderList hs es r ->
+  Eff es r
+runInEff' (MkInEffRunner ()) _ = error "runInEff'"
+
+withRunInEff' ::
+  (Finite hs) =>
+  (forall j. InEffRunner hs j -> Eff (j :& es) b) ->
+  EffReaderList hs es b
+withRunInEff' _ = error "withRunInEff'"
 
 liftEff :: (Finite hs) => Eff es b -> EffReaderList hs es b
 liftEff m = withRunInEff (\_ -> useImpl m)
