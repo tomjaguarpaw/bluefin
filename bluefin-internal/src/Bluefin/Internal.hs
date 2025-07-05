@@ -28,6 +28,7 @@ import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
+import GHC.Exts (TYPE)
 
 data Effects = Union Effects Effects
 
@@ -421,6 +422,9 @@ bimap (In# (# #)) (In# (# #)) = In# (# #)
 assoc1 :: (# #) -> ((a :& b) :& c) `In` (a :& (b :& c))
 assoc1 (# #) = In# (# #)
 
+assoc2 :: (# #) -> (e1 :& (e2 :& es)) `In` ((e1 :& e2) :& es)
+assoc2 (# #) = In# (# #)
+
 drop :: a `In` b -> a `In` (c :& b)
 drop h = w2 (b h)
 
@@ -444,6 +448,12 @@ subsume1 i = cmp (bimap (eq (# #)) i) (merge (# #))
 
 subsume2 :: (e1 `In` e2) -> (e1 :& e2) `In` e2
 subsume2 i = cmp (bimap i (eq (# #))) (merge (# #))
+
+swap :: (# #) -> (a :& b) `In` (b :& a)
+swap (# #) = In# (# #)
+
+withBase :: forall a (r :: TYPE a). ((# #) -> r) -> r
+withBase f = f (# #)
 
 -- | Effect subset constraint
 class (es1 :: Effects) :> (es2 :: Effects)
