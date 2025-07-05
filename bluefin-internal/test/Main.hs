@@ -4,6 +4,7 @@
 module Main (main) where
 
 import Bluefin.Internal
+import Bluefin.Internal.EffReaderList
 import Control.Monad (when)
 import Data.Foldable (for_)
 import Data.Monoid (All (All))
@@ -55,25 +56,18 @@ assertEqual y n c1 c2 =
           yield y2 ("But got: " ++ show c2)
     )
 
-type SpecInfo r = Forall (Stream String :~> WrapEff r)
+type SpecInfo r = Forall (EffReaderListHandle '[Stream String] r)
 
-runSpecInfo :: SpecInfo r -> Coroutine String () e -> WrapEff r (e :& es)
-runSpecInfo s = unNest (unForall s)
+runSpecInfo :: SpecInfo r -> EffReaderList '[Stream String] es r
+runSpecInfo s = unEffReaderListHandle (unForall s)
 
 withSpecInfo ::
   (forall e es. Stream String e -> Eff (e :& es) r) ->
   SpecInfo r
 withSpecInfo x =
-  Forall (Nest (\s -> MkWrapEff (x s)))
-
-newtype (h :~> t) es = Nest {unNest :: forall e. h e -> t (e :& es)}
+  Forall (MkEffReaderListHandle (abstract (effReaderList . x)))
 
 newtype Forall t = Forall {unForall :: forall es. t es}
-
-newtype WrapEff r es = MkWrapEff {unWrapEff :: Eff es r}
-
-instance Handle (WrapEff r) where
-  mapHandle (MkWrapEff e) = MkWrapEff (useImpl e)
 
 runTests ::
   forall es e3.
@@ -98,7 +92,7 @@ runTests f y = do
         Nothing -> pure ()
         Just n -> do
           yield y "" :: Eff (e2 :& es) ()
-          _ <- forEach (\h -> unWrapEff ((runSpecInfo n) h)) $ \entry -> do
+          _ <- forEach (\h -> runEffReaderList_ (apply (runSpecInfo n) h)) $ \entry -> do
             yield y ("    " ++ entry)
           yield y ""
 
