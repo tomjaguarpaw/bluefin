@@ -6,7 +6,10 @@ module Bluefin.Internal.Transformers where
 
 import Bluefin.Internal hiding (b, w)
 import Bluefin.Internal.EffReaderList
--- import Control.Monad.Morph (hoist)
+import Control.Arrow ((<<<))
+import Control.Category ((>>>))
+import Control.Monad (when)
+import Control.Monad.Morph (MFunctor, hoist)
 import qualified Control.Monad.Trans.Except as Except
 import qualified Control.Monad.Trans.Reader as Reader
 import qualified Control.Monad.Trans.State as State
@@ -35,39 +38,54 @@ toState b = State.StateT $ \s -> do
     withRunInEff $ \runInEff -> do
       runState s $ \st -> do
         traceIt "B" $ do
-          weakenEff (withBase $ \base -> bimap has (swap base) `cmp` assoc2 base `cmp` bimap (swap base) has `cmp` assoc1 base) $ do
+          foo $ do
             traceIt "C" $ do
               runInEff $ do
                 traceIt "D" $ do
-                  apply'' b (error "st")
+                  apply'' b st
 
-example :: State.StateT Int (EffReaderList '[] es) ()
-example = toState $ abstract $ \st -> effReaderList $ do
-  n <- get st
-  put st (n + 1)
+example :: EffReaderList [Exception String, State Int] es ()
+example = abstract $ \ex -> abstract $ \st -> effReaderList $ do
+  n1 <- get st
+  when (n1 > 42) $ throw ex "First check"
+  put st (n1 + 1)
+  n2 <- get st
+  when (n2 > 42) $ throw ex "Second check"
+  put st (n2 + 1)
 
-exampleSmall :: State.StateT Int (EffReaderList '[] es) ()
-exampleSmall = toState $ pure ()
+example1 ::
+  EffReaderList [Exception String, State Int] es () ->
+  Except.ExceptT String (State.StateT Int (Eff es)) ()
+example1 =
+  toExcept `bar` (toState `bar` runEffReaderList)
 
-example1 :: ((), Int)
-example1 = runPureEff $ do
-  runEffReaderList $ do
-    flip State.runStateT 42 exampleSmall
+bar ::
+  (MFunctor t, Monad m) =>
+  (a -> t m b) ->
+  (forall z. m z -> n z) ->
+  (a -> t n b)
+x `bar` y = x >>> hoist y
 
-basic :: ()
-basic = runPureEff $ do
-  runEffReaderList $ do
-    trace "pure" (pure ())
-    pure ()
+runExample :: (Either String (), Int)
+runExample =
+  runPureEff $
+    flip State.runStateT 42 $
+      Except.runExceptT $
+        example1 example
 
--- forTransformers :: In (e :& (es :& e1)) (e1 :& (e :& es))
--- forTransformers
+toExcept ::
+  (Finite hs) =>
+  EffReaderList (Exception s : hs) es a ->
+  Except.ExceptT s (EffReaderList hs es) a
+toExcept b = Except.ExceptT $ do
+  withRunInEff $ \runInEff -> do
+    try $ \ex -> do
+      foo $ do
+        runInEff $ do
+          apply'' b ex
 
-{-
-  MkBetterEffReader $ \hs -> do
-    runState s $ \st -> do
-      bar b st hs
--}
+foo :: Eff (e :& (es :& e1)) a -> Eff (e1 :& (e :& es)) a
+foo = weakenEff (withBase $ \base -> bimap has (swap base) `cmp` assoc2 base `cmp` bimap (swap base) has `cmp` assoc1 base)
 
 {-
 toExcept ::
