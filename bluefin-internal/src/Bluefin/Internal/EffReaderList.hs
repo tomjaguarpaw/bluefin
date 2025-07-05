@@ -26,6 +26,7 @@ import Control.Monad (ap)
 import Data.Coerce (coerce)
 import Data.Kind (Type)
 import Debug.Trace (trace, traceM)
+import Unsafe.Coerce (unsafeCoerce)
 
 type EffReaderListF :: [Effects -> Type] -> Effects -> Type -> Type
 
@@ -36,6 +37,28 @@ newtype EffReaderListArrow h hs es r
       h e ->
       EffReaderList hs (e :& es) r
   }
+
+instance (Finite hs) => Functor (EffReaderListArrow h hs es) where
+  fmap f x = MkEffReaderListArrow $ \h ->
+    fmap f (runEffReaderListArrow x h)
+
+instance (Finite hs) => Applicative (EffReaderListArrow h hs es) where
+  pure a = MkEffReaderListArrow (\_ -> pure a)
+  (*>) = inefficientTailFromAp
+  f <*> x = MkEffReaderListArrow $ \h ->
+    runEffReaderListArrow f h <*> runEffReaderListArrow x h
+
+instance (Finite hs) => Monad (EffReaderListArrow h hs es) where
+  m >>= f = MkEffReaderListArrow $ \h ->
+    runEffReaderListArrow m h >>= \a ->
+      runEffReaderListArrow (f a) h
+
+mapEffReaderListArrow ::
+  e :> es =>
+  EffReaderListArrow h hs e r ->
+  EffReaderListArrow h hs es r
+-- FIXME: deal with unsafeCoerce
+mapEffReaderListArrow = unsafeCoerce
 
 newtype EffReaderListHandle hs r es
   = MkEffReaderListHandle {unEffReaderListHandle :: EffReaderList hs es r}
@@ -71,23 +94,22 @@ instance Finite '[] where
         bind_ = \m f -> effReaderList (runEffReaderList m >>= (runEffReaderList . f)),
         mapHandle_ = effReaderList . useImpl . runEffReaderList,
         withRunInEff_ =
-          \toRun -> effReaderList (makeOp (toRun (useImpl . runEffReaderList)))
+          \toRun -> traceIt "withRunInEff_ '[]" $ effReaderList (makeOp (toRun (useImpl . runEffReaderList)))
       }
 
 instance (Finite hs) => Finite (h : hs) where
   finiteImpl =
     MkFiniteD
-      { pure_ = \r -> abstract $ \_ -> pure r,
+      { pure_ = MkEffReaderList . pure,
         bind_ = \m f ->
-          abstract $ \r -> apply' m r >>= \a -> apply' (f a) r,
-        mapHandle_ = \e -> abstract $ \h -> apply' e h,
+          MkEffReaderList $
+            runEffReaderList_ m >>= \a -> runEffReaderList_ (f a),
+        mapHandle_ = \m -> MkEffReaderList (mapEffReaderListArrow (runEffReaderList_ m)),
         withRunInEff_ = \toRun -> do
-          traceM "withRunInEff_"
-          abstract $ \(h :: h e) ->
+          abstract $ \(h :: h e) -> do
             withRunInEff_ finiteImpl $ \runInEff ->
               assoc1Eff $ toRun $ \m -> do
                 weakenEff (withBase assoc2) $ do
-                  traceM "Recursing runInEff"
                   runInEff $
                     apply (mapEffReaderListEffect m) h
       }
@@ -102,9 +124,11 @@ fmapFromMonad f m = (pure . f) =<< m
 instance (Finite hs) => Applicative (EffReaderList hs es) where
   pure = pure_ finiteImpl
 
-  -- FIXME: use a more efficient implementation
-  m1 *> m2 = (id <$ m1) <*> m2
+  (*>) = inefficientTailFromAp
   (<*>) = ap
+
+inefficientTailFromAp :: (Applicative f) => f a -> f b -> f b
+inefficientTailFromAp m1 m2 = (id <$ m1) <*> m2
 
 instance (Finite hs) => Monad (EffReaderList hs es) where
   (>>=) = bind_ finiteImpl
@@ -122,21 +146,28 @@ mapEffReaderListEffectIn ::
   e `In` es ->
   EffReaderList l e r ->
   EffReaderList l es r
-mapEffReaderListEffectIn in_ m =
-  case have in_ of Dict -> mapHandle_ finiteImpl m
+mapEffReaderListEffectIn in_ m = traceIt "mapEffReaderListEffectIn" $
+  case have in_ of Dict -> traceIt "done Dict" $ mapHandle_ finiteImpl m
+
+traceIt :: (Monad m) => String -> m b -> m b
+traceIt msg m = do
+  traceM ("Entering: " <> msg)
+  r <- m
+  traceM ("Leaving: " <> msg)
+  pure r
 
 mapEffReaderListEffect ::
   (e :> es, Finite l) =>
   EffReaderList l e r ->
   EffReaderList l es r
-mapEffReaderListEffect = mapEffReaderListEffectIn has
+mapEffReaderListEffect = traceIt "mapEffReaderListEffect" $ mapEffReaderListEffectIn has
 
 mapEffReaderListEffectUnder ::
   forall es e e1 l r.
   (e :> es, Finite l) =>
   EffReaderList l (e1 :& e) r ->
   EffReaderList l (e1 :& es) r
-mapEffReaderListEffectUnder = mapEffReaderListEffectIn (bimap has has)
+mapEffReaderListEffectUnder = traceIt "mapEffReaderListEffectUnder" $ mapEffReaderListEffectIn (bimap has has)
 
 apply ::
   (e :> es, Finite hs) =>
@@ -144,7 +175,7 @@ apply ::
   h e ->
   -- | ͘
   EffReaderList hs es r
-apply (MkEffReaderList e) h =
+apply (MkEffReaderList e) h = traceIt "apply" $ do
   mapEffReaderListEffectIn (subsume2 has) (runEffReaderListArrow e h)
 
 apply' ::
@@ -153,7 +184,8 @@ apply' ::
   EffReaderList (h : hs) e1 r ->
   h e2 ->
   EffReaderList hs es r
-apply' = apply . mapEffReaderListEffect
+apply' l h = traceIt "apply'" $ do
+  (apply . mapEffReaderListEffect) l h
 
 apply'' ::
   forall e1 e2 hs h r.
@@ -161,7 +193,8 @@ apply'' ::
   EffReaderList (h : hs) e1 r ->
   h e2 ->
   EffReaderList hs (e1 :& e2) r
-apply'' = apply'
+apply'' l h = traceIt "apply''" $ do
+  apply' l h
 
 abstract ::
   -- Finite is a redundant constraint, but it seems prudent to add it
@@ -170,26 +203,25 @@ abstract ::
   (forall e. h e -> EffReaderList hs (e :& es) r) ->
   -- | ͘
   EffReaderList (h : hs) es r
-abstract f = coerce (MkEffReaderListArrow f)
+abstract f = traceIt "abstract" $ coerce (MkEffReaderListArrow f)
 
 effReaderList ::
   Eff es r ->
   -- | ͘
   EffReaderList '[] es r
-effReaderList = coerce
+effReaderList = traceIt "effReaderList" $ coerce
 
 runEffReaderList ::
   EffReaderList '[] es r ->
   -- | ͘
   Eff es r
-runEffReaderList = coerce
+runEffReaderList = traceIt "runEffReaderList" $ coerce
 
 withRunInEff ::
   (Finite hs) =>
   (forall e. (forall a es'. EffReaderList hs es' a -> Eff (e :& es') a) -> Eff (e :& es) b) ->
   EffReaderList hs es b
-withRunInEff k = do
-  traceM "withRunInEff"
+withRunInEff k = traceIt "withRunInEff" $ do
   withRunInEff_ finiteImpl k
 
 liftEff :: (Finite hs) => Eff es b -> EffReaderList hs es b
