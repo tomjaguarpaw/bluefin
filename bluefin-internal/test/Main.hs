@@ -60,7 +60,8 @@ type SpecInfo r = Forall (Stream String :~> WrapEff r)
 withSpecInfo ::
   (forall e es. Stream String e -> Eff (e :& es) r) ->
   SpecInfo r
-withSpecInfo x = Forall (Nest (\s -> MkWrapEff (x s)))
+withSpecInfo x =
+  Forall (Nest (\s -> MkWrapEff (x s)))
 
 newtype (h :~> t) es = Nest {unNest :: forall e. h e -> t (e :& es)}
 
