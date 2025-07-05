@@ -98,7 +98,7 @@ runTests f y = do
         Nothing -> pure ()
         Just n -> do
           yield y "" :: Eff (e2 :& es) ()
-          _ <- forEach (\h -> unWrapEff (runSpecInfo n h)) $ \entry -> do
+          _ <- forEach (\h -> unWrapEff ((runSpecInfo n) h)) $ \entry -> do
             yield y ("    " ++ entry)
           yield y ""
 
