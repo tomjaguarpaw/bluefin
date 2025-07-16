@@ -1,6 +1,10 @@
 -- Like Key from vault:
 --
 -- https://github.com/HeinrichApfelmus/vault/blob/master/src/Data/Vault/ST/backends/GHC.h#L19C29-L20C1
+--
+-- and Tag from prim-uniq:
+--
+-- https://hackage.haskell.org/package/prim-uniq-0.2/docs/Data-Unique-Tag.html
 
 {-# LANGUAGE RoleAnnotations #-}
 
