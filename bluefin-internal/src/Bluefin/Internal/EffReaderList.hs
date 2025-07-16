@@ -212,6 +212,7 @@ runInEff' ::
   (e :> es) =>
   InEffRunner hs e ->
   EffReaderList hs es r ->
+  -- | ͘
   Eff es r
 runInEff' ier m = do
   let MkInEffRunner f = mapHandle ier
@@ -220,6 +221,7 @@ runInEff' ier m = do
 withRunInEff' ::
   (Finite hs) =>
   (forall e. InEffRunner hs e -> Eff (e :& es) r) ->
+  -- | ͘
   EffReaderList hs es r
 withRunInEff' k = withRunInEff (\runInEff -> k (MkInEffRunner runInEff))
 
