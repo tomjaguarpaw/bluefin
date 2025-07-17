@@ -1,0 +1,84 @@
+cabal-version:      3.0
+name:               bluefin-random
+version:            0.0.16.0
+license:            MIT
+license-file:       LICENSE
+author:             Tom Ellis
+maintainer:         Tom Ellis
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+description:        The Bluefin effect system, random generators
+synopsis:           The Bluefin effect system, random generators
+homepage:           https://github.com/tomjaguarpaw/bluefin
+bug-reports:        https://github.com/tomjaguarpaw/bluefin/issues
+
+common defaults
+    ghc-options: -Wall
+    default-extensions:
+      -- GHC2021
+      BangPatterns
+      BinaryLiterals
+      ConstrainedClassMethods
+      ConstraintKinds
+      DeriveDataTypeable
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveLift
+      DeriveTraversable
+      DoAndIfThenElse
+      EmptyCase
+      EmptyDataDecls
+      EmptyDataDeriving
+      ExistentialQuantification
+      ExplicitForAll
+      -- Not available until 9.2
+      -- FieldSelectors
+      FlexibleContexts
+      FlexibleInstances
+      ForeignFunctionInterface
+      GADTSyntax
+      GeneralisedNewtypeDeriving
+      HexFloatLiterals
+      ImplicitPrelude
+      -- Not available until 8.10
+      -- ImportQualifiedPost
+      InstanceSigs
+      KindSignatures
+      MonomorphismRestriction
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NamedWildCards
+      NumericUnderscores
+      PatternGuards
+      PolyKinds
+      PostfixOperators
+      RankNTypes
+      RelaxedPolyRec
+      ScopedTypeVariables
+      StandaloneDeriving
+      -- Not available in 8.6
+      -- StandaloneKindSignatures
+      StarIsType
+      TraditionalRecordSyntax
+      TupleSections
+      TypeApplications
+      TypeOperators
+      TypeSynonymInstances
+      NoExplicitNamespaces
+      -- Others
+      DataKinds
+      DerivingStrategies
+      GADTs
+      LambdaCase
+
+library
+    import:           defaults
+    default-language: Haskell2010
+    hs-source-dirs: src
+    build-depends:
+      base >= 4.12 && < 4.22,
+      random >= 1.3 && < 1.4,
+      bluefin >= 0.0.16.0 && < 0.1
+    exposed-modules:
+      Bluefin.Random
