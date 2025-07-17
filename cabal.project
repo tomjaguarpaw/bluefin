@@ -2,3 +2,4 @@ packages:
   bluefin/bluefin.cabal
   bluefin-internal/bluefin-internal.cabal
   bluefin-examples/bluefin-examples.cabal
+  bluefin-random/bluefin-random.cabal
