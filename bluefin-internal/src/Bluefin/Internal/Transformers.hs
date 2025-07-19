@@ -12,6 +12,7 @@ import Bluefin.Internal.EffReaderList
     apply,
     effReaderList,
     mapEffReaderListEffect,
+    mapEffReaderListEffectIn,
     runEffReaderList,
     runInEff,
     withRunInEff,
@@ -56,14 +57,34 @@ foo k rie b =
   k $
     runIn rie b
 
+foo1 ::
+  (Finite hs, e1 :> es, e3 :> es) =>
+  (EffReaderList '[h] es r -> Eff es b) ->
+  InEffRunner hs e1 ->
+  EffReaderList (h : hs) e3 r ->
+  Eff es b
+foo1 karg = foo (\kerl -> karg (abstract $ \h -> effReaderList (kerl h)))
+
+blah :: ((forall e. h e -> Eff (e :& es) r) -> b2) -> (EffReaderList '[h] es r -> b2)
+blah h =
+  (\erl -> h $ \st -> runEffReaderList (apply (mapEffReaderListEffectIn (withBase sndI) erl) st))
+
+blaz ::
+  (Finite hs, e3 :> es) =>
+  (forall e. EffReaderList '[h] (e :& es) r1 -> Eff (e :& es) r2) ->
+  EffReaderList (h : hs) e3 r1 ->
+  EffReaderList hs es r2
+blaz bl b =
+  withRunInEff $ \rie ->
+    foo1 bl rie b
+
 toState ::
   (Finite hs) =>
   EffReaderList (State s : hs) es a ->
   -- | ͘
   State.StateT s (EffReaderList hs es) a
-toState b = State.StateT $ \s -> do
-  withRunInEff $ \rie -> do
-    foo (\x -> runState s x) rie b
+toState b = State.StateT $ \s ->
+  blaz (blah (runState s)) b
 
 example :: EffReaderList [Exception String, State Int, Reader Bool] es ()
 example =
@@ -103,8 +124,7 @@ toExcept ::
   -- | ͘
   Except.ExceptT s (EffReaderList hs es) a
 toExcept b = Except.ExceptT $ do
-  withRunInEff $ \rie -> do
-    foo try rie b
+    blaz (blah try) b
 
 toReader ::
   (Finite hs) =>
@@ -112,14 +132,12 @@ toReader ::
   -- | ͘
   Reader.ReaderT r (EffReaderList hs es) a
 toReader b = Reader.ReaderT $ \r -> do
-  withRunInEff $ \rie -> do
-    foo (runReader r) rie b
+    blaz (blah (runReader r)) b
 
 toWriter ::
   (Finite hs, Monoid w) =>
   EffReaderList (Writer w : hs) es a ->
   -- | ͘
   Writer.WriterT w (EffReaderList hs es) a
-toWriter b = Writer.WriterT $ do
-  withRunInEff $ \rie -> do
-    foo runWriter rie b
+toWriter b = Writer.WriterT $
+  blaz (blah runWriter) b
