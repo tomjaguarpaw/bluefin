@@ -5,8 +5,8 @@ module Bluefin.EffReaderList
     runEffReaderList,
     abstract,
     apply,
-    withRunInEff',
-    runInEff',
+    withRunInEff,
+    runInEff,
   )
     where
 
