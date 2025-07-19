@@ -1,24 +1,27 @@
 module Bluefin.Random
   ( -- * Handle
     Random,
+
     -- * Handlers
     withInitStdGen,
+
     -- ** Special purpose handlers
     -- $specialpurposehandlers
     evalRandom,
     runRandom,
+
     -- * Effectful operations
     -- $effectfuloperations
   )
 where
 
+import Bluefin.Compound (Handle)
 import Bluefin.Eff (Eff, Effects, (:&), (:>))
 import Bluefin.IO (IOE, effIO)
 import Bluefin.State (State, get, put, runState)
 import qualified System.Random as Rnd
 import qualified System.Random.Stateful as Rnd
 import Prelude (flip, fst, pure, ($), (.), (<$>))
-import Bluefin.Compound (Handle)
 
 -- $specialpurposehandlers
 --
@@ -126,7 +129,7 @@ import Bluefin.Compound (Handle)
 -- @
 
 newtype Random g e = Random (State g e)
-  deriving newtype Handle
+  deriving newtype (Handle)
 
 newtype RandomPure g (e :: Effects) = RandomPure g
   deriving newtype (Rnd.RandomGen)
