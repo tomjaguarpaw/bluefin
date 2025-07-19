@@ -1112,6 +1112,23 @@ catMaybes ::
   Eff es r
 catMaybes s y = mapMaybe id s y
 
+-- |
+-- @
+-- runPureEff $ yieldToList $ \yOut -> do
+--   consumeStream
+--     (\c -> takeConsume 6 c yOut)
+--     (\yIn -> cycleToStream [1..3] yIn)
+-- ([1,2,3,1,2,3],())
+-- @
+cycleToStream ::
+  (Foldable f, ea :> es) =>
+  f a ->
+  Stream a ea ->
+  -- | ͘
+  Eff es ()
+cycleToStream f y = do
+  forever (inFoldable f y)
+
 type Jump = EarlyReturn ()
 
 -- |
