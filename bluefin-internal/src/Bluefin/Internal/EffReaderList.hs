@@ -196,7 +196,7 @@ runEffReaderList ::
 runEffReaderList = coerce
 
 newtype InEffRunner hs e
-  = MkInEffRunner (forall a es'. EffReaderList hs es' a -> Eff (e :& es') a)
+  = MkInEffRunner (forall a e1. EffReaderList hs e1 a -> Eff (e :& e1) a)
 
 instance Handle (InEffRunner hs) where
   mapHandle (MkInEffRunner f) =
