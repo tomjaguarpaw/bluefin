@@ -10,7 +10,6 @@ import Bluefin.Internal
     Handle,
     In,
     assoc1Eff,
-    assoc2,
     bimap,
     has,
     have,
@@ -19,7 +18,6 @@ import Bluefin.Internal
     subsume2,
     useImpl,
     weakenEff,
-    withBase,
     (:&),
     (:>),
   )
@@ -110,9 +108,8 @@ instance (Finite hs) => Finite (h : hs) where
           abstract $ \(h :: h e) -> do
             withRunInEff_ finiteImpl $ \rie ->
               assoc1Eff $ toRun $ MkInEffRunner $ \m -> do
-                weakenEff (withBase assoc2) $ do
-                  runInEff rie $
-                    apply (mapEffReaderListEffect m) h
+                runInEff rie $
+                  apply (mapEffReaderListEffect m) h
       }
 
 instance (Finite hs) => Functor (EffReaderList hs es) where
@@ -196,7 +193,7 @@ runEffReaderList ::
 runEffReaderList = coerce
 
 newtype InEffRunner hs e
-  = MkInEffRunner (forall a e'. EffReaderList hs e' a -> Eff (e :& e') a)
+  = MkInEffRunner (forall a e'. EffReaderList hs e' a -> Eff (e' :& e) a)
 
 instance Handle (InEffRunner hs) where
   mapHandle (MkInEffRunner f) =
