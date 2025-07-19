@@ -19,7 +19,7 @@ import Bluefin.Internal
     useImplIn,
     weakenEff,
     (:&),
-    (:>),
+    (:>), withBase, sndI,
   )
 import Control.Monad (ap)
 import Data.Coerce (coerce)
@@ -223,3 +223,53 @@ withRunInEff = withRunInEff_ finiteImpl
 
 liftEff :: (Finite hs) => Eff es b -> EffReaderList hs es b
 liftEff m = withRunInEff_ finiteImpl (\_ -> useImpl m)
+
+runIn ::
+  (Finite hs, e1 :> es, e2 :> es, e3 :> es) =>
+  InEffRunner hs e1 ->
+  EffReaderList (h : hs) e3 r ->
+  h e2 ->
+  Eff es r
+runIn rie b h =
+  runInEff rie $ do
+    mapEffReaderListEffect b `apply` h
+
+foo ::
+  (Finite hs, e1 :> es, e3 :> es) =>
+  ((forall e. h e -> Eff (e :& es) r) -> Eff es b) ->
+  InEffRunner hs e1 ->
+  EffReaderList (h : hs) e3 r ->
+  Eff es b
+foo k rie b = k (runIn rie b)
+
+foo1 ::
+  (Finite hs, e1 :> es, e3 :> es) =>
+  (EffReaderList '[h] es r -> Eff es b) ->
+  InEffRunner hs e1 ->
+  EffReaderList (h : hs) e3 r ->
+  Eff es b
+foo1 karg = foo (\kerl -> karg (abstract $ \h -> effReaderList (kerl h)))
+
+blah ::
+  ((forall e. h e -> Eff (e :& es) r) -> r1) ->
+  EffReaderList '[h] es r ->
+  r1
+blah h erl = h $ \st ->
+  runEffReaderList (apply (mapEffReaderListEffectIn (withBase sndI) erl) st)
+
+blaz ::
+  (Finite hs, e3 :> es) =>
+  (forall e. EffReaderList '[h] (e :& es) r1 -> Eff (e :& es) r2) ->
+  EffReaderList (h : hs) e3 r1 ->
+  EffReaderList hs es r2
+blaz bl b =
+  withRunInEff $ \rie ->
+    foo1 bl rie b
+
+-- | Use an 'Eff' handler to handler an 'EffReaderList'
+effReaderListHandler ::
+  (Finite hs, e3 :> es) =>
+  (forall e. (forall e1. h e1 -> Eff (e1 :& (e :& es)) r1) -> Eff (e :& es) r2) ->
+  EffReaderList (h : hs) e3 r1 ->
+  EffReaderList hs es r2
+effReaderListHandler h = blaz (blah h)
