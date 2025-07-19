@@ -123,7 +123,12 @@ instance (Finite hs) => Finite (h : hs) where
                   runInEff $
                     apply (mapEffReaderListEffect m) h,
         withRunInEff__ = \toRun -> do
-          withRunInEff (\runInEff -> toRun (MkInEffRunner runInEff))
+          abstract $ \(h :: h e) -> do
+            withRunInEff_ finiteImpl $ \runInEff ->
+              assoc1Eff $ toRun $ MkInEffRunner $ \m -> do
+                weakenEff (withBase assoc2) $ do
+                  runInEff $
+                    apply (mapEffReaderListEffect m) h
       }
 
 instance (Finite hs) => Functor (EffReaderList hs es) where
