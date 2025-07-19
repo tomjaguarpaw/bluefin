@@ -78,12 +78,12 @@ blaz bl b =
   withRunInEff $ \rie ->
     foo1 bl rie b
 
-blurg ::
+transformersHandler ::
   (Finite hs, e3 :> es) =>
   (forall e. (forall e1. h e1 -> Eff (e1 :& (e :& es)) r1) -> Eff (e :& es) r2) ->
   EffReaderList (h : hs) e3 r1 ->
   EffReaderList hs es r2
-blurg h = blaz (blah h)
+transformersHandler h = blaz (blah h)
 
 toState ::
   (Finite hs) =>
@@ -91,7 +91,7 @@ toState ::
   -- | ͘
   State.StateT s (EffReaderList hs es) a
 toState b = State.StateT $ \s ->
-  blurg (runState s) b
+  transformersHandler (runState s) b
 
 example :: EffReaderList [Exception String, State Int, Reader Bool] es ()
 example =
@@ -131,7 +131,7 @@ toExcept ::
   -- | ͘
   Except.ExceptT s (EffReaderList hs es) a
 toExcept b = Except.ExceptT $ do
-  blurg try b
+  transformersHandler try b
 
 toReader ::
   (Finite hs) =>
@@ -139,7 +139,7 @@ toReader ::
   -- | ͘
   Reader.ReaderT r (EffReaderList hs es) a
 toReader b = Reader.ReaderT $ \r -> do
-  blurg (runReader r) b
+  transformersHandler (runReader r) b
 
 toWriter ::
   (Finite hs, Monoid w) =>
@@ -148,4 +148,4 @@ toWriter ::
   Writer.WriterT w (EffReaderList hs es) a
 toWriter b =
   Writer.WriterT $
-    blurg runWriter b
+    transformersHandler runWriter b
