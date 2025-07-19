@@ -1,3 +1,5 @@
+* Added `streamConsume` (thanks to @iteratee)
+
 ## 0.1.0.0
 
 * Implement `Exception` using `Eff` not naked `IO`

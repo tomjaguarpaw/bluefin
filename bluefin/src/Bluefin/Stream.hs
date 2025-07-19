@@ -19,6 +19,7 @@ module Bluefin.Stream
     mapMaybe,
     catMaybes,
     consumeStream,
+    streamConsume,
     -- * Effectful operations
     yield,
     inFoldable,

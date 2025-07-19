@@ -168,6 +168,15 @@ consumeStream ::
   Eff es r
 consumeStream r s = connectCoroutines r (\() -> s)
 
+-- | Argument-flipped version of 'consumeStream'
+streamConsume ::
+  forall a (es :: Effects) r.
+  (forall (e :: Effects). Stream a e -> Eff (e :& es) r) ->
+  (forall (e :: Effects). Consume a e -> Eff (e :& es) r) ->
+  -- | ͘
+  Eff es r
+streamConsume s c = consumeStream c s
+
 zipCoroutines ::
   (e1 :> es) =>
   Coroutine (a1, a2) b e1 ->

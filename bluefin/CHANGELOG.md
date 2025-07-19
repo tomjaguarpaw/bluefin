@@ -1,3 +1,5 @@
+* Added `streamConsume` (thanks to @iteratee)
+
 ## 0.0.16.0
 
 * Export `runEff_` from `Bluefin.IO`

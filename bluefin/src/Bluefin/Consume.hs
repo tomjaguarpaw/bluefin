@@ -8,6 +8,7 @@ module Bluefin.Consume
     -- * Handlers
     consumeEach,
     consumeStream,
+    streamConsume,
     -- * Effectful operations
     await,
   )
