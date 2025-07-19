@@ -3,6 +3,8 @@ module Bluefin.Random
     Random,
     -- * Handlers
     withInitStdGen,
+    -- ** Special purpose handlers
+    -- $specialpurposehandlers
     evalRandom,
     runRandom,
     -- * Effectful operations
@@ -17,9 +19,110 @@ import qualified System.Random as Rnd
 import qualified System.Random.Stateful as Rnd
 import Prelude (flip, fst, pure, ($), (.), (<$>))
 
+-- $specialpurposehandlers
+--
+-- In the vast majority of cases you should use 'withInitStdGen' and
+-- you won't have any need for these special purpose handlers.
+
 -- $effectfuloperations
 --
--- * @(Uniform a, RandomGen g, e1 :> es) => Random g e1 -> Eff es a 
+-- To run random operations in Bluefin you should use the random
+-- operations in the "System.Random.Stateful" module from the @random@
+-- package. Here are their type signatures when restricted to
+-- Bluefin's @Random@:
+--
+-- @
+-- 'System.Random.Stateful.uniformM' ::
+--   (Uniform a, RandomGen g, e1 :> es) =>
+--   Random g e1 ->
+--   Eff es a
+-- @
+--
+-- @
+-- 'System.Random.Stateful.uniformRM' ::
+--   (UniformRange a, RandomGen g, e1 :> es) =>
+--   (a, a) ->
+--   Random g e1 ->
+--   Eff es a
+-- @
+--
+-- @
+-- 'System.Random.Stateful.uniformListM' ::
+--   (Uniform a, RandomGen g, e1 :> es) =>
+--   Int ->
+--   Random g e1 ->
+--   Eff es [a]
+-- @
+--
+-- @
+-- 'System.Random.Stateful.uniformListRM' ::
+--   (UniformRange a, RandomGen g, e1 :> es) =>
+--   Int ->
+--   (a, a) ->
+--   Random g e1 ->
+--   Eff es [a]
+-- @
+--
+-- @
+-- 'System.Random.Stateful.uniformShuffleListM' ::
+--   (RandomGen g, e1 :> es) =>
+--   [a] ->
+--   Random g e1 ->
+--   Eff es [a]
+-- @
+--
+-- @
+-- 'System.Random.Stateful.uniformByteArrayM' ::
+--   (RandomGen g, e1 :> es) =>
+--   Bool ->
+--   Int ->
+--   Random g e1 ->
+--   Eff es ByteArray
+-- @
+--
+-- @
+-- 'System.Random.Stateful.uniformByteStringM' ::
+--   (RandomGen g, e1 :> es) =>
+--   Int ->
+--   Random g e1 ->
+--   Eff es ByteString
+-- @
+--
+-- @
+-- 'System.Random.Stateful.uniformShortByteStringM' ::
+--   (RandomGen g, e1 :> es) =>
+--   Int ->
+--   Random g e1 ->
+--   Eff es ShortByteString
+-- @
+--
+-- @
+-- 'System.Random.Stateful.uniformDouble01M' ::
+--   (RandomGen g, e1 :> es) =>
+--   Random g e1 ->
+--   Eff es Double
+-- @
+--
+-- @
+-- 'System.Random.Stateful.uniformDoublePositive01M' ::
+--   (RandomGen g, e1 :> es) =>
+--   Random g e1 ->
+--   Eff es Double
+-- @
+--
+-- @
+-- 'System.Random.Stateful.uniformFloat01M' ::
+--   (RandomGen g, e1 :> es) =>
+--   Random g e1 ->
+--   Eff es Float
+-- @
+--
+-- @
+-- 'System.Random.Stateful.uniformFloatPositive01M' ::
+--   (RandomGen g, e1 :> es) =>
+--   Random g e1 ->
+--   Eff es Float
+-- @
 
 newtype Random g e = Random (State g e)
 
@@ -55,6 +158,10 @@ evalRandom ::
   Eff es a
 evalRandom g f = fst <$> runRandom g f
 
+-- | The simplest way to handle a Bluefin 'Random' effect.  This is
+-- the handler you should use unless you know you have a particular
+-- need to use a @Rnd.RandomGen@ other than @Rnd.StdGen@ or you know
+-- you need to create a @Rnd.StdGen@ seed in a non-standard way.
 withInitStdGen ::
   (e1 :> es) =>
   IOE e1 ->
