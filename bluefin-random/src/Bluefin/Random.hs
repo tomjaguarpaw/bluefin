@@ -18,6 +18,7 @@ import Bluefin.State (State, get, put, runState)
 import qualified System.Random as Rnd
 import qualified System.Random.Stateful as Rnd
 import Prelude (flip, fst, pure, ($), (.), (<$>))
+import Bluefin.Compound (Handle)
 
 -- $specialpurposehandlers
 --
@@ -125,6 +126,7 @@ import Prelude (flip, fst, pure, ($), (.), (<$>))
 -- @
 
 newtype Random g e = Random (State g e)
+  deriving newtype Handle
 
 newtype RandomPure g (e :: Effects) = RandomPure g
   deriving newtype (Rnd.RandomGen)
