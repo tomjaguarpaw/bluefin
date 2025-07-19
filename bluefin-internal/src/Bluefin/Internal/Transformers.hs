@@ -7,12 +7,11 @@ import Bluefin.Internal hiding (b, w)
 import Bluefin.Internal.EffReaderList
   ( EffReaderList,
     Finite,
-    InEffRunner,
     abstract,
     apply,
     effReaderList,
+    effReaderListHandler,
     mapEffReaderListEffect,
-    mapEffReaderListEffectIn,
     runEffReaderList,
     runInEff,
     withRunInEff,
@@ -37,61 +36,13 @@ toStateAndUnit b = State.StateT $ \s -> do
           runInEff rie $ do
             ((mapEffReaderListEffect b `apply` st) `apply` stu) `apply` ex
 
-runIn ::
-  (Finite hs, e1 :> es, e2 :> es, e3 :> es) =>
-  InEffRunner hs e1 ->
-  EffReaderList (h : hs) e3 r ->
-  h e2 ->
-  Eff es r
-runIn rie b h =
-  runInEff rie $ do
-    mapEffReaderListEffect b `apply` h
-
-foo ::
-  (Finite hs, e1 :> es, e3 :> es) =>
-  ((forall e. h e -> Eff (e :& es) r) -> Eff es b) ->
-  InEffRunner hs e1 ->
-  EffReaderList (h : hs) e3 r ->
-  Eff es b
-foo k rie b =
-  k $
-    runIn rie b
-
-foo1 ::
-  (Finite hs, e1 :> es, e3 :> es) =>
-  (EffReaderList '[h] es r -> Eff es b) ->
-  InEffRunner hs e1 ->
-  EffReaderList (h : hs) e3 r ->
-  Eff es b
-foo1 karg = foo (\kerl -> karg (abstract $ \h -> effReaderList (kerl h)))
-
-blah :: ((forall e. h e -> Eff (e :& es) r) -> b2) -> (EffReaderList '[h] es r -> b2)
-blah h erl = h $
-  \st -> runEffReaderList (apply (mapEffReaderListEffectIn (withBase sndI) erl) st)
-
-blaz ::
-  (Finite hs, e3 :> es) =>
-  (forall e. EffReaderList '[h] (e :& es) r1 -> Eff (e :& es) r2) ->
-  EffReaderList (h : hs) e3 r1 ->
-  EffReaderList hs es r2
-blaz bl b =
-  withRunInEff $ \rie ->
-    foo1 bl rie b
-
-transformersHandler ::
-  (Finite hs, e3 :> es) =>
-  (forall e. (forall e1. h e1 -> Eff (e1 :& (e :& es)) r1) -> Eff (e :& es) r2) ->
-  EffReaderList (h : hs) e3 r1 ->
-  EffReaderList hs es r2
-transformersHandler h = blaz (blah h)
-
 toState ::
   (Finite hs) =>
   EffReaderList (State s : hs) es a ->
   -- | ͘
   State.StateT s (EffReaderList hs es) a
 toState b = State.StateT $ \s ->
-  transformersHandler (runState s) b
+  effReaderListHandler (runState s) b
 
 example :: EffReaderList [Exception String, State Int, Reader Bool] es ()
 example =
@@ -131,7 +82,7 @@ toExcept ::
   -- | ͘
   Except.ExceptT s (EffReaderList hs es) a
 toExcept b = Except.ExceptT $ do
-  transformersHandler try b
+  effReaderListHandler try b
 
 toReader ::
   (Finite hs) =>
@@ -139,7 +90,7 @@ toReader ::
   -- | ͘
   Reader.ReaderT r (EffReaderList hs es) a
 toReader b = Reader.ReaderT $ \r -> do
-  transformersHandler (runReader r) b
+  effReaderListHandler (runReader r) b
 
 toWriter ::
   (Finite hs, Monoid w) =>
@@ -148,4 +99,4 @@ toWriter ::
   Writer.WriterT w (EffReaderList hs es) a
 toWriter b =
   Writer.WriterT $
-    transformersHandler runWriter b
+    effReaderListHandler runWriter b
