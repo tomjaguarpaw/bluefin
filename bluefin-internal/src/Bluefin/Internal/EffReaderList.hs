@@ -27,6 +27,7 @@ import Control.Monad (ap)
 import Data.Coerce (coerce)
 import Data.Kind (Type)
 import Unsafe.Coerce (unsafeCoerce)
+import Bluefin.Compound (useImplIn)
 
 type EffReaderListF :: [Effects -> Type] -> Effects -> Type -> Type
 
@@ -81,6 +82,14 @@ data FiniteD hs = MkFiniteD
         (forall a es'. EffReaderList hs es' a -> Eff (e :& es') a) ->
         Eff (e :& es) b
       ) ->
+      EffReaderList hs es b,
+    withRunInEff__ ::
+      forall e1 es b.
+      (e1 :> es) =>
+      ( forall e.
+        InEffRunner hs e1 ->
+        Eff (e :& es) b
+      ) ->
       EffReaderList hs es b
   }
 
@@ -94,7 +103,9 @@ instance Finite '[] where
         bind_ = \m f -> effReaderList (runEffReaderList m >>= (runEffReaderList . f)),
         mapHandle_ = effReaderList . useImpl . runEffReaderList,
         withRunInEff_ =
-          \toRun -> effReaderList (makeOp (toRun (useImpl . runEffReaderList)))
+          \toRun -> effReaderList (makeOp (toRun (useImpl . runEffReaderList))),
+        withRunInEff__ =
+          \toRun -> effReaderList (makeOp (toRun (MkInEffRunner (useImpl . runEffReaderList))))
       }
 
 instance (Finite hs) => Finite (h : hs) where
@@ -110,6 +121,13 @@ instance (Finite hs) => Finite (h : hs) where
           abstract $ \(h :: h e) -> do
             withRunInEff_ finiteImpl $ \runInEff ->
               assoc1Eff $ toRun $ \m -> do
+                weakenEff (withBase assoc2) $ do
+                  runInEff $
+                    apply (mapEffReaderListEffect m) h,
+        withRunInEff__ = \toRun -> do
+          abstract $ \(h :: h e) -> do
+            withRunInEff_ finiteImpl $ \runInEff ->
+              assoc1Eff $ useImplIn toRun $ MkInEffRunner $ \m -> do
                 weakenEff (withBase assoc2) $ do
                   runInEff $
                     apply (mapEffReaderListEffect m) h
