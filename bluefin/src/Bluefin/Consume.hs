@@ -11,6 +11,7 @@ module Bluefin.Consume
     streamConsume,
     -- * Effectful operations
     await,
+    takeConsume,
   )
 where
 
