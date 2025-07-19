@@ -42,7 +42,7 @@ import GHC.Generics (Generic, M1 (M1), Rec1 (Rec1), (:*:) ((:*:)))
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
-import GHC.Exts (TYPE)
+-- import GHC.Exts (TYPE)
 
 data Effects = Union Effects Effects
 
@@ -535,8 +535,8 @@ bimap (In# (# #)) (In# (# #)) = unsafeInAxiom ZW
 assoc1 :: ZW -> ((a :& b) :& c) `In` (a :& (b :& c))
 assoc1 ZW = unsafeInAxiom ZW
 
-assoc2 :: (# #) -> (e1 :& (e2 :& es)) `In` ((e1 :& e2) :& es)
-assoc2 (# #) = In# (# #)
+-- assoc2 :: (# #) -> (e1 :& (e2 :& es)) `In` ((e1 :& e2) :& es)
+-- assoc2 (# #) = In# (# #)
 
 drop :: a `In` b -> a `In` (c :& b)
 drop h = w2 (b h)
@@ -565,8 +565,8 @@ subsume2 i = cmp (bimap i (eq ZW)) (merge ZW)
 swap :: (# #) -> (a :& b) `In` (b :& a)
 swap (# #) = In# (# #)
 
-withBase :: forall a (r :: TYPE a). ((# #) -> r) -> r
-withBase f = f (# #)
+-- withBase :: forall a (r :: TYPE a). ((# #) -> r) -> r
+-- withBase f = f (# #)
 
 -- | Effect subset constraint
 class (es1 :: Effects) :> (es2 :: Effects)
