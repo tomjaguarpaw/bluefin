@@ -53,8 +53,8 @@ toState ::
   State.StateT s (EffReaderList hs es) a
 toState b = State.StateT $ \s -> do
   withRunInEff $ \rie -> do
-    runState s $ \st -> do
-      runIn rie b st
+    runState s $
+      runIn rie b
 
 example :: EffReaderList [Exception String, State Int, Reader Bool] es ()
 example =
@@ -95,8 +95,8 @@ toExcept ::
   Except.ExceptT s (EffReaderList hs es) a
 toExcept b = Except.ExceptT $ do
   withRunInEff $ \rie -> do
-    try $ \ex -> do
-      runIn rie b ex
+    try $
+      runIn rie b
 
 toReader ::
   (Finite hs) =>
@@ -105,8 +105,8 @@ toReader ::
   Reader.ReaderT r (EffReaderList hs es) a
 toReader b = Reader.ReaderT $ \r -> do
   withRunInEff $ \rie -> do
-    runReader r $ \re -> do
-      runIn rie b re
+    runReader r $
+      runIn rie b
 
 toWriter ::
   (Finite hs, Monoid w) =>
@@ -115,5 +115,5 @@ toWriter ::
   Writer.WriterT w (EffReaderList hs es) a
 toWriter b = Writer.WriterT $ do
   withRunInEff $ \rie -> do
-    runWriter $ \wr -> do
-      runIn rie b wr
+    runWriter $
+      runIn rie b
