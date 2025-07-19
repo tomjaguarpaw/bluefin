@@ -1,17 +1,25 @@
 module Bluefin.Random
-  ( Random,
+  ( -- * Handle
+    Random,
+    -- * Handlers
+    withInitStdGen,
     evalRandom,
     runRandom,
-    withInitStdGen,
+    -- * Effectful operations
+    -- $effectfuloperations
   )
 where
 
 import Bluefin.Eff (Eff, Effects, (:&), (:>))
+import Bluefin.IO (IOE, effIO)
 import Bluefin.State (State, get, put, runState)
 import qualified System.Random as Rnd
 import qualified System.Random.Stateful as Rnd
 import Prelude (flip, fst, pure, ($), (.), (<$>))
-import Bluefin.IO (IOE, effIO)
+
+-- $effectfuloperations
+--
+-- * @(Uniform a, RandomGen g, e1 :> es) => Random g e1 -> Eff es a 
 
 newtype Random g e = Random (State g e)
 
@@ -33,16 +41,25 @@ instance (e :> es, Rnd.RandomGen g) => Rnd.FrozenGen (RandomPure g e) (Eff es) w
     put s g
     pure a
 
-runRandom :: g -> (forall e. Random g e -> Eff (e :& es) a) -> Eff es (a, g)
+runRandom ::
+  g ->
+  (forall e. Random g e -> Eff (e :& es) a) ->
+  -- | ͘
+  Eff es (a, g)
 runRandom g f = runState g (f . Random)
 
-evalRandom :: g -> (forall e. Random g e -> Eff (e :& es) a) -> Eff es a
+evalRandom ::
+  g ->
+  (forall e. Random g e -> Eff (e :& es) a) ->
+  -- | ͘
+  Eff es a
 evalRandom g f = fst <$> runRandom g f
 
 withInitStdGen ::
   (e1 :> es) =>
   IOE e1 ->
   (forall e. Random Rnd.StdGen e -> Eff (e :& es) a) ->
+  -- | ͘
   Eff es a
 withInitStdGen io k = do
   g <- effIO io Rnd.initStdGen
