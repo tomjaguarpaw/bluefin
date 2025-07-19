@@ -75,13 +75,6 @@ data FiniteD hs = MkFiniteD
       (e :> es) =>
       EffReaderList hs e r ->
       EffReaderList hs es r,
-    withRunInEff_ ::
-      forall es b.
-      ( forall e.
-        (forall a es'. EffReaderList hs es' a -> Eff (e :& es') a) ->
-        Eff (e :& es) b
-      ) ->
-      EffReaderList hs es b,
     withRunInEff__ ::
       forall es b.
       ( forall e.
@@ -100,8 +93,6 @@ instance Finite '[] where
       { pure_ = effReaderList . pure,
         bind_ = \m f -> effReaderList (runEffReaderList m >>= (runEffReaderList . f)),
         mapHandle_ = effReaderList . useImpl . runEffReaderList,
-        withRunInEff_ =
-          \toRun -> effReaderList (makeOp (toRun (useImpl . runEffReaderList))),
         withRunInEff__ =
           \toRun -> effReaderList (makeOp (toRun (MkInEffRunner (useImpl . runEffReaderList))))
       }
@@ -115,19 +106,12 @@ instance (Finite hs) => Finite (h : hs) where
             runEffReaderList_ m >>= \a -> runEffReaderList_ (f a),
         mapHandle_ =
           MkEffReaderList . mapEffReaderListArrow . runEffReaderList_,
-        withRunInEff_ = \toRun -> do
-          abstract $ \(h :: h e) -> do
-            withRunInEff_ finiteImpl $ \runInEff ->
-              assoc1Eff $ toRun $ \m -> do
-                weakenEff (withBase assoc2) $ do
-                  runInEff $
-                    apply (mapEffReaderListEffect m) h,
         withRunInEff__ = \toRun -> do
           abstract $ \(h :: h e) -> do
-            withRunInEff_ finiteImpl $ \runInEff ->
+            withRunInEff__ finiteImpl $ \runInEff ->
               assoc1Eff $ toRun $ MkInEffRunner $ \m -> do
                 weakenEff (withBase assoc2) $ do
-                  runInEff $
+                  runInEff' runInEff $
                     apply (mapEffReaderListEffect m) h
       }
 
@@ -211,12 +195,6 @@ runEffReaderList ::
   Eff es r
 runEffReaderList = coerce
 
-withRunInEff ::
-  (Finite hs) =>
-  (forall e. (forall a es'. EffReaderList hs es' a -> Eff (e :& es') a) -> Eff (e :& es) b) ->
-  EffReaderList hs es b
-withRunInEff = withRunInEff_ finiteImpl
-
 newtype InEffRunner hs e
   = MkInEffRunner (forall a es'. EffReaderList hs es' a -> Eff (e :& es') a)
 
@@ -239,7 +217,7 @@ withRunInEff' ::
   (forall e. InEffRunner hs e -> Eff (e :& es) r) ->
   -- | ͘
   EffReaderList hs es r
-withRunInEff' k = withRunInEff (\runInEff -> k (MkInEffRunner runInEff))
+withRunInEff' = withRunInEff__ finiteImpl
 
 liftEff :: (Finite hs) => Eff es b -> EffReaderList hs es b
-liftEff m = withRunInEff (\_ -> useImpl m)
+liftEff m = withRunInEff__ finiteImpl (\_ -> useImpl m)
