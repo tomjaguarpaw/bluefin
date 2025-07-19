@@ -1,5 +1,4 @@
 {-# LANGUAGE QuantifiedConstraints #-}
-{-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Bluefin.Internal.Transformers where
@@ -14,7 +13,6 @@ import Bluefin.Internal.EffReaderList
     mapEffReaderListEffect,
     runEffReaderList,
     runInEff',
-    withRunInEff,
     withRunInEff',
   )
 import Control.Category ((>>>))
@@ -86,10 +84,9 @@ toExcept ::
   -- | ͘
   Except.ExceptT s (EffReaderList hs es) a
 toExcept b = Except.ExceptT $ do
-  withRunInEff $ \runInEff -> do
+  withRunInEff' $ \rie -> do
     try $ \ex -> do
-      foo $ do
-        runInEff $ do
+        runInEff' rie $ do
           mapEffReaderListEffect b `apply` ex
 
 toReader ::
@@ -98,11 +95,10 @@ toReader ::
   -- | ͘
   Reader.ReaderT r (EffReaderList hs es) a
 toReader b = Reader.ReaderT $ \r -> do
-  withRunInEff $ \runInEff -> do
+  withRunInEff' $ \rie -> do
     runReader r $ \re -> do
-      foo $ do
-        runInEff $ do
-          mapEffReaderListEffect b `apply` re
+      runInEff' rie $ do
+        mapEffReaderListEffect b `apply` re
 
 toWriter ::
   (Finite hs, Monoid w) =>
@@ -110,11 +106,7 @@ toWriter ::
   -- | ͘
   Writer.WriterT w (EffReaderList hs es) a
 toWriter b = Writer.WriterT $ do
-  withRunInEff $ \runInEff -> do
+  withRunInEff' $ \rie -> do
     runWriter $ \wr -> do
-      foo $ do
-        runInEff $ do
-          mapEffReaderListEffect b `apply` wr
-
-foo :: Eff (e :& (es :& e1)) a -> Eff (e1 :& (e :& es)) a
-foo = weakenEff (withBase $ \base -> bimap has (swap base) `cmp` assoc2 base `cmp` bimap (swap base) has `cmp` assoc1 base)
+      runInEff' rie $ do
+        mapEffReaderListEffect b `apply` wr
