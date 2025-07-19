@@ -9,7 +9,6 @@ import Bluefin.Internal
     Effects,
     Handle,
     In,
-    assoc1Eff,
     bimap,
     has,
     have,
