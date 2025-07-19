@@ -62,7 +62,10 @@ newtype EffReaderListHandle hs r es
   = MkEffReaderListHandle {unEffReaderListHandle :: EffReaderList hs es r}
 
 data FiniteD hs = MkFiniteD
-  { pure_ :: forall es r. r -> EffReaderList hs es r,
+  { pure_ ::
+      forall es r.
+      r ->
+      EffReaderList hs es r,
     bind_ ::
       forall es a b.
       EffReaderList hs es a ->
@@ -89,10 +92,12 @@ instance Finite '[] where
   finiteImpl =
     MkFiniteD
       { pure_ = effReaderList . pure,
-        bind_ = \m f -> effReaderList (runEffReaderList m >>= (runEffReaderList . f)),
+        bind_ = \m f ->
+          effReaderList (runEffReaderList m >>= (runEffReaderList . f)),
         mapHandle_ = effReaderList . useImpl . runEffReaderList,
-        withRunInEff_ =
-          \toRun -> effReaderList (makeOp (toRun (MkInEffRunner (useImpl . runEffReaderList))))
+        withRunInEff_ = \toRun ->
+          effReaderList
+            (makeOp (toRun (MkInEffRunner (useImpl . runEffReaderList))))
       }
 
 instance (Finite hs) => Finite (h : hs) where
