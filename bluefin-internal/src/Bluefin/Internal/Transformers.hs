@@ -12,8 +12,8 @@ import Bluefin.Internal.EffReaderList
     effReaderList,
     mapEffReaderListEffect,
     runEffReaderList,
-    runInEff',
-    withRunInEff',
+    runInEff,
+    withRunInEff,
   )
 import Control.Category ((>>>))
 import Control.Monad (when)
@@ -28,11 +28,11 @@ toStateAndUnit ::
   EffReaderList (State s : State () : Exception exn : hs) e a ->
   State.StateT s (EffReaderList hs es) (Either exn a)
 toStateAndUnit b = State.StateT $ \s -> do
-  withRunInEff' $ \rie -> do
+  withRunInEff $ \rie -> do
     runState s $ \st -> do
       evalState () $ \stu -> do
         try $ \ex ->
-          runInEff' rie $ do
+          runInEff rie $ do
             ((mapEffReaderListEffect b `apply` st) `apply` stu) `apply` ex
 
 toState ::
@@ -41,9 +41,9 @@ toState ::
   -- | ͘
   State.StateT s (EffReaderList hs es) a
 toState b = State.StateT $ \s -> do
-  withRunInEff' $ \rie -> do
+  withRunInEff $ \rie -> do
     runState s $ \st -> do
-      runInEff' rie $ do
+      runInEff rie $ do
         mapEffReaderListEffect b `apply` st
 
 example :: EffReaderList [Exception String, State Int, Reader Bool] es ()
@@ -84,9 +84,9 @@ toExcept ::
   -- | ͘
   Except.ExceptT s (EffReaderList hs es) a
 toExcept b = Except.ExceptT $ do
-  withRunInEff' $ \rie -> do
+  withRunInEff $ \rie -> do
     try $ \ex -> do
-        runInEff' rie $ do
+        runInEff rie $ do
           mapEffReaderListEffect b `apply` ex
 
 toReader ::
@@ -95,9 +95,9 @@ toReader ::
   -- | ͘
   Reader.ReaderT r (EffReaderList hs es) a
 toReader b = Reader.ReaderT $ \r -> do
-  withRunInEff' $ \rie -> do
+  withRunInEff $ \rie -> do
     runReader r $ \re -> do
-      runInEff' rie $ do
+      runInEff rie $ do
         mapEffReaderListEffect b `apply` re
 
 toWriter ::
@@ -106,7 +106,7 @@ toWriter ::
   -- | ͘
   Writer.WriterT w (EffReaderList hs es) a
 toWriter b = Writer.WriterT $ do
-  withRunInEff' $ \rie -> do
+  withRunInEff $ \rie -> do
     runWriter $ \wr -> do
-      runInEff' rie $ do
+      runInEff rie $ do
         mapEffReaderListEffect b `apply` wr

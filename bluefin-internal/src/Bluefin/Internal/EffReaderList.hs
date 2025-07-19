@@ -108,10 +108,10 @@ instance (Finite hs) => Finite (h : hs) where
           MkEffReaderList . mapEffReaderListArrow . runEffReaderList_,
         withRunInEff__ = \toRun -> do
           abstract $ \(h :: h e) -> do
-            withRunInEff__ finiteImpl $ \runInEff ->
+            withRunInEff__ finiteImpl $ \rie ->
               assoc1Eff $ toRun $ MkInEffRunner $ \m -> do
                 weakenEff (withBase assoc2) $ do
-                  runInEff' runInEff $
+                  runInEff rie $
                     apply (mapEffReaderListEffect m) h
       }
 
@@ -202,22 +202,22 @@ instance Handle (InEffRunner hs) where
   mapHandle (MkInEffRunner f) =
     MkInEffRunner (\m -> weakenEff (bimap has has) (f m))
 
-runInEff' ::
+runInEff ::
   (e :> es) =>
   InEffRunner hs e ->
   EffReaderList hs es r ->
   -- | ͘
   Eff es r
-runInEff' ier m = do
+runInEff ier m = do
   let MkInEffRunner f = mapHandle ier
   makeOp (f m)
 
-withRunInEff' ::
+withRunInEff ::
   (Finite hs) =>
   (forall e. InEffRunner hs e -> Eff (e :& es) r) ->
   -- | ͘
   EffReaderList hs es r
-withRunInEff' = withRunInEff__ finiteImpl
+withRunInEff = withRunInEff__ finiteImpl
 
 liftEff :: (Finite hs) => Eff es b -> EffReaderList hs es b
 liftEff m = withRunInEff__ finiteImpl (\_ -> useImpl m)
