@@ -12,6 +12,10 @@ module Bluefin.Random
 
     -- * Effectful operations
     -- $effectfuloperations
+
+    -- * Internal details
+    -- $internaldetails
+    RandomPure,
   )
 where
 
@@ -127,6 +131,13 @@ import Prelude (flip, fst, pure, ($), (.), (<$>))
 --   Random g e1 ->
 --   Eff es Float
 -- @
+
+-- $internaldetails
+--
+-- 'RandomPure' is an internal detail that is used to implement a
+-- 'System.Random.Stateful.FrozenGen' instance for 'Random'.  You may
+-- see it in error messages, so we include it here from completeness.
+-- You will most likely never need to use @RandomPure@ directly.
 
 newtype Random g e = Random (State g e)
   deriving newtype (Handle)
