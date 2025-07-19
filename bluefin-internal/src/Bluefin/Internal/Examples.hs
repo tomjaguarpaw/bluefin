@@ -109,6 +109,13 @@ cycleToStreamExample = runPureEff $ yieldToList $ \yOut -> do
     (\c -> takeConsume 6 c yOut)
     (\yIn -> cycleToStream [1 .. 3] yIn)
 
+-- ([1,2,3,4],())
+takeConsumeExample :: ([Int], ())
+takeConsumeExample = runPureEff $ yieldToList $ \yOut -> do
+  consumeStream
+    (\c -> takeConsume 4 c yOut)
+    (\yIn -> inFoldable [1 .. 10] yIn)
+
 inFoldableExample :: ([Int], ())
 inFoldableExample = runPureEff $ yieldToList $ inFoldable [1, 2, 100]
 

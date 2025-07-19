@@ -1129,6 +1129,28 @@ cycleToStream ::
 cycleToStream f y = do
   forever (inFoldable f y)
 
+-- |
+-- @
+-- runPureEff $ yieldToList $ \yOut -> do
+--   consumeStream
+--     (\c -> takeConsume 4 c yOut)
+--     (\yIn -> inFoldable [1..10] yIn)
+-- ([1,2,3,4],())
+-- @
+takeConsume ::
+  (ea :> es, eb :> es) =>
+  Int ->
+  Consume a ea ->
+  Stream a eb ->
+  -- | ͘
+  Eff es ()
+takeConsume count source sink = loop count
+  where
+    loop c | c <= 0 = pure ()
+    loop c = do
+      await source >>= yield sink
+      loop (c - 1)
+
 type Jump = EarlyReturn ()
 
 -- |

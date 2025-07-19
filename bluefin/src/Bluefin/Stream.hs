@@ -24,6 +24,7 @@ module Bluefin.Stream
     yield,
     inFoldable,
     cycleToStream,
+    takeConsume,
   )
 where
 
