@@ -3,7 +3,6 @@ module Bluefin.Examples.Random where
 import Bluefin.Eff (Eff, (:>))
 import Bluefin.IO (effIO, runEff_)
 import Bluefin.Random (Random, withInitStdGen)
-import Data.Array.Byte (ByteArray)
 import Data.ByteString (ByteString)
 import Data.ByteString.Short (ShortByteString)
 import System.Random.Stateful (RandomGen, Uniform, UniformRange, randomRM)
@@ -52,6 +51,7 @@ uniformShuffleListM ::
   Eff es [a]
 uniformShuffleListM = RS.uniformShuffleListM
 
+{-
 uniformByteArrayM ::
   (RandomGen g, e1 :> es) =>
   Bool ->
@@ -59,6 +59,7 @@ uniformByteArrayM ::
   Random g e1 ->
   Eff es ByteArray
 uniformByteArrayM = RS.uniformByteArrayM
+-}
 
 uniformByteStringM ::
   (RandomGen g, e1 :> es) =>
