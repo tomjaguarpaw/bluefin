@@ -19,7 +19,7 @@ import Bluefin.Internal
     useImpl,
     weakenEff,
     (:&),
-    (:>),
+    (:>), useImplIn,
   )
 import Control.Monad (ap)
 import Data.Coerce (coerce)
@@ -107,7 +107,7 @@ instance (Finite hs) => Finite (h : hs) where
         withRunInEff_ = \toRun -> do
           abstract $ \(h :: h e) -> do
             withRunInEff_ finiteImpl $ \rie ->
-              assoc1Eff $ toRun $ MkInEffRunner $ \m -> do
+              useImplIn toRun $ MkInEffRunner $ \m -> do
                 runInEff rie $
                   apply (mapEffReaderListEffect m) h
       }
