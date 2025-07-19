@@ -16,9 +16,10 @@ import Bluefin.Internal
     mapHandle,
     subsume2,
     useImpl,
+    useImplIn,
     weakenEff,
     (:&),
-    (:>), useImplIn,
+    (:>),
   )
 import Control.Monad (ap)
 import Data.Coerce (coerce)
