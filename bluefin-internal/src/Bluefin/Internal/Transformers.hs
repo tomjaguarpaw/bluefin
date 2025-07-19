@@ -46,6 +46,16 @@ runIn rie b h =
   runInEff rie $ do
     mapEffReaderListEffect b `apply` h
 
+foo ::
+  (Finite hs, e1 :> es, e3 :> es) =>
+  ((forall e. h e -> Eff (e :& es) r) -> Eff es b) ->
+  InEffRunner hs e1 ->
+  EffReaderList (h : hs) e3 r ->
+  Eff es b
+foo k rie b =
+  k $
+    runIn rie b
+
 toState ::
   (Finite hs) =>
   EffReaderList (State s : hs) es a ->
@@ -53,8 +63,7 @@ toState ::
   State.StateT s (EffReaderList hs es) a
 toState b = State.StateT $ \s -> do
   withRunInEff $ \rie -> do
-    runState s $
-      runIn rie b
+    foo (\x -> runState s x) rie b
 
 example :: EffReaderList [Exception String, State Int, Reader Bool] es ()
 example =
@@ -95,8 +104,7 @@ toExcept ::
   Except.ExceptT s (EffReaderList hs es) a
 toExcept b = Except.ExceptT $ do
   withRunInEff $ \rie -> do
-    try $
-      runIn rie b
+    foo try rie b
 
 toReader ::
   (Finite hs) =>
@@ -105,8 +113,7 @@ toReader ::
   Reader.ReaderT r (EffReaderList hs es) a
 toReader b = Reader.ReaderT $ \r -> do
   withRunInEff $ \rie -> do
-    runReader r $
-      runIn rie b
+    foo (runReader r) rie b
 
 toWriter ::
   (Finite hs, Monoid w) =>
@@ -115,5 +122,4 @@ toWriter ::
   Writer.WriterT w (EffReaderList hs es) a
 toWriter b = Writer.WriterT $ do
   withRunInEff $ \rie -> do
-    runWriter $
-      runIn rie b
+    foo runWriter rie b
