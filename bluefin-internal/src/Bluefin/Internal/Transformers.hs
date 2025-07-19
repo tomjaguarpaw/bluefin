@@ -7,6 +7,7 @@ import Bluefin.Internal hiding (b, w)
 import Bluefin.Internal.EffReaderList
   ( EffReaderList,
     Finite,
+    InEffRunner,
     abstract,
     apply,
     effReaderList,
@@ -35,16 +36,15 @@ toStateAndUnit b = State.StateT $ \s -> do
           runInEff rie $ do
             ((mapEffReaderListEffect b `apply` st) `apply` stu) `apply` ex
 
-runT ::
-  (Finite hs) =>
-  EffReaderList (h : hs) es r1 ->
-  (forall e. (h e -> Eff (e :& es) r1) -> Eff (e :& es) r2) ->
-  EffReaderList hs es r2
-runT b run = do
-  withRunInEff $ \rie -> do
-    run $ \h -> do
-      runInEff rie $ do
-        mapEffReaderListEffect b `apply` h
+runIn ::
+  (Finite hs, e1 :> es, e2 :> es, e3 :> es) =>
+  InEffRunner hs e1 ->
+  EffReaderList (h : hs) e3 r ->
+  h e2 ->
+  Eff es r
+runIn rie b h =
+  runInEff rie $ do
+    mapEffReaderListEffect b `apply` h
 
 toState ::
   (Finite hs) =>
@@ -54,8 +54,7 @@ toState ::
 toState b = State.StateT $ \s -> do
   withRunInEff $ \rie -> do
     runState s $ \st -> do
-      runInEff rie $ do
-        mapEffReaderListEffect b `apply` st
+      runIn rie b st
 
 example :: EffReaderList [Exception String, State Int, Reader Bool] es ()
 example =
@@ -97,8 +96,7 @@ toExcept ::
 toExcept b = Except.ExceptT $ do
   withRunInEff $ \rie -> do
     try $ \ex -> do
-        runInEff rie $ do
-          mapEffReaderListEffect b `apply` ex
+      runIn rie b ex
 
 toReader ::
   (Finite hs) =>
@@ -108,8 +106,7 @@ toReader ::
 toReader b = Reader.ReaderT $ \r -> do
   withRunInEff $ \rie -> do
     runReader r $ \re -> do
-      runInEff rie $ do
-        mapEffReaderListEffect b `apply` re
+      runIn rie b re
 
 toWriter ::
   (Finite hs, Monoid w) =>
@@ -119,5 +116,4 @@ toWriter ::
 toWriter b = Writer.WriterT $ do
   withRunInEff $ \rie -> do
     runWriter $ \wr -> do
-      runInEff rie $ do
-        mapEffReaderListEffect b `apply` wr
+      runIn rie b wr
