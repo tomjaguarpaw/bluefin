@@ -14,12 +14,14 @@ import Bluefin.Internal
     have,
     makeOp,
     mapHandle,
+    sndI,
     subsume2,
     useImpl,
     useImplIn,
     weakenEff,
+    withBase,
     (:&),
-    (:>), withBase, sndI,
+    (:>),
   )
 import Control.Monad (ap)
 import Data.Coerce (coerce)
@@ -224,32 +226,6 @@ withRunInEff = withRunInEff_ finiteImpl
 liftEff :: (Finite hs) => Eff es b -> EffReaderList hs es b
 liftEff m = withRunInEff_ finiteImpl (\_ -> useImpl m)
 
-runIn ::
-  (Finite hs, e1 :> es, e2 :> es, e3 :> es) =>
-  InEffRunner hs e1 ->
-  EffReaderList (h : hs) e3 r ->
-  h e2 ->
-  Eff es r
-runIn rie b h =
-  runInEff rie $ do
-    mapEffReaderListEffect b `apply` h
-
-foo ::
-  (Finite hs, e1 :> es, e3 :> es) =>
-  ((forall e. h e -> Eff (e :& es) r) -> Eff es b) ->
-  InEffRunner hs e1 ->
-  EffReaderList (h : hs) e3 r ->
-  Eff es b
-foo k rie b = k (runIn rie b)
-
-foo1 ::
-  (Finite hs, e1 :> es, e3 :> es) =>
-  (EffReaderList '[h] es r -> Eff es b) ->
-  InEffRunner hs e1 ->
-  EffReaderList (h : hs) e3 r ->
-  Eff es b
-foo1 karg = foo (\kerl -> karg (abstract $ \h -> effReaderList (kerl h)))
-
 blah ::
   ((forall e. h e -> Eff (e :& es) r) -> r1) ->
   EffReaderList '[h] es r ->
@@ -262,9 +238,12 @@ blaz ::
   (forall e. EffReaderList '[h] (e :& es) r1 -> Eff (e :& es) r2) ->
   EffReaderList (h : hs) e3 r1 ->
   EffReaderList hs es r2
-blaz bl b =
+blaz karg b =
   withRunInEff $ \rie ->
-    foo1 bl rie b
+    karg $ abstract $ \h ->
+      effReaderList $
+        runInEff rie $ do
+          mapEffReaderListEffect b `apply` h
 
 -- | Use an 'Eff' handler to handler an 'EffReaderList'
 effReaderListHandler ::
@@ -273,3 +252,16 @@ effReaderListHandler ::
   EffReaderList (h : hs) e3 r1 ->
   EffReaderList hs es r2
 effReaderListHandler h = blaz (blah h)
+
+newtype Membership h hs
+  = MkMembership (forall a es. EffReaderList '[h] es a -> EffReaderList hs es a)
+
+here :: (Finite hs) => Membership h (h : hs)
+here = MkMembership $ \erl -> abstract $ \h -> do
+  let p = apply (mapEffReaderListEffect erl) h
+  liftEff (runEffReaderList p)
+
+there :: (Finite hs) => Membership h hs -> Membership h (h' : hs)
+there m = MkMembership $ \erl -> abstract $ \_ -> do
+  case m of MkMembership k -> mapEffReaderListEffect (k erl)
+
