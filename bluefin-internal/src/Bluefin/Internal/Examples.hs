@@ -102,6 +102,13 @@ ignoreStreamExample = runPureEff $ ignoreStream @Int $ \y -> do
 
   pure 42
 
+-- ([1,2,3,1,2,3],())
+cycleToStreamExample :: ([Int], ())
+cycleToStreamExample = runPureEff $ yieldToList $ \yOut -> do
+  consumeStream
+    (\c -> takeConsume 6 c yOut)
+    (\yIn -> cycleToStream [1 .. 3] yIn)
+
 inFoldableExample :: ([Int], ())
 inFoldableExample = runPureEff $ yieldToList $ inFoldable [1, 2, 100]
 

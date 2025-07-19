@@ -1,4 +1,4 @@
-* Added `streamConsume` (thanks to @iteratee)
+* Added `streamConsume`, `cycleToStream` (thanks to @iteratee)
 
 ## 0.1.0.0
 

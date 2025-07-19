@@ -23,6 +23,7 @@ module Bluefin.Stream
     -- * Effectful operations
     yield,
     inFoldable,
+    cycleToStream,
   )
 where
 
