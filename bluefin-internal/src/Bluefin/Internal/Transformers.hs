@@ -35,6 +35,17 @@ toStateAndUnit b = State.StateT $ \s -> do
           runInEff rie $ do
             ((mapEffReaderListEffect b `apply` st) `apply` stu) `apply` ex
 
+runT ::
+  (Finite hs) =>
+  EffReaderList (h : hs) es r1 ->
+  (forall e. (h e -> Eff (e :& es) r1) -> Eff (e :& es) r2) ->
+  EffReaderList hs es r2
+runT b run = do
+  withRunInEff $ \rie -> do
+    run $ \h -> do
+      runInEff rie $ do
+        mapEffReaderListEffect b `apply` h
+
 toState ::
   (Finite hs) =>
   EffReaderList (State s : hs) es a ->
