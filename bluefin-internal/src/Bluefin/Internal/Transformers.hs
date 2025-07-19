@@ -66,8 +66,8 @@ foo1 ::
 foo1 karg = foo (\kerl -> karg (abstract $ \h -> effReaderList (kerl h)))
 
 blah :: ((forall e. h e -> Eff (e :& es) r) -> b2) -> (EffReaderList '[h] es r -> b2)
-blah h =
-  (\erl -> h $ \st -> runEffReaderList (apply (mapEffReaderListEffectIn (withBase sndI) erl) st))
+blah h erl = h $
+  \st -> runEffReaderList (apply (mapEffReaderListEffectIn (withBase sndI) erl) st)
 
 blaz ::
   (Finite hs, e3 :> es) =>
@@ -78,13 +78,20 @@ blaz bl b =
   withRunInEff $ \rie ->
     foo1 bl rie b
 
+blurg ::
+  (Finite hs, e3 :> es) =>
+  (forall e. (forall e1. h e1 -> Eff (e1 :& (e :& es)) r1) -> Eff (e :& es) r2) ->
+  EffReaderList (h : hs) e3 r1 ->
+  EffReaderList hs es r2
+blurg h = blaz (blah h)
+
 toState ::
   (Finite hs) =>
   EffReaderList (State s : hs) es a ->
   -- | ͘
   State.StateT s (EffReaderList hs es) a
 toState b = State.StateT $ \s ->
-  blaz (blah (runState s)) b
+  blurg (runState s) b
 
 example :: EffReaderList [Exception String, State Int, Reader Bool] es ()
 example =
@@ -124,7 +131,7 @@ toExcept ::
   -- | ͘
   Except.ExceptT s (EffReaderList hs es) a
 toExcept b = Except.ExceptT $ do
-    blaz (blah try) b
+  blurg try b
 
 toReader ::
   (Finite hs) =>
@@ -132,12 +139,13 @@ toReader ::
   -- | ͘
   Reader.ReaderT r (EffReaderList hs es) a
 toReader b = Reader.ReaderT $ \r -> do
-    blaz (blah (runReader r)) b
+  blurg (runReader r) b
 
 toWriter ::
   (Finite hs, Monoid w) =>
   EffReaderList (Writer w : hs) es a ->
   -- | ͘
   Writer.WriterT w (EffReaderList hs es) a
-toWriter b = Writer.WriterT $
-  blaz (blah runWriter) b
+toWriter b =
+  Writer.WriterT $
+    blurg runWriter b
