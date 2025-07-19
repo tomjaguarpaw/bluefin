@@ -28,7 +28,7 @@ import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
--- import GHC.Exts (TYPE)
+import GHC.Exts (TYPE)
 
 data Effects = Union Effects Effects
 
@@ -452,8 +452,8 @@ subsume2 i = cmp (bimap i (eq (# #))) (merge (# #))
 -- swap :: (# #) -> (a :& b) `In` (b :& a)
 -- swap (# #) = In# (# #)
 
--- withBase :: forall a (r :: TYPE a). ((# #) -> r) -> r
--- withBase f = f (# #)
+withBase :: forall a (r :: TYPE a). ((# #) -> r) -> r
+withBase f = f (# #)
 
 -- | Effect subset constraint
 class (es1 :: Effects) :> (es2 :: Effects)
