@@ -27,7 +27,6 @@ import Control.Monad (ap)
 import Data.Coerce (coerce)
 import Data.Kind (Type)
 import Unsafe.Coerce (unsafeCoerce)
-import Bluefin.Compound (useImplIn)
 
 type EffReaderListF :: [Effects -> Type] -> Effects -> Type -> Type
 
@@ -84,10 +83,9 @@ data FiniteD hs = MkFiniteD
       ) ->
       EffReaderList hs es b,
     withRunInEff__ ::
-      forall e1 es b.
-      (e1 :> es) =>
+      forall es b.
       ( forall e.
-        InEffRunner hs e1 ->
+        InEffRunner hs e ->
         Eff (e :& es) b
       ) ->
       EffReaderList hs es b
@@ -125,12 +123,7 @@ instance (Finite hs) => Finite (h : hs) where
                   runInEff $
                     apply (mapEffReaderListEffect m) h,
         withRunInEff__ = \toRun -> do
-          abstract $ \(h :: h e) -> do
-            withRunInEff_ finiteImpl $ \runInEff ->
-              assoc1Eff $ useImplIn toRun $ MkInEffRunner $ \m -> do
-                weakenEff (withBase assoc2) $ do
-                  runInEff $
-                    apply (mapEffReaderListEffect m) h
+          withRunInEff (\runInEff -> toRun (MkInEffRunner runInEff))
       }
 
 instance (Finite hs) => Functor (EffReaderList hs es) where
