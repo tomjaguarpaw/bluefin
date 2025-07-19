@@ -1,6 +1,10 @@
 * Added `streamConsume`, `cycleToStream`, `takeConsume` (thanks to
   @iteratee)
 
+* Restrict the kind of the argument to
+  `Bluefin.Internal.Exception.Scoped.Exception` and
+  `Bluefin.Internal.ConstEffect` to `Effects`
+
 ## 0.1.0.0
 
 * Implement `Exception` using `Eff` not naked `IO`
