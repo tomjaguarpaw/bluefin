@@ -82,6 +82,7 @@ library
       transformers-base < 0.5,
       monad-control < 1.1,
       mmorph,
+      mtl,
     exposed-modules:
       Bluefin.Internal,
       Bluefin.Internal.CloneableHandle,

@@ -1,5 +1,6 @@
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Bluefin.Internal.EffReaderList where
 
@@ -23,10 +24,13 @@ import Bluefin.Internal
     (:&),
     (:>),
   )
+import qualified Bluefin.Internal as B
 import Control.Monad (ap)
+import Control.Monad.State (MonadState (get))
 import Data.Coerce (coerce)
 import Data.Kind (Type)
 import Unsafe.Coerce (unsafeCoerce)
+import Control.Monad.RWS.Class (MonadState(put))
 
 type EffReaderListF :: [Effects -> Type] -> Effects -> Type -> Type
 
@@ -265,3 +269,31 @@ there :: (Finite hs) => Membership h hs -> Membership h (h' : hs)
 there m = MkMembership $ \erl -> abstract $ \_ -> do
   case m of MkMembership k -> mapEffReaderListEffect (k erl)
 
+class Finite hs => Member h hs where
+  member :: Membership h hs
+
+instance (Finite hs) => Member h (h : hs) where
+  member = here
+
+instance Member h hs => Member h (h' : hs) where
+  member = there member
+
+withMembership ::
+  Membership h hs ->
+  (forall e. h e -> Eff (e :& es) r) ->
+  EffReaderList hs es r
+withMembership (MkMembership k) m = k (abstract (\h -> effReaderList (m h)))
+
+withMember ::
+  (Member h hs) =>
+  (forall e. h e -> Eff (e :& es) r) ->
+  EffReaderList hs es r
+withMember = withMembership member
+
+instance
+  (Member (B.State s) hs, MonadState s (EffReaderList hs es)) =>
+  MonadState s (EffReaderList hs es) where
+  put = \s -> withMember (flip B.put s)
+  get = withMember B.get
+example :: Member (B.State ()) hs => EffReaderList hs es ()
+example = pure () :: MonadState () m => m ()
