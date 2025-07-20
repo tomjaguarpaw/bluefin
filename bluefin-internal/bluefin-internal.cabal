@@ -84,6 +84,7 @@ library
       transformers-base < 0.5,
       monad-control < 1.1,
       mmorph,
+      mtl,
     ghc-options: -Wall
     exposed-modules:
       Bluefin.Internal,
