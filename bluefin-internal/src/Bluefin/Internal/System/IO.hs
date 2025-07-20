@@ -10,7 +10,7 @@ import Bluefin.Internal
     bracket,
     effIO,
     mapHandle,
-    useImplIn,
+    useImplIn0,
     (:&),
     (:>),
   )
@@ -38,7 +38,7 @@ withFile io fp iomode k =
     )
     ( \handle -> effIO io (System.IO.hClose handle)
     )
-    ( \handle -> useImplIn k (UnsafeMkHandle handle (mapHandle io))
+    ( \handle -> useImplIn0 $ k (UnsafeMkHandle handle (mapHandle io))
     )
 
 hPutChar ::

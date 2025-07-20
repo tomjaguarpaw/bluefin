@@ -661,7 +661,7 @@ module Bluefin.Compound
     makeOp,
     useImpl,
     useImplUnder,
-    useImplIn,
+    useImplIn0,
 
     -- * Deprecated
 
@@ -670,6 +670,7 @@ module Bluefin.Compound
     runCompound,
     withCompound,
     useImplWithin,
+    useImplIn,
   )
 where
 
