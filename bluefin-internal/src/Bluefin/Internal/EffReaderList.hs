@@ -194,8 +194,7 @@ apply (MkEffReaderList e) h =
   mapEffReaderListEffectIn (subsume2 has) (runEffReaderListArrow e h)
 
 apply1 ::
-  e :> es =>
-  EffReaderList (h : '[]) e r ->
+  EffReaderList (h : '[]) es r ->
   h es ->
   -- | ͘
   Eff es r

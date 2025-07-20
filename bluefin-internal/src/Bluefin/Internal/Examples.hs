@@ -959,23 +959,28 @@ runFileSystemPure1 ::
   [(FilePath, String)] ->
   (forall e2. FileSystem e2 -> Eff (e2 :& es) r) ->
   Eff es r
-runFileSystemPure1 ex fs0 (abstract1 -> k) =
+runFileSystemPure1 ex fs0 k =
   evalState fs0 $ \fs ->
     apply1
-            k
-            MkFileSystem
-              { readFileImpl = \path -> do
-                  fs' <- get fs
-                  case lookup path fs' of
-                    Nothing ->
-                      throw ex ("File not found: " <> path)
-                    Just s -> pure s,
-                writeFileImpl = \path contents ->
-                  modify fs ((path, contents) :)
-              }
+      (blahg k)
+      MkFileSystem
+        { readFileImpl = \path -> do
+            fs' <- get fs
+            case lookup path fs' of
+              Nothing ->
+                throw ex ("File not found: " <> path)
+              Just s -> pure s,
+          writeFileImpl = \path contents ->
+            modify fs ((path, contents) :)
+        }
 
+blahg ::
+  es :> es' =>
+  (forall e. h e -> Eff (e :& es) r) ->
+  EffReaderList '[h] es' r
+blahg k = mapEffReaderListEffect (abstract1 k)
 
-weaken :: Finite hs => EffReaderList hs es r -> EffReaderList hs (e :& es) r
+weaken :: (Finite hs) => EffReaderList hs es r -> EffReaderList hs (e :& es) r
 weaken = mapEffReaderListEffect
 
 runFileSystemIO ::
