@@ -176,6 +176,14 @@ mapEffReaderListEffectUnder ::
   EffReaderList l (e1 :& es) r
 mapEffReaderListEffectUnder = mapEffReaderListEffectIn (bimap has has)
 
+apply0 ::
+  (e :> es, es' :> es, Finite hs) =>
+  EffReaderList (h : hs) es' r ->
+  h e ->
+  -- | ͘
+  EffReaderList hs es r
+apply0 e = apply (mapEffReaderListEffect e)
+
 apply ::
   (e :> es, Finite hs) =>
   EffReaderList (h : hs) es r ->

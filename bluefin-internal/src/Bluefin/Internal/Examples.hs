@@ -838,6 +838,56 @@ runCounter7 y k =
         )
     get st
 
+data Counter7e e = MkCounter7e
+  { incCounter7Imple :: EffReaderList '[Exception ()] e (),
+    counter7Statee :: State Int e,
+    counter7Streame :: Stream String e
+  }
+
+instance Handle Counter7e where
+  mapHandle c =
+    MkCounter7e
+      { incCounter7Imple = mapEffReaderListEffect (incCounter7Imple c),
+        counter7Statee = mapHandle (counter7Statee c),
+        counter7Streame = mapHandle (counter7Streame c)
+      }
+
+incCounter7e ::
+  (e :> es, e1 :> es) => Counter7e e -> Exception () e1 -> Eff es ()
+incCounter7e e ex = runEffReaderList (apply0 (incCounter7Imple e) ex)
+
+getCounter7e :: (e :> es) => Counter7e e -> String -> Eff es Int
+getCounter7e (MkCounter7e _ st y) msg = do
+  yield y msg
+  get st
+
+runCounter7e ::
+  (e1 :> es) =>
+  Stream String e1 ->
+  (forall e. Counter7e e -> Eff (e :& es) r) ->
+  Eff es Int
+runCounter7e y k =
+  evalState 0 $ \st -> do
+    _ <-
+      useImplIn
+        k
+        ( MkCounter7e
+            { incCounter7Imple = abstract $ \ex -> effReaderList $ do
+                count <- get st
+
+                when (even count) $
+                  yield y "Count was even"
+
+                when (count >= 10) $
+                  throw ex ()
+
+                put st (count + 1),
+              counter7Statee = mapHandle st,
+              counter7Streame = mapHandle y
+            }
+        )
+    get st
+
 exampleCounter7A :: ([String], Int)
 exampleCounter7A = runPureEff $ yieldToList $ \y -> do
   handle (\() -> pure (-42)) $ \ex ->
