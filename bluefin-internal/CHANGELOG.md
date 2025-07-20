@@ -1,3 +1,5 @@
+* Add `useImplIn0` and soft deprecate `useImplIn`
+
 ## 0.1.1.0
 
 * Added `streamConsume`, `cycleToStream`, `takeConsume` (thanks to

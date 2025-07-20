@@ -6,7 +6,7 @@ module Bluefin.Examples.Stream.Many where
 import Bluefin.Compound
   ( Handle (mapHandle),
     makeOp,
-    useImplIn,
+    useImplIn0,
     useImplUnder,
     useImplWithin,
   )
@@ -211,6 +211,6 @@ connectMany' (MkWrap s : ss) k =
     ss
     ( \cs ->
         consumeStream
-          (\c -> useImplIn k (mapHandle c : map mapHandle cs))
+          (\c -> useImplIn0 $ k (mapHandle c : map mapHandle cs))
           (useImplWithin s)
     )
