@@ -1,6 +1,7 @@
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Bluefin.Internal.EffReaderList where
 
@@ -9,7 +10,9 @@ import Bluefin.Internal
     Eff,
     Effects,
     Handle,
+    HandleReader,
     In,
+    State,
     bimap,
     has,
     have,
@@ -22,7 +25,7 @@ import Bluefin.Internal
     weakenEff,
     withBase,
     (:&),
-    (:>),
+    (:>), evalState, HandleReader (UnsafeMkHandleReader),
   )
 import qualified Bluefin.Internal as B
 import Control.Monad (ap)
@@ -30,6 +33,7 @@ import Control.Monad.RWS.Class (MonadState (put))
 import Control.Monad.State (MonadState (get))
 import Data.Coerce (coerce)
 import Data.Kind (Type)
+import Data.Type.Coercion (Coercion (Coercion))
 import Unsafe.Coerce (unsafeCoerce)
 
 type EffReaderListF :: [Effects -> Type] -> Effects -> Type -> Type
@@ -181,6 +185,14 @@ apply ::
 apply (MkEffReaderList e) h =
   mapEffReaderListEffectIn (subsume2 has) (runEffReaderListArrow e h)
 
+apply1 ::
+  e :> es =>
+  EffReaderList (h : '[]) e r ->
+  h es ->
+  -- | ͘
+  Eff es r
+apply1 e h = runEffReaderList (apply (mapEffReaderListEffect e) h)
+
 abstract ::
   -- Finite is a redundant constraint, but it seems prudent to add it
   -- in case it is needed in the future if we change representation.
@@ -299,3 +311,11 @@ instance
 
 example :: (Member (B.State ()) hs) => EffReaderList hs es ()
 example = pure () :: (MonadState () m) => m ()
+
+abstract1 ::
+  (forall e. h e -> Eff (e :& es) r) ->
+  -- | ͘
+  EffReaderList '[h] es r
+-- TODO: maybe this should be unsafeCoerce for efficiency
+abstract1 f = abstract $ \h ->
+  effReaderList (f h)

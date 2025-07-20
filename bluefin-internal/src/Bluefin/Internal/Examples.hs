@@ -1,4 +1,5 @@
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
@@ -9,6 +10,7 @@ import Bluefin.Internal.OneWayCoercible
   ( OneWayCoercible (oneWayCoercibleImpl),
     gOneWayCoercible,
   )
+import Bluefin.Internal.EffReaderList
 import Bluefin.Internal.Pipes
   ( Producer,
     runEffect,
@@ -885,8 +887,11 @@ runFileSystemPure ::
   Eff es r
 runFileSystemPure ex fs0 k =
   evalState fs0 $ \fs ->
+    -- useImplIn retuns (estate :& es)
     useImplIn
-      k
+      -- k returns Eff ((estate :& es) :& es)
+      k -- @(estate :& es)
+      -- FileSystem (estate :& es)
       MkFileSystem
         { readFileImpl = \path -> do
             fs' <- get fs
@@ -897,6 +902,31 @@ runFileSystemPure ex fs0 k =
           writeFileImpl = \path contents ->
             modify fs ((path, contents) :)
         }
+
+runFileSystemPure1 ::
+  (e1 :> es) =>
+  Exception String e1 ->
+  [(FilePath, String)] ->
+  (forall e2. FileSystem e2 -> Eff (e2 :& es) r) ->
+  Eff es r
+runFileSystemPure1 ex fs0 (abstract1 -> k) =
+  evalState fs0 $ \fs ->
+    apply1
+            k
+            MkFileSystem
+              { readFileImpl = \path -> do
+                  fs' <- get fs
+                  case lookup path fs' of
+                    Nothing ->
+                      throw ex ("File not found: " <> path)
+                    Just s -> pure s,
+                writeFileImpl = \path contents ->
+                  modify fs ((path, contents) :)
+              }
+
+
+weaken :: Finite hs => EffReaderList hs es r -> EffReaderList hs (e :& es) r
+weaken = mapEffReaderListEffect
 
 runFileSystemIO ::
   forall e1 e2 es r.
