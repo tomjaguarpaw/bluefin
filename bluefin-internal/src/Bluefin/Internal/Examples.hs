@@ -1,5 +1,6 @@
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE DerivingVia #-}
 
 module Bluefin.Internal.Examples where
 
@@ -30,6 +31,8 @@ import Prelude hiding
     writeFile,
   )
 import qualified Prelude
+import Control.Monad.State (MonadState)
+import qualified Control.Monad.State as MonadState
 
 monadIOExample :: IO ()
 monadIOExample = runEff_ $ \io -> withMonadIO io $ liftIO $ do
@@ -951,6 +954,27 @@ data Application e = MkApplication
     applicationState :: State (Int, Bool) e,
     logger :: Stream String e
   }
+
+newtype ANewtype es r = MkANewtype (forall e. Application e -> Eff (e :& es) r)
+newtype ANewtype' r = MkANewtype' (forall e. Application e -> Eff e r)
+
+instance CanUse (State (Int, Bool)) (ANewtype es) where
+  hasHandle k = MkANewtype (useImpl . k .applicationState)
+instance CanUse (State (Int, Bool)) ANewtype' where
+  hasHandle k = MkANewtype' (k .applicationState)
+instance Functor (ANewtype es)
+instance Applicative (ANewtype es)
+instance Monad (ANewtype es)
+
+instance Functor ANewtype'
+instance Applicative ANewtype'
+instance Monad ANewtype'
+
+deriving via OfHas (MonadState (Int, Bool)) ANewtype'
+  instance MonadState (Int, Bool) ANewtype'
+
+foo :: ANewtype' (Int, Bool)
+foo = MonadState.get
 
 instance Handle Application where
   mapHandle

@@ -15,8 +15,11 @@ import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 import qualified Control.Exception
 import Control.Monad (forever)
 import Control.Monad.Base (MonadBase (liftBase))
+import Control.Monad.Error.Class (MonadError (catchError, throwError))
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
+import Control.Monad.State (MonadState)
+import qualified Control.Monad.State as MS
 import Control.Monad.Trans.Control (MonadBaseControl, StM, liftBaseWith, restoreM)
 import qualified Control.Monad.Trans.Reader as Reader
 import Data.Coerce (coerce)
@@ -1475,3 +1478,23 @@ runConstEffect r k = useImplIn k (MkConstEffect r)
 
 instance Handle (ConstEffect r) where
   mapHandle = coerce
+
+class (Monad m) => CanUse h m where
+  hasHandle :: (forall es. h es -> Eff es r) -> m r
+
+newtype OfHas c m a = MkOfHas (m a)
+  deriving newtype (Functor, Applicative, Monad, CanUse h)
+
+instance
+  (CanUse (State s) m) =>
+  MonadState s (OfHas (MonadState s) m)
+  where
+  get = MkOfHas (hasHandle get)
+  put = \s -> hasHandle (\st -> put st s)
+
+instance
+  (CanUse (Exception e) m) =>
+  MonadError e (OfHas (MonadError e) m)
+  where
+  throwError = \e -> hasHandle (\ex -> throw ex e)
+  catchError = undefined
