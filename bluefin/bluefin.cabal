@@ -16,7 +16,7 @@ common warnings
     ghc-options: -Wall
 
 library
-    import:           warnings
+    import: warnings
     default-extensions:
       NoImplicitPrelude
     exposed-modules:
