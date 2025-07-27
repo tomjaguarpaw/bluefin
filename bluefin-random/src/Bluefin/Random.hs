@@ -183,8 +183,8 @@ evalRandom g f = fst <$> runRandom g f
 
 -- | The simplest way to handle a Bluefin 'Random' effect.  This is
 -- the handler you should use unless you know you have a particular
--- need to use a @Rnd.RandomGen@ other than @Rnd.StdGen@ or you know
--- you need to create a @Rnd.StdGen@ seed in a non-standard way.
+-- need to use a 'Rnd.RandomGen' other than 'Rnd.StdGen' or you know
+-- you need to create a 'Rnd.StdGen' seed in a non-standard way.
 withInitStdGen ::
   (e1 :> es) =>
   IOE e1 ->
