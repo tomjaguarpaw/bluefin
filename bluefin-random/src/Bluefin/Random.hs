@@ -137,7 +137,7 @@ import qualified System.Random.Stateful as Rnd
 --
 -- 'RandomPure' is an internal detail that is used to implement a
 -- 'System.Random.Stateful.FrozenGen' instance for 'Random'.  You may
--- see it in error messages, so we include it here from completeness.
+-- see it in error messages, so we include it here for completeness.
 -- You will most likely never need to use @RandomPure@ directly.
 
 newtype Random g e = Random (State g e)
