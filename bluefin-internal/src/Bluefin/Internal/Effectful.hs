@@ -50,7 +50,9 @@ runPureEffectful ::
 runPureEffectful k = pure (Effectful.runPureEff (unsafeToEffectful k))
 
 handleWith ::
-  (e1 :> es) =>
+  -- I don't understand why `Bluefin es ::> es'` is necessary, but it
+  -- seems to be required by the safe implementation.
+  (e1 :> es, Bluefin es ::> es') =>
   -- | An @effectful@ handler
   (EffectfulEff (e' : es') r1 -> EffectfulEff es' r2) ->
   -- | An @effectful@ operation, in Bluefin style
@@ -59,13 +61,10 @@ handleWith ::
   -- | The result of handling the @effectful@ operation in Bluefin
   -- style using the @effectful@ handler
   Eff es r2
-handleWith handler m (MkEffectful env) =
-  UnsafeMkEff (EffectfulInternal.unEff (handler (unsafeToEffectful m)) env)
-
--- Should be this, but get overlapping instance error
--- but maybe the constraint there is not needed
---
---  useEffectful effectful (handler (toEffectful m))
+handleWith handler m effectful =
+  -- Unsafe implementation
+--  UnsafeMkEff (EffectfulInternal.unEff (handler (unsafeToEffectful m)) env)
+  useEffectful effectful (handler (toEffectfulUnder m))
 
 -- * Effectful handlers
 
@@ -113,6 +112,15 @@ toEffectful ::
   -- | ͘
   EffectfulEff es' a
 toEffectful = unsafeToEffectful
+
+toEffectfulUnder ::
+  forall (es :: Effects) (es' :: [EffectfulEffect]) e1 a.
+  -- | Is this constraint needed? Yes!
+  (Bluefin es ::> es') =>
+  (forall e. Effectful (e1 : es') e -> Eff (e :& es) a) ->
+  -- | ͘
+  EffectfulEff (e1 : es') a
+toEffectfulUnder = unsafeToEffectful
 
 fromEffectful ::
   (e :> es) =>
