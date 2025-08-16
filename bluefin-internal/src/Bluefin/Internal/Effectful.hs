@@ -107,7 +107,7 @@ useBluefin m =
 
 toEffectful ::
   forall (es :: Effects) (es' :: [EffectfulEffect]) a.
-  -- | Is this constraint needed?
+  -- | Is this constraint needed? Yes!
   (Bluefin es ::> es') =>
   (forall e. Effectful es' e -> Eff (e :& es) a) ->
   -- | ͘
