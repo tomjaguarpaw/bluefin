@@ -52,6 +52,8 @@ runPureEffectful k = pure (Effectful.runPureEff (unsafeToEffectful k))
 handleWith ::
   -- I don't understand why `Bluefin es ::> es'` is necessary, but it
   -- seems to be required by the safe implementation.
+  --
+  -- Seems pretty bad though, because it causes a sort of cycle.
   (e1 :> es, Bluefin es ::> es') =>
   -- | An @effectful@ handler
   (EffectfulEff (e' : es') r1 -> EffectfulEff es' r2) ->
