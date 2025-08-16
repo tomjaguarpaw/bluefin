@@ -17,12 +17,150 @@ module Bluefin
 
     -- * Why even use an effect system?
 
-    -- | The point of using an effect system is to "make invalid
+    -- |
+    --
+    -- Haskell is a "referentially transparent" language. Without
+    -- going deeply into technical details, one of the consequences of
+    -- referential transparency is that you can freely inline @let@
+    -- bindings, for example:
+    --
+    -- @
+    -- let x = a + b
+    -- in (x + 1, x / 2)
+    -- @
+    --
+    -- gives the same result as
+    --
+    -- @
+    -- (a + b + 1, (a + b) / 2)
+    -- @
+    --
+    -- This is not true for most languages!  For example consider this
+    -- Python code
+    --
+    -- @
+    -- first_name = raw_input("First name> ")
+    -- second_name = raw_input("Second name> ")
+    --
+    -- greeting =
+    --   first_name \\
+    --   + ", your full name is " \\
+    --   + first_name \\
+    --   + " " \\
+    --   + second_name
+    -- @
+    --
+    -- If you inline @first_name@ you get this program:
+    --
+    -- @
+    -- second_name = raw_input("Second name> ")
+    --
+    -- greeting =
+    --   raw_input("First name> ") \\
+    --   + ", your full name is " \\
+    --   + raw_input("First name> ") \\
+    --   + " " \\
+    --   + second_name
+    -- @
+    --
+    -- That doesn't do the same thing as the original program.  The
+    -- user will be asked for their first name twice, and each time
+    -- /after/ being asked for their second name.  Being able to
+    -- freely inline @let@ bindings allows powerful refactoring and
+    -- convenient understanding of programs, a great benefit of
+    -- referential transparency.  However, referential transparency
+    -- also raises an awkward question: if we can inline all @let@
+    -- bindings then how can we maintain control over the order in
+    -- which various externally-observable operations occur?  For a
+    -- hour-long answer, concluding with an explanation of the
+    -- development of effect systems, you can watch [A History of
+    -- Effect systems](https://www.youtube.com/watch?v=RsTuy1jXQ6Y) by
+    -- Tom Ellis (to Zurihac 2025).
+    --
+    -- The short answer is: 'Control.Monad.Monad's.  Monads are a
+    -- general interface that permits ordering of operations.
+    -- Instances of @Monad@ from early in the developement of Haskell
+    -- include 'Prelude.IO', 'Control.Monad.Trans.State.State',
+    -- 'Prelude.Either' and 'Control.Monad.Trans.State.Writer', all of
+    -- which are still in use today.
+    --
+    -- @State s@ is a monad that allows manipulation of a state of
+    -- type @s@ and no other effects.  @Either e@ is a monad that
+    -- allows to throw an "exception" of type @e@ and no other
+    -- effects.  This property of supporting a limited set of effects
+    -- is very nice, because it allows us fine grained control over
+    -- what subparts of our program may do.  Inevitably, however, one
+    -- wants to write subparts that /combine/ effects, for example to
+    -- write a function that allows manipulation of a state of type
+    -- @Int@ and to throw an "exception" of type @String@.
+    --
+    -- The natural extension of @State@, @Either@ and @Writer@ that
+    -- allow this are [monad
+    -- /transformers/](https://hackage.haskell.org/package/transformers),
+    -- @StateT@, @ExceptT@ and @WriterT@.  An operation that allows
+    -- manipulation of a state of type @Int@ and to throw an
+    -- "exception" of type @String@ could have type:
+    --
+    -- @
+    -- StateT Int (Either String) r
+    -- @
+    --
+    -- However, it could also have type
+    --
+    -- @
+    -- ExceptT String (State Int) r
+    -- @
+    --
+    -- [@mtl@](https://hackage.haskell.org/package/mtl) was developed
+    -- to resolve this ambiguity and avoid a fixed order of
+    -- interpretation.  Under @mtl@ the same operation would have
+    -- type:
+    --
+    -- @
+    -- (MonadError e, MonadState s) => m r
+    -- @
+    --
+    -- The `MonadError` effect and the `MonadState` effect may be
+    -- handled in either order.  "Effect systems" provide very similar
+    -- functionality (debatably, @mtl@ is an effect system).  Here is
+    -- the equivalent under
+    -- [Polysemy](https://hackage.haskell.org/package/polysemy):
+    --
+    -- @
+    -- (Member (State Int) r, Member (Error String) r) => Sem r ()
+    -- @
+    --
+    -- This is all very nice because it allows for "fine grained
+    -- effects" and "encapsulation".  "Fine grained effects" means
+    -- that we can specify in the type system what effects an
+    -- operation may perform.  "Encapsulation" takes that a step
+    -- further: we can /remove/ from the set of possible effects by
+    -- handling an effect.  For example, if we started with the
+    -- operation above, of type:
+    --
+    -- @
+    -- ExceptT String (State Int) r
+    -- @
+    --
+    -- then we can handle the "exception" of type @String@ using
+    -- 'Control.Monad.Trans.Except.runExceptT'.  Subsequently we would
+    -- be left with an operation of type @State Int r@ which can
+    -- /only/ do @State Int@ effects and cannot throw exceptions.
+    --
+    -- ----
+    --
+    -- [Effects for Less](https://www.youtube.com/watch?v=0jI-AlWEwYI)
+    -- by Alexis King (to Zurihac 2020)
+    --
+    -- Haskell's referential transparency
+    --
+    --
+    -- The point of using an effect system is to "make invalid
     -- behavior unrepresentable" by ensuring that effects that are
     -- externally visible in the behavior of an operation are also
     -- visible in the type of the operation.
-
-    -- | Historically in Haskell there has a been a tension between
+    --
+    -- Historically in Haskell there has a been a tension between
     -- achieving "fine-grained effects and encapsulation" on the one
     -- hand and achieving "resource safety and predictable
     -- performance" on the other.
@@ -57,19 +195,19 @@ module Bluefin
 
     -- * A Comparison of Effect Systems
 
-    -- ** Encapsulation
-
-    -- |
-    -- - ❌ __IO__: Can handle exceptions, but they are not reflected in the type
-    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__: Exceptions handled in the function body are not present in the function's type signature
-    -- - ✅ __Bluefin__\/__effectful__: Proper encapsulation of effects in the type system
-
     -- ** Fine-grained Effects
 
     -- |
     -- - ❌ __IO__: No distinction between different effects (state, exceptions, I/O, etc.)
     -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__: Fine-grained effect management
     -- - ✅ __Bluefin__\/__effectful__: Effects are represented at the type level
+
+    -- ** Encapsulation
+
+    -- |
+    -- - ❌ __IO__: Can handle exceptions, but they are not reflected in the type
+    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__: Exceptions handled in the function body are not present in the function's type signature
+    -- - ✅ __Bluefin__\/__effectful__: Proper encapsulation of effects in the type system
 
     -- ** Resource Safety
 
