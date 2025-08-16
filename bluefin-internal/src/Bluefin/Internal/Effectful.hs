@@ -9,7 +9,7 @@ import qualified Effectful
 import qualified Effectful.Dispatch.Dynamic as Effectful
 import qualified Effectful.Error.Dynamic as Er
 import Effectful.Internal.Env
-import qualified Effectful.Internal.Monad as Effectful
+import qualified Effectful.Internal.Monad as EffectfulInternal
 import qualified Effectful.State.Dynamic as St
 
 -- * Bluefin handle
@@ -60,7 +60,7 @@ handleWith ::
   -- style using the @effectful@ handler
   Eff es r2
 handleWith handler m (MkEffectful env) =
-  UnsafeMkEff (Effectful.unEff (handler (unsafeToEffectful m)) env)
+  UnsafeMkEff (EffectfulInternal.unEff (handler (unsafeToEffectful m)) env)
 
 -- * Effectful handlers
 
@@ -115,7 +115,7 @@ fromEffectful ::
   -- | ͘
   Eff es r
 fromEffectful m (MkEffectful env) =
-  UnsafeMkEff (Effectful.unEff (unsafeInterpretBluefin (m Proxy)) env)
+  UnsafeMkEff (EffectfulInternal.unEff (unsafeInterpretBluefin (m Proxy)) env)
 
 -- * Example code
 
@@ -181,4 +181,4 @@ unsafeInterpretBluefin = Effectful.interpret (\_ -> voidBluefin)
 
 unsafeToEffectful :: (Effectful es e -> Eff es' a) -> EffectfulEff es a
 unsafeToEffectful m =
-  Effectful.unsafeEff (\env' -> unsafeUnEff (m (MkEffectful env')))
+  EffectfulInternal.unsafeEff (\env' -> unsafeUnEff (m (MkEffectful env')))
