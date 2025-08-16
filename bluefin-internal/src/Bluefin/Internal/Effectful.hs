@@ -63,7 +63,8 @@ handleWith handler m (MkEffectful env) =
   UnsafeMkEff (EffectfulInternal.unEff (handler (unsafeToEffectful m)) env)
 
 -- Should be this, but get overlapping instance error
-
+-- but maybe the constraint there is not needed
+--
 --  useEffectful effectful (handler (toEffectful m))
 
 -- * Effectful handlers
@@ -106,6 +107,7 @@ useBluefin m =
 
 toEffectful ::
   forall (es :: Effects) (es' :: [EffectfulEffect]) a.
+  -- | Is this constraint needed?
   (Bluefin es ::> es') =>
   (forall e. Effectful es' e -> Eff (e :& es) a) ->
   -- | ͘
