@@ -62,6 +62,10 @@ handleWith ::
 handleWith handler m (MkEffectful env) =
   UnsafeMkEff (EffectfulInternal.unEff (handler (unsafeToEffectful m)) env)
 
+-- Should be this, but get overlapping instance error
+
+--  useEffectful effectful (handler (toEffectful m))
+
 -- * Effectful handlers
 
 runBluefin ::
