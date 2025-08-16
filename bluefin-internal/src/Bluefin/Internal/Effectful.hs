@@ -21,6 +21,7 @@ newtype Effectful (es' :: [EffectfulEffect]) (e :: Effects)
 -- * Effectful effect
 
 -- | Provide access to Bluefin operations in Effectful
+-- Like IOE?
 data Bluefin es m a
 
 -- * Type synonyms
