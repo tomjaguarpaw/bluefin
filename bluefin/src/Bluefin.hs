@@ -17,19 +17,23 @@ module Bluefin
 
     -- * Why even use an effect system?
 
+    -- ** Inlining let bindings
+
     -- |
     --
     -- Haskell is a "referentially transparent" language. Without
-    -- going deeply into technical details, one of the consequences of
-    -- referential transparency is that you can freely inline @let@
-    -- bindings, for example:
+    -- going deeply into technical details, one consequence of
+    -- referential transparency is that one can freely inline @let@
+    -- bindings. For example, if we start with the following program:
     --
     -- @
     -- let x = a + b
     -- in (x + 1, x / 2)
     -- @
     --
-    -- gives the same result as
+    -- we can "inline" @x@, that is, replace occurrences of @x@ with
+    -- the right hand side of its binding, @a + b@, obtaining an
+    -- equivalent program:
     --
     -- @
     -- (a + b + 1, (a + b) / 2)
@@ -39,8 +43,8 @@ module Bluefin
     -- Python code
     --
     -- @
-    -- first_name = raw_input("First name> ")
-    -- second_name = raw_input("Second name> ")
+    -- first_name = input("First name> ")
+    -- second_name = input("Second name> ")
     --
     -- greeting =
     --   first_name \\
@@ -50,50 +54,152 @@ module Bluefin
     --   + second_name
     -- @
     --
-    -- If you inline @first_name@ you get this program:
+    -- When you run it, something like this happens:
     --
     -- @
-    -- second_name = raw_input("Second name> ")
+    -- First name> /Simon/
+    -- Second name> /Peyton Jones/
+    -- @
+    --
+    -- and then @greeting@ is a string equal to @"Simon, your full
+    -- name is Simon Peyton Jones"@.  If we inline @first_name@ you
+    -- get this program:
+    --
+    -- @
+    -- second_name = input("Second name> ")
     --
     -- greeting =
-    --   raw_input("First name> ") \\
+    --   input("First name> ") \\
     --   + ", your full name is " \\
-    --   + raw_input("First name> ") \\
+    --   + input("First name> ") \\
     --   + " " \\
     --   + second_name
     -- @
     --
-    -- That doesn't do the same thing as the original program.  The
-    -- user will be asked for their first name twice, and each time
-    -- /after/ being asked for their second name.  Being able to
-    -- freely inline @let@ bindings allows powerful refactoring and
-    -- convenient understanding of programs, a great benefit of
-    -- referential transparency.  However, referential transparency
-    -- also raises an awkward question: if we can inline all @let@
-    -- bindings then how can we maintain control over the order in
+    -- That won't do the same thing as the original program.  Instead,
+    -- the user will be asked for their first name twice, /after/
+    -- being asked for their second name, something like this:
+    --
+    -- @
+    -- Second name> /Peyton Jones/
+    -- First name> /Simon/
+    -- First name> /Umm, it's still Simon/
+    -- @
+    --
+    -- and then @greeting@ will be a string equal to @"Simon, your
+    -- full name is Umm, it's still Simon Peyton Jones"@.
+    --
+    -- Being able to freely inline @let@ bindings allows powerful
+    -- refactoring and convenient understanding of programs, a great
+    -- benefit of referential transparency.  In a sense, it means that
+    -- let bindings do not interact at all with effects like modifying
+    -- state and throwing and catching exceptions, reading input (as
+    -- in the Python example above), writing outut and generally
+    -- interacting with the environment.
+
+    -- ** Monads for effects
+
+    -- | However, referential transparency also raises an awkward
+    -- question: if @let@ bindings don't interact at all with effects,
+    -- because we can inline them freely, then how /can/ we perform
+    -- effects in Haskell, and maintain control over the order in
     -- which various externally-observable operations occur?  For a
     -- hour-long answer, concluding with an explanation of the
     -- development of effect systems, you can watch [A History of
     -- Effect systems](https://www.youtube.com/watch?v=RsTuy1jXQ6Y) by
-    -- Tom Ellis (to Zurihac 2025).
+    -- Tom Ellis (recorded at Zurihac 2025).
     --
     -- The short answer is: 'Control.Monad.Monad's.  Monads are a
     -- general interface that permits ordering of operations.
     -- Instances of @Monad@ from early in the developement of Haskell
     -- include 'Prelude.IO', 'Control.Monad.Trans.State.State',
     -- 'Prelude.Either' and 'Control.Monad.Trans.State.Writer', all of
-    -- which are still in use today.
+    -- which are still in use today.  For example, to manipulate
+    -- mutable state we can't use @let@ bindings, as in:
     --
-    -- @State s@ is a monad that allows manipulation of a state of
-    -- type @s@ and no other effects.  @Either e@ is a monad that
-    -- allows to throw an "exception" of type @e@ and no other
-    -- effects.  This property of supporting a limited set of effects
-    -- is very nice, because it allows us fine grained control over
-    -- what subparts of our program may do.  Inevitably, however, one
-    -- wants to write subparts that /combine/ effects, for example to
-    -- write a function that allows manipulation of a state of type
-    -- @Int@ and to throw an "exception" of type @String@.
+    -- @
+    -- let ref = newRef "Initial value"
+    --     r = f ref args
+    --     v = getRef ref
+    -- in "Final value: " ++ v
+    -- @
     --
+    -- because referential transparency means this program would mean
+    -- the same thing after inlining @ref@:
+    --
+    -- @
+    -- let r = f (newRef "Initial value") args
+    --     v = getRef (newRef "Initial value")
+    -- in "Final value: " ++ v
+    -- @
+    --
+    -- which is not what we want at all.  The final value would just
+    -- be @"Initial value"@. One possibility is to simulate
+    -- mutable state using a specific "state passing" pattern:
+    --
+    -- @
+    -- let s1 = "Initial value"
+    --     (r, s2) = f s1 args
+    --     v = s2
+    -- in "Final value: " ++ v
+    -- @
+    --
+    -- Moreover, we can define a 'Control.Monad.Trans.State.State'
+    -- monad which casts the specific state passing pattern as a
+    -- general pattern known as "monad":
+    --
+    -- @
+    -- newtype State s a = State (s -> (a, s))
+    --
+    -- instance Monad (State s) where ...
+    -- @
+    --
+    -- and then use @do@ notation:
+    --
+    -- @
+    -- do ref <- newRef "Initial value"
+    --     r <- f ref args
+    --     v <- getRef ref
+    --     pure ("Final value: " ++ v)
+    -- @
+
+    -- ** Monad transformers for multiple effects
+
+    -- | The @State s@ monad allows manipulation a state of type @s@
+    -- and the @Either e@ monad allows throwing and catching an
+    -- exception of type @e@.  This property of supporting a limited
+    -- set of effects is very nice, because it allows us "fine
+    -- grained" control over what a component of our program may do.
+    -- Inevitably, however, one wants to write components that
+    -- /combine/ effects, for example to write a function that allows
+    -- manipulation of a state of type @Int@ /and/ to throw an
+    -- "exception" of type @String@ /and/ to perform I/O.
+    --
+    -- For that purpose we have "monad transformers" and MTL style, as
+    -- provided by the @transformers@ and @mtl@ libraries.  The
+    -- transformer extensions of @State@ and @Either@ are @StateT@ and
+    -- @ExceptT@. This isn't a transformers or MTL tutorial, so we
+    -- won't go into more detail, but here is an example of a function
+    -- that uses three types of effects:
+    --
+    -- @
+    -- exampleMTL :: (MonadIO m, MonadState Int m, MonadError String m) => m ()
+    -- exampleMTL = do
+    --   name <- liftIO getLine
+    --   maximum <- get
+    --   let l = length name
+    --   -- /Check it's not too long/
+    --   if l > maximum
+    --     then throwError "Name was too long"
+    --     else liftIO (putStrLn ("Your name was length " ++ show l))
+    --
+    --   -- /Put the new maximum/
+    --   put l
+    -- @
+
+    -- ** Encapsulation
+
+    -- |
     -- The natural extension of @State@, @Either@ and @Writer@ that
     -- allow this are [monad
     -- /transformers/](https://hackage.haskell.org/package/transformers),
@@ -193,7 +299,7 @@ module Bluefin
     --    in Haskell (see "Bluefin.Compound" for more information on
     --    creating new data types).
 
-    -- * A Comparison of Effect Systems
+    -- * A Comparison of effect systems
 
     -- ** Fine-grained Effects
 
