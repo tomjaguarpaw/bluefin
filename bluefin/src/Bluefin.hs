@@ -17,7 +17,7 @@ module Bluefin
 
     -- * Why even use an effect system?
 
-    -- ** Inlining let bindings
+    -- ** Referential transparency
 
     -- |
     --
@@ -175,83 +175,79 @@ module Bluefin
     -- manipulation of a state of type @Int@ /and/ to throw an
     -- "exception" of type @String@ /and/ to perform I/O.
     --
-    -- For that purpose we have "monad transformers" and MTL style, as
-    -- provided by the @transformers@ and @mtl@ libraries.  The
-    -- transformer extensions of @State@ and @Either@ are @StateT@ and
-    -- @ExceptT@. This isn't a transformers or MTL tutorial, so we
+    -- For that purpose we have "monad transformers" and "MTL style",
+    -- as provided by the
+    -- [@transformers@](https://hackage.haskell.org/package/transformers)
+    -- and [@mtl@](https://hackage.haskell.org/package/mtl) libraries.
+    -- The transformer extensions of @State@ and @Either@ are @StateT@
+    -- and @ExceptT@, and the @mtl@ extensions are @MonadState@ and
+    -- @MonadError@.  This isn't a transformers or MTL tutorial, so we
     -- won't go into more detail, but here is an example of a function
-    -- that uses three types of effects:
+    -- that uses two types of effects:
     --
     -- @
-    -- exampleMTL :: (MonadIO m, MonadState Int m, MonadError String m) => m ()
-    -- exampleMTL = do
-    --   name <- liftIO getLine
+    -- exampleMTL ::
+    --   (MonadState Int m, MonadError String m) =>
+    --   String ->
+    --   m String
+    -- exampleMTL name = do
+    --   -- /Get the current maximum/
     --   maximum <- get
     --   let l = length name
     --   -- /Check it's not too long/
     --   if l > maximum
-    --     then throwError "Name was too long"
-    --     else liftIO (putStrLn ("Your name was length " ++ show l))
-    --
-    --   -- /Put the new maximum/
-    --   put l
+    --     then
+    --       throwError "Name was too long"
+    --     else do
+    --       -- /Put the new maximum/
+    --       put l
+    --       -- /Return the result/
+    --       pure (putStrLn ("Your name was length " ++ show l))
     -- @
 
     -- ** Encapsulation
 
-    -- |
-    -- The natural extension of @State@, @Either@ and @Writer@ that
-    -- allow this are [monad
-    -- /transformers/](https://hackage.haskell.org/package/transformers),
-    -- @StateT@, @ExceptT@ and @WriterT@.  An operation that allows
-    -- manipulation of a state of type @Int@ and to throw an
-    -- "exception" of type @String@ could have type:
-    --
-    -- @
-    -- StateT Int (Either String) r
-    -- @
-    --
-    -- However, it could also have type
-    --
-    -- @
-    -- ExceptT String (State Int) r
-    -- @
-    --
-    -- [@mtl@](https://hackage.haskell.org/package/mtl) was developed
-    -- to resolve this ambiguity and avoid a fixed order of
-    -- interpretation.  Under @mtl@ the same operation would have
+    -- | Not only does this allow us to achieve "fine grained"
+    -- effects, it also allows us to achieve "encapsulation".  That
+    -- is, we can handle effects and remove them from the set of
+    -- possible behaviors.  For example, @exampleMTL@ above has the
     -- type:
     --
     -- @
-    -- (MonadError e, MonadState s) => m r
+    -- exampleMTL ::
+    --   (MonadState Int m, MonadError String m) =>
+    --   String ->
+    --   m String
     -- @
     --
-    -- The `MonadError` effect and the `MonadState` effect may be
-    -- handled in either order.  "Effect systems" provide very similar
-    -- functionality (debatably, @mtl@ is an effect system).  Here is
-    -- the equivalent under
-    -- [Polysemy](https://hackage.haskell.org/package/polysemy):
+    -- We can handle the @MonadState@ effect (for example, using
+    -- @evalState@) and remove it from the type signature, and thereby
+    -- from the set of possible behaviors:
     --
     -- @
-    -- (Member (State Int) r, Member (Error String) r) => Sem r ()
+    -- exampleMTLStateHandled ::
+    --   -- /MonadState no longer appears in the type/
+    --   (MonadError String m) =>
+    --   String ->
+    --   m String
+    -- exampleMTLStateHandled name =
+    --   'Prelude.flip' 'Control.Monad.Trans.State.evalStateT' (exampleMTL name)
     -- @
+
+    -- ** Effect systems provide fine-grained effects and encapsulation
     --
-    -- This is all very nice because it allows for "fine grained
-    -- effects" and "encapsulation".  "Fine grained effects" means
-    -- that we can specify in the type system what effects an
-    -- operation may perform.  "Encapsulation" takes that a step
-    -- further: we can /remove/ from the set of possible effects by
-    -- handling an effect.  For example, if we started with the
-    -- operation above, of type:
+    -- |
+    -- This approach of building effects up from smaller pieces and
+    -- then interpreting those pieces to "handle" them is the one
+    -- taken by effect systems like @fused-effects@ and @polysemy@ as
+    -- well as @transformers@ and @mtl@.
     --
-    -- @
-    -- ExceptT String (State Int) r
-    -- @
-    --
-    -- then we can handle the "exception" of type @String@ using
-    -- 'Control.Monad.Trans.Except.runExceptT'.  Subsequently we would
-    -- be left with an operation of type @State Int r@ which can
-    -- /only/ do @State Int@ effects and cannot throw exceptions.
+    -- To summarize, this approach is all very nice because it allows
+    -- for "fine grained effects" and "encapsulation".  "Fine grained
+    -- effects" means that we can specify in the type system what
+    -- effects an operation may perform.  \"Encapsulation\" takes that
+    -- a step further: we can /remove/ from the set of possible
+    -- effects by handling an effect.
     --
     -- ----
     --
@@ -305,6 +301,7 @@ module Bluefin
 
     -- |
     -- - ❌ __IO__: No distinction between different effects (state, exceptions, I/O, etc.)
+    -- - ✅ __ST__: But state only
     -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__: Fine-grained effect management
     -- - ✅ __Bluefin__\/__effectful__: Effects are represented at the type level
 
@@ -312,20 +309,33 @@ module Bluefin
 
     -- |
     -- - ❌ __IO__: Can handle exceptions, but they are not reflected in the type
+    -- - ✅ __ST__
     -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__: Exceptions handled in the function body are not present in the function's type signature
     -- - ✅ __Bluefin__\/__effectful__: Proper encapsulation of effects in the type system
+
+    -- ** Mixing effects
+
+    -- |
+    -- - ✅ __IO__
+    -- - ❌ __ST__: State only
+    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__
+    -- - ✅ __Bluefin__\/__effectful__
 
     -- ** Resource Safety
 
     -- |
-    -- - ✅ __IO__: Operations can be bracketed (e.g., @bracket@)
+    -- - ✅ __IO__: Operations can be bracketed (see
+    --   @Control.Exception.'Control.Exception.bracket'@)
+    -- - ✅ __ST__: But only only state is possible anyway
     -- - ❌ __MTL__\/__fused-effects__\/__Polysemy__: Difficult to enforce
-    -- - ✅ __Bluefin__\/__effectful__: Operations can also be bracketed
+    -- - ✅ __Bluefin__\/__effectful__: Operations can be bracketed
+    --   (see @Bluefin.Eff.'Bluefin.Eff.bracket'@)
 
     -- ** Predictable Performance
 
     -- |
     -- - ✅ __IO__: Performance is easy to predict based on code structure
+    -- - ✅ __ST__: Same as IO
     -- - ❌ __MTL__\/__fused-effects__\/__Polysemy__: Good performance depends critically on GHC optimization
     -- - ✅ __Bluefin__\/__effectful__: In Bluefin, effects are given named handles or are present in the type signature of the function if left unhandled
     --   Making it easy to read and surmise the performance of the code.
@@ -725,3 +735,53 @@ module Bluefin
     -- @
   )
 where
+
+-- old bits
+
+    -- The natural extension of @State@, @Either@ and @Writer@ that
+    -- allow this are [monad
+    -- /transformers/](https://hackage.haskell.org/package/transformers),
+    -- @StateT@, @ExceptT@ and @WriterT@.  An operation that allows
+    -- manipulation of a state of type @Int@ and to throw an
+    -- "exception" of type @String@ could have type:
+    --
+    -- @
+    -- StateT Int (Either String) r
+    -- @
+    --
+    -- However, it could also have type
+    --
+    -- @
+    -- ExceptT String (State Int) r
+    -- @
+    --
+    -- [@mtl@](https://hackage.haskell.org/package/mtl) was developed
+    -- to resolve this ambiguity and avoid a fixed order of
+    -- interpretation.  Under @mtl@ the same operation would have
+    -- type:
+    --
+    -- @
+    -- (MonadError e, MonadState s) => m r
+    -- @
+    --
+    -- The `MonadError` effect and the `MonadState` effect may be
+    -- handled in either order.  "Effect systems" provide very similar
+    -- functionality (debatably, @mtl@ is an effect system).  Here is
+    -- the equivalent under
+    -- [Polysemy](https://hackage.haskell.org/package/polysemy):
+    --
+    -- @
+    -- (Member (State Int) r, Member (Error String) r) => Sem r ()
+    -- @
+
+    --  For example, if we started with
+    -- the operation above, of type:
+    --
+    -- @
+    -- ExceptT String (State Int) r
+    -- @
+    --
+    -- then we can handle the "exception" of type @String@ using
+    -- 'Control.Monad.Trans.Except.runExceptT'.  Subsequently we would
+    -- be left with an operation of type @State Int r@ which can
+    -- /only/ do @State Int@ effects and cannot throw exceptions.
