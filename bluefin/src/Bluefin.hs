@@ -92,15 +92,15 @@ module Bluefin
     -- Being able to freely inline @let@ bindings allows powerful
     -- refactoring and convenient understanding of programs, a great
     -- benefit of referential transparency.  In a sense, it means that
-    -- let bindings do not interact at all with effects like modifying
-    -- state and throwing and catching exceptions, reading input (as
-    -- in the Python example above), writing outut and generally
-    -- interacting with the environment.
+    -- let bindings do not interact with effects like modifying state
+    -- and throwing and catching exceptions, reading input (as in the
+    -- Python example above), writing outut and generally interacting
+    -- with the environment.
 
     -- ** Monads for effects
 
     -- | However, referential transparency also raises an awkward
-    -- question: if @let@ bindings don't interact at all with effects,
+    -- question: if @let@ bindings don't interact with effects,
     -- because we can inline them freely, then how /can/ we perform
     -- effects in Haskell, and maintain control over the order in
     -- which various externally-observable operations occur?  For a
@@ -115,7 +115,7 @@ module Bluefin
     -- include 'Prelude.IO', 'Control.Monad.Trans.State.State',
     -- 'Prelude.Either' and 'Control.Monad.Trans.State.Writer', all of
     -- which are still in use today.  For example, to manipulate
-    -- mutable state we can't use @let@ bindings, as in:
+    -- mutable state we can't use @let@ bindings in the following way:
     --
     -- @
     -- let ref = newRef "Initial value"
@@ -134,7 +134,7 @@ module Bluefin
     -- @
     --
     -- which is not what we want at all.  The final value would just
-    -- be @"Initial value"@. One possibility is to simulate
+    -- be @"Initial value"@. An approach that does work is to simulate
     -- mutable state using a specific "state passing" pattern:
     --
     -- @
@@ -150,16 +150,18 @@ module Bluefin
     --
     -- @
     -- newtype State s a = State (s -> (a, s))
-    --
-    -- instance Monad (State s) where ...
     -- @
     --
-    -- and then use @do@ notation:
+    -- with a @Monad@ instance and operations like
+    -- 'Control.Monad.Trans.State.evalState' and
+    -- 'Control.Monad.Trans.State.get', and then use @do@ notation to
+    -- write:
     --
     -- @
-    -- do ref <- newRef "Initial value"
-    --     r <- f ref args
-    --     v <- getRef ref
+    -- f1 :: String
+    -- f1 = flip evalState "Initial value" $ do
+    --     r <- f args
+    --     v <- get
     --     pure ("Final value: " ++ v)
     -- @
 
@@ -173,17 +175,20 @@ module Bluefin
     -- Inevitably, however, one wants to write components that
     -- /combine/ effects, for example to write a function that allows
     -- manipulation of a state of type @Int@ /and/ to throw an
-    -- "exception" of type @String@ /and/ to perform I/O.
+    -- "exception" of type @String@.
     --
     -- For that purpose we have "monad transformers" and "MTL style",
     -- as provided by the
     -- [@transformers@](https://hackage.haskell.org/package/transformers)
     -- and [@mtl@](https://hackage.haskell.org/package/mtl) libraries.
-    -- The transformer extensions of @State@ and @Either@ are @StateT@
-    -- and @ExceptT@, and the @mtl@ extensions are @MonadState@ and
-    -- @MonadError@.  This isn't a transformers or MTL tutorial, so we
-    -- won't go into more detail, but here is an example of a function
-    -- that uses two types of effects:
+    -- The transformer extensions of @State@ and @Either@ are
+    -- 'Control.Monad.Trans.State.StateT' and
+    -- 'Control.Monad.Trans.State.ExceptT', and the @mtl@ extensions
+    -- are 'Control.Monad.State.MonadState' and
+    -- 'Control.Monad.Error.MonadError'.  We won't go into more detail
+    -- here because this documentation isn't a transformers or MTL
+    -- tutorial, but here is an example of an MTL-style function that
+    -- uses those two types of effects, and no others:
     --
     -- @
     -- exampleMTL ::
@@ -207,11 +212,11 @@ module Bluefin
 
     -- ** Encapsulation
 
-    -- | Not only does this allow us to achieve "fine grained"
-    -- effects, it also allows us to achieve "encapsulation".  That
-    -- is, we can handle effects and remove them from the set of
-    -- possible behaviors.  For example, @exampleMTL@ above has the
-    -- type:
+    -- | Not only does the approach that we have seen so far allow us
+    -- to achieve "fine grained" effects, it also allows us to achieve
+    -- "encapsulation".  That is, we can handle effects and remove
+    -- them from the set of possible behaviors.  For example,
+    -- @exampleMTL@ above has the type:
     --
     -- @
     -- exampleMTL ::
@@ -231,16 +236,17 @@ module Bluefin
     --   String ->
     --   m String
     -- exampleMTLStateHandled name =
-    --   'Prelude.flip' 'Control.Monad.Trans.State.evalStateT' (exampleMTL name)
+    --   'Prelude.flip' 'Control.Monad.Trans.State.evalStateT' 1000 (exampleMTL name)
     -- @
 
-    -- ** Effect systems provide fine-grained effects and encapsulation
+    -- ** \"Synthetic\" effect systems provide fine-grained effects and encapsulation
     --
-    -- |
-    -- This approach of building effects up from smaller pieces and
-    -- then interpreting those pieces to "handle" them is the one
-    -- taken by effect systems like @fused-effects@ and @polysemy@ as
-    -- well as @transformers@ and @mtl@.
+    -- | The approach of building effects up from smaller pieces and
+    -- then interpreting those pieces to "handle" some of the effects
+    -- can be called the "synthetic" approach to effects.  As
+    -- described above, the synthetic approach is the one taken by
+    -- @transformers@ and @mtl@. It is also the approach taken by many
+    -- effect systems, including @fused-effects@ and @polysemy@.
     --
     -- To summarize, this approach is all very nice because it allows
     -- for "fine grained effects" and "encapsulation".  "Fine grained
@@ -248,11 +254,77 @@ module Bluefin
     -- effects an operation may perform.  \"Encapsulation\" takes that
     -- a step further: we can /remove/ from the set of possible
     -- effects by handling an effect.
+
+    -- *** The downside of synthetic effects
     --
+    -- | Unfortunately not everything in the garden is nice.
+    -- Synthetic effects have two notable downsides: firstly they have
+    -- unpredictable performance, and secondly they make it hard to
+    -- achieve resource safety.  The first point, about how good
+    -- performance of synthetic effects relies critically on fragile
+    -- inlining optimizations, is described in detail by Alexis King
+    -- in the talk [Effects for
+    -- Less](https://www.youtube.com/watch?v=0jI-AlWEwYI) (at Zurihac
+    -- 2020).
+    --
+    -- Resource safety means that you don't hold on to a resource (for
+    -- example a file handle or network socket) too long after you've
+    -- finished using it.  Resource safety can be achieved easily in
+    -- @IO@ as demonstrated by the following definition of
+    -- 'System.IO.withFile', which ensures the file handle that it
+    -- opens is closed after the completion of the callback @body@:
+    --
+    -- @
+    -- withFile ::
+    --   FilePath ->
+    --   Mode ->
+    --   (Handle -> IO r) ->
+    --   IO r
+    -- withFile path mode body = do
+    --   'Control.Exception.bracket'
+    --     (openFile path mode)
+    --     closeFile
+    --     body
+    -- @
+    --
+    -- This kind of operation, limiting the scope of a resource to a
+    -- particular block, is called "bracketing" and the
+    -- 'Control.Exception.bracket' is a general function that
+    -- implements bracketing in @IO@.  The problem is that bracketing
+    -- doesn't combine well with synthetic effect systems.  Michael
+    -- Snoyman has written about this at length, for example at [The
+    -- Tale of Two
+    -- Brackets](https://academy.fpblock.com/blog/2017/06/tale-of-two-brackets/).
+
+    -- ** @IO@-wrapper effect systems
+    --
+    -- |
+    --
+    -- An alternative that does allows predictable performance and
+    -- bracketing is simply to use @IO@.  For example, we can write an
+    -- alternative to the function @f1@ above, that uses @State@,
+    -- using an @IORef@ instead, like:
+    --
+    -- @
+    -- f2 :: IO String
+    -- f2 = do
+    --     ref <- newIORef "Initial value"
+    --     r <- f args ref
+    --     v <- readIORef ref
+    --     pure ("Final value: " ++ v)
+    -- @
+    --
+    -- That works fine, except we are now trapped in @IO@.  The
+    -- function @f2@ does not have any externally-observable effects.
+    -- It always returns the same value each time it is run, but the
+    -- type does not reflect that. There is no /encapsulation/.  A
+    -- better alternative is @ST@.
+
+    -- |
     -- ----
     --
-    -- [Effects for Less](https://www.youtube.com/watch?v=0jI-AlWEwYI)
-    -- by Alexis King (to Zurihac 2020)
+    -- https://academy.fpblock.com/blog/2017/06/tale-of-two-brackets/
+    --
     --
     -- Haskell's referential transparency
     --
