@@ -30,6 +30,14 @@ issue](https://github.com/tomjaguarpaw/bluefin/issues) or [start a
 discussion](https://github.com/tomjaguarpaw/bluefin/discussions),
 whichever you prefer.
 
+## Contributing
+
+If you would like to add a new function to Bluefin, please prefer to
+add it to the `bluefin-contrib` package, where all user contributions
+will be accepted by default.  If you think a function in
+`bluefin-contrib` deserves to be exported from `bluefin` itself,
+please [open an issue](https://github.com/tomjaguarpaw/bluefin/issues).
+
 ## Acknowledgements
 
 Tom Ellis would like to thank many individuals for their work related
