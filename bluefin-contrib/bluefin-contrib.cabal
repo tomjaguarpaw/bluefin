@@ -78,3 +78,4 @@ library
       base >= 4.12 && < 4.22,
       bluefin >= 0.0.16.0 && < 0.1
     exposed-modules:
+      Bluefin.Contrib.State
