@@ -41,8 +41,7 @@ common warnings
       GeneralisedNewtypeDeriving
       HexFloatLiterals
       ImplicitPrelude
-      -- Not available until 8.10
-      -- ImportQualifiedPost
+      ImportQualifiedPost
       InstanceSigs
       KindSignatures
       MonomorphismRestriction
@@ -57,8 +56,7 @@ common warnings
       RelaxedPolyRec
       ScopedTypeVariables
       StandaloneDeriving
-      -- Not available in 8.6
-      -- StandaloneKindSignatures
+      StandaloneKindSignatures
       StarIsType
       TraditionalRecordSyntax
       TupleSections
