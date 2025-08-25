@@ -41,8 +41,7 @@ common defaults
       GeneralisedNewtypeDeriving
       HexFloatLiterals
       ImplicitPrelude
-      -- Not available until 8.10
-      -- ImportQualifiedPost
+      ImportQualifiedPost
       InstanceSigs
       KindSignatures
       MonomorphismRestriction
@@ -57,8 +56,7 @@ common defaults
       RelaxedPolyRec
       ScopedTypeVariables
       StandaloneDeriving
-      -- Not available in 8.6
-      -- StandaloneKindSignatures
+      StandaloneKindSignatures
       StarIsType
       TraditionalRecordSyntax
       TupleSections
@@ -77,7 +75,7 @@ library
     default-language: Haskell2010
     hs-source-dirs: src
     build-depends:
-      base >= 4.12 && < 4.22,
+      base >= 4.14 && < 4.22,
       random >= 1.3 && < 1.4,
       bluefin >= 0.0.16.0 && < 0.1
     exposed-modules:

@@ -41,8 +41,7 @@ common defaults
       GeneralisedNewtypeDeriving
       HexFloatLiterals
       ImplicitPrelude
-      -- Not available until 8.10
-      -- ImportQualifiedPost
+      ImportQualifiedPost
       InstanceSigs
       KindSignatures
       MonomorphismRestriction
@@ -57,8 +56,7 @@ common defaults
       RelaxedPolyRec
       ScopedTypeVariables
       StandaloneDeriving
-      -- Not available in 8.6
-      -- StandaloneKindSignatures
+      StandaloneKindSignatures
       StarIsType
       TraditionalRecordSyntax
       TupleSections
@@ -78,7 +76,7 @@ library
     hs-source-dirs: src
     build-depends:
       async >= 2.2 && < 2.3,
-      base >= 4.12 && < 4.22,
+      base >= 4.14 && < 4.22,
       unliftio-core < 0.3,
       transformers < 0.7,
       transformers-base < 0.5,
