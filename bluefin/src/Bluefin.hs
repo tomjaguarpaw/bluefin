@@ -62,7 +62,7 @@ module Bluefin
     -- @
     --
     -- and then @greeting@ is a string equal to @"Simon, your full
-    -- name is Simon Peyton Jones"@.  If we inline @first_name@ you
+    -- name is Simon Peyton Jones"@.  If we inline @first_name@ we
     -- get this program:
     --
     -- @
@@ -94,7 +94,7 @@ module Bluefin
     -- benefit of referential transparency.  In a sense, it means that
     -- let bindings do not interact with effects like modifying state
     -- and throwing and catching exceptions, reading input (as in the
-    -- Python example above), writing outut and generally interacting
+    -- Python example above), writing output and generally interacting
     -- with the environment.
 
     -- ** Monads for effects
@@ -134,8 +134,9 @@ module Bluefin
     -- @
     --
     -- which is not what we want at all.  The final value would just
-    -- be @"Initial value"@. An approach that does work is to simulate
-    -- mutable state using a specific "state passing" pattern:
+    -- be @"Initial value"@. An approach that /does/ work is to
+    -- simulate mutable state using a specific "state passing"
+    -- pattern:
     --
     -- @
     -- let s1 = "Initial value"
@@ -177,8 +178,8 @@ module Bluefin
     -- manipulation of a state of type @Int@ /and/ to throw an
     -- "exception" of type @String@.
     --
-    -- For that purpose we have "monad transformers" and "MTL style",
-    -- as provided by the
+    -- That purpose was first satisfied in Haskell by "monad
+    -- transformers" and "MTL style", as provided by the
     -- [@transformers@](https://hackage.haskell.org/package/transformers)
     -- and [@mtl@](https://hackage.haskell.org/package/mtl) libraries.
     -- The transformer extensions of @State@ and @Either@ are
@@ -193,10 +194,12 @@ module Bluefin
     -- @
     -- exampleMTL ::
     --   (MonadState Int m, MonadError String m) =>
+    --   /-- Name/
     --   String ->
+    --   /-- Output message/
     --   m String
     -- exampleMTL name = do
-    --   -- /Get the current maximum/
+    --   -- /Get the current maximum length/
     --   maximum <- get
     --   let l = length name
     --   -- /Check it's not too long/
@@ -260,7 +263,7 @@ module Bluefin
     -- | Unfortunately not everything in the garden is nice.
     -- Synthetic effects have two notable downsides: firstly they have
     -- unpredictable performance, and secondly they make it hard to
-    -- achieve resource safety.  The first point, about how good
+    -- achieve resource safety.  The first point, that good
     -- performance of synthetic effects relies critically on fragile
     -- inlining optimizations, is described in detail by Alexis King
     -- in the talk [Effects for
@@ -301,24 +304,116 @@ module Bluefin
     -- |
     --
     -- An alternative that does allows predictable performance and
-    -- bracketing is simply to use @IO@.  For example, we can write an
-    -- alternative to the function @f1@ above, that uses @State@,
-    -- using an @IORef@ instead, like:
+    -- bracketing is simply to use @IO@.  @IO@ supports state via
+    -- @IORefs@ and exceptions via @throw@ and @catch@.  To see, for
+    -- example, how to translate @State@-based code to @IORef@ based
+    -- code consider this function:
     --
     -- @
-    -- f2 :: IO String
-    -- f2 = do
-    --     ref <- newIORef "Initial value"
-    --     r <- f args ref
-    --     v <- readIORef ref
-    --     pure ("Final value: " ++ v)
+    -- /-- > exampleState/
+    -- /-- 55/
+    -- exampleState :: Int
+    -- exampleState = flip evalState 0 $ do
+    --   for_ [1..10] $ \\i -> do
+    --      modify (+ i)
+    --   get
     -- @
+    --
+    -- We can write an equivalent using an an @IORef@ like this:
+    --
+    -- @
+    -- /-- > exampleIO/
+    -- /-- 55/
+    -- exampleIO :: IO Int
+    -- exampleIO = do
+    --   ref <- newIORef 0
+    --   for_ [1..10] $ \\i -> do
+    --     modifyIORef ref (+ i)
+    --   readIORef ref
+    -- @
+    --
+    -- (@exampleState@ is small enough that GHC's inlining will kick
+    -- in and optimize it to very fast code, so it's not a good
+    -- example for demonstrating the /poor performance/ of synthetic
+    -- effects.  Good examples are those where inlining doesn't kick
+    -- in, for example because they require cross module inlining.
+    -- See Alexis's talk mentioned above for more details.)
     --
     -- That works fine, except we are now trapped in @IO@.  The
-    -- function @f2@ does not have any externally-observable effects.
-    -- It always returns the same value each time it is run, but the
-    -- type does not reflect that. There is no /encapsulation/.  A
-    -- better alternative is @ST@.
+    -- function @exampleIO@ does not have any externally-observable
+    -- effects.  It always returns the same value each time it is run,
+    -- but the type does not reflect that. There is no
+    -- /encapsulation/.  A better alternative is @ST@.  Using @ST@ we
+    -- can write
+    --
+    -- @
+    -- /-- > exampleST/
+    -- /-- 55/
+    -- exampleST :: Int
+    -- exampleST = runST $ do
+    --   ref <- newSTRef 0
+    --   for_ [1..10] $ \\i -> do
+    --     modifySTRef ref (+ i)
+    --   readSTRef ref
+    -- @
+    --
+    -- which has exactly the same structure as @exampleIO@ but,
+    -- crucially, @ST@ allows us to handle the state effects within it
+    -- using @runST@, so we end up with an @Int@ that, we can see from
+    -- the type system, does not depend on any @IO@ operations.  But
+    -- @ST@ is not a good solution either, because it /only/ allows
+    -- state effects, no exceptions, no I/O, so we can hardly call it
+    -- "resource safe" because it can't obtain resources at all, let
+    -- alone safely.
+
+    -- *** \"Analytic\" effect systems
+
+    -- |
+    --
+    -- \"Analytic\" effect systems are those whose effects take place
+    -- in a monad that is a lightweight wrapper around @IO@ with a
+    -- type parameter to track effects.  For example, Bluefin's @Eff@
+    -- is defined as:
+    --
+    -- @
+    -- newtype 'Bluefin.Eff.Eff' es a = UnsafeMkEff (IO a)
+    -- @
+    --
+    -- Because those effect systems use a wrapper around @IO@ they
+    -- inherit the desirable properties of @IO@: predictable
+    -- performance and resource safety.  Because they use a type
+    -- parameter to track effects they also provide fine grained
+    -- effects and encapsulation. The best of both worlds!
+    --
+    -- Here are some examples of encapsulation in Bluefin and
+    -- effectful, two analytic effect systems, respectively:
+    --
+    -- @
+    -- /-- > exampleBluefin/
+    -- /-- 55/
+    -- exampleBluefin :: Int
+    -- exampleBluefin = runPureEff $ evalState 0 $ \\st -> do
+    --   for_ [1..10] $ \\i -> do
+    --      modify st (+ i)
+    --   get st
+    -- @
+    --
+    -- @
+    -- /-- > exampleEffectful/
+    -- /-- 55/
+    -- exampleEffectful :: Int
+    -- exampleEffectful = runPureEff $ evalState 0 $ do
+    --   for_ [1..10] $ \\i -> do
+    --      modify (+ i)
+    --   get
+    -- @
+
+    -- *** Multishot continuations
+
+    -- |
+    --
+    -- If we get the best of both worlds 
+
 
     -- |
     -- ----
@@ -381,7 +476,7 @@ module Bluefin
 
     -- |
     -- - ❌ __IO__: Can handle exceptions, but they are not reflected in the type
-    -- - ✅ __ST__
+    -- - ✅ __ST__: Encapsulates state effects
     -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__: Exceptions handled in the function body are not present in the function's type signature
     -- - ✅ __Bluefin__\/__effectful__: Proper encapsulation of effects in the type system
 
@@ -398,7 +493,7 @@ module Bluefin
     -- |
     -- - ✅ __IO__: Operations can be bracketed (see
     --   @Control.Exception.'Control.Exception.bracket'@)
-    -- - ✅ __ST__: But only only state is possible anyway
+    -- - ❌ __ST__: Because only state effects are possible
     -- - ❌ __MTL__\/__fused-effects__\/__Polysemy__: Difficult to enforce
     -- - ✅ __Bluefin__\/__effectful__: Operations can be bracketed
     --   (see @Bluefin.Eff.'Bluefin.Eff.bracket'@)
@@ -414,6 +509,14 @@ module Bluefin
     --
     -- Bluefin allows for explicit control over IO\/State\/Streams, and
     -- effective scoping the effects needed to make our code useful.
+
+    -- ** Multishot continuations
+
+    -- |
+    -- - ❌ __IO__
+    -- - ❌ __ST__
+    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__
+    -- - ❌ __Bluefin__\/__effectful__
 
     -- * Bluefin
 
