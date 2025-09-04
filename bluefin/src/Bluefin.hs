@@ -74,7 +74,7 @@ module Bluefin
     -- |
     --
     -- Haskell is a "referentially transparent" language. Without
-    -- going deeply into technical details, one consequence of
+    -- going deeply into technical details, a consequence of
     -- referential transparency is that one can freely inline @let@
     -- bindings. For example, if we start with the following program:
     --
@@ -143,11 +143,11 @@ module Bluefin
     --
     -- Being able to freely inline @let@ bindings allows powerful
     -- refactoring and convenient understanding of programs, a great
-    -- benefit of referential transparency.  In a sense, it means that
-    -- let bindings do not interact with effects – like modifying state
-    -- and throwing and catching exceptions, reading input (as in the
-    -- Python example above), writing output and generally interacting
-    -- with the environment.
+    -- benefit of referential transparency.  In a sense it means that
+    -- let bindings do not interact with effects – like modifying
+    -- state and throwing and catching exceptions, reading input (as
+    -- in the Python example above), writing output and generally
+    -- interacting with the environment.
 
     -- ** Monads for effects
 
@@ -187,7 +187,7 @@ module Bluefin
     --
     -- which is not what we want at all: the final value would just be
     -- @"Initial value"@. An approach that /does/ work is to simulate
-    -- mutable state using a specific "state passing" pattern:
+    -- mutable state using a ad hoc "state passing" pattern:
     --
     -- @
     -- let s1 = "Initial value"
@@ -197,8 +197,8 @@ module Bluefin
     -- @
     --
     -- Moreover, we can define a 'Control.Monad.Trans.State.State'
-    -- monad which casts the specific state passing pattern as a
-    -- general pattern known as "monad":
+    -- monad which casts the ad hoc state passing pattern as a general
+    -- pattern known as "monad":
     --
     -- @
     -- newtype State s a = State (s -> (a, s))
@@ -267,10 +267,10 @@ module Bluefin
     -- ** Encapsulation
 
     -- | Not only does the approach that we have seen so far allow us
-    -- to achieve "fine grained" effects, it also allows us to achieve
-    -- "encapsulation".  That is, we can handle effects and remove
-    -- them from the set of possible behaviors.  For example,
-    -- @exampleMTL@ above has the type:
+    -- to achieve "fine-grained effects", it also allows us to achieve
+    -- "encapsulation": that is, we can handle effects and remove them
+    -- from the set of possible behaviors.  For example, @exampleMTL@
+    -- above has the type:
     --
     -- @
     -- exampleMTL ::
@@ -296,19 +296,19 @@ module Bluefin
 
     -- ** \"Synthetic\" effect systems provide fine-grained effects and encapsulation
     --
-    -- | The approach of building effects up from smaller pieces of
-    -- algebraic data types and then interpreting those pieces to
-    -- "handle" some of the effects can be called the "synthetic"
-    -- approach to effects.  As described above, the synthetic
-    -- approach is the one taken by @transformers@ and @mtl@. It is
-    -- also the approach taken by many effect systems, including
-    -- @fused-effects@ and @polysemy@.
+    -- | The approach of building effects from smaller pieces by
+    -- combining algebraic data types, and then interpreting those
+    -- pieces to "handle" some of the effects can be called the
+    -- "synthetic" approach to effects.  As described above, the
+    -- synthetic approach is the one taken by @transformers@ and
+    -- @mtl@. It is also the approach taken by many effect systems,
+    -- including @fused-effects@ and @polysemy@.
     --
     -- To summarize, this approach is all very nice because it allows
-    -- for "fine grained effects" and "encapsulation".  "Fine grained
-    -- effects" means that we can specify in the type system what
-    -- effects an operation may perform.  \"Encapsulation\" takes that
-    -- a step further: we can /remove/ from the set of possible
+    -- for "fine-grained effects" and "encapsulation".  "Fine-grained
+    -- effects" means that we can specify the individual effets that
+    -- an operation may perform in its type.  \"Encapsulation\" takes
+    -- that a step further: we can /remove/ from the set of possible
     -- effects by handling an effect.
 
     -- *** The downside of synthetic effects
@@ -569,7 +569,7 @@ module Bluefin
     -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__
     -- - ❌ __Bluefin__\/__effectful__
 
-    -- * Bluefin
+    -- * Introduction to Bluefin
 
     -- | Bluefin is a Haskell effect system with a new style of API.
     -- It is distinct from prior effect systems because effects are
