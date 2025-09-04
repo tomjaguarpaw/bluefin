@@ -1,3 +1,10 @@
+-- TODO: deal with this "allows convenient understanding of programs"
+-- phrase
+
+-- TODO: deal with this "all very nice" phrase
+
+-- TODO: deal with this "garden is nice" phrase
+
 module Bluefin
   ( -- * In brief
 
@@ -92,7 +99,7 @@ module Bluefin
     -- Being able to freely inline @let@ bindings allows powerful
     -- refactoring and convenient understanding of programs, a great
     -- benefit of referential transparency.  In a sense, it means that
-    -- let bindings do not interact with effects like modifying state
+    -- let bindings do not interact with effects – like modifying state
     -- and throwing and catching exceptions, reading input (as in the
     -- Python example above), writing output and generally interacting
     -- with the environment.
@@ -109,7 +116,7 @@ module Bluefin
     -- Effect systems](https://www.youtube.com/watch?v=RsTuy1jXQ6Y) by
     -- Tom Ellis (recorded at Zurihac 2025).
     --
-    -- The short answer is: 'Control.Monad.Monad's.  Monads are a
+    -- The short answer is: 'Control.Monad.Monad's.  @Monad@ is a
     -- general interface that permits ordering of operations.
     -- Instances of @Monad@ from early in the developement of Haskell
     -- include 'Prelude.IO', 'Control.Monad.Trans.State.State',
@@ -133,10 +140,9 @@ module Bluefin
     -- in "Final value: " ++ v
     -- @
     --
-    -- which is not what we want at all.  The final value would just
-    -- be @"Initial value"@. An approach that /does/ work is to
-    -- simulate mutable state using a specific "state passing"
-    -- pattern:
+    -- which is not what we want at all: the final value would just be
+    -- @"Initial value"@. An approach that /does/ work is to simulate
+    -- mutable state using a specific "state passing" pattern:
     --
     -- @
     -- let s1 = "Initial value"
@@ -168,17 +174,17 @@ module Bluefin
 
     -- ** Monad transformers for multiple effects
 
-    -- | The @State s@ monad allows manipulation a state of type @s@
-    -- and the @Either e@ monad allows throwing and catching an
-    -- exception of type @e@.  This property of supporting a limited
-    -- set of effects is very nice, because it allows us "fine
+    -- | The @State s@ monad allows manipulation a state of type @s@,
+    -- only, and the @Either e@ monad allows throwing and catching an
+    -- exception of type @e@, only.  This property of supporting a
+    -- limited set of effects is very nice, because it allows us "fine
     -- grained" control over what a component of our program may do.
     -- Inevitably, however, one wants to write components that
     -- /combine/ effects, for example to write a function that allows
     -- manipulation of a state of type @Int@ /and/ to throw an
     -- "exception" of type @String@.
     --
-    -- That purpose was first satisfied in Haskell by "monad
+    -- That need was first satisfied in Haskell by "monad
     -- transformers" and "MTL style", as provided by the
     -- [@transformers@](https://hackage.haskell.org/package/transformers)
     -- and [@mtl@](https://hackage.haskell.org/package/mtl) libraries.
@@ -234,7 +240,8 @@ module Bluefin
     --
     -- @
     -- exampleMTLStateHandled ::
-    --   -- /MonadState no longer appears in the type/
+    --   -- /MonadState no longer appears in the type./
+    --   -- /exampleMTLStateHandled cannot manipulate any state./
     --   (MonadError String m) =>
     --   String ->
     --   m String
@@ -244,12 +251,13 @@ module Bluefin
 
     -- ** \"Synthetic\" effect systems provide fine-grained effects and encapsulation
     --
-    -- | The approach of building effects up from smaller pieces and
-    -- then interpreting those pieces to "handle" some of the effects
-    -- can be called the "synthetic" approach to effects.  As
-    -- described above, the synthetic approach is the one taken by
-    -- @transformers@ and @mtl@. It is also the approach taken by many
-    -- effect systems, including @fused-effects@ and @polysemy@.
+    -- | The approach of building effects up from smaller pieces of
+    -- algebraic data types and then interpreting those pieces to
+    -- "handle" some of the effects can be called the "synthetic"
+    -- approach to effects.  As described above, the synthetic
+    -- approach is the one taken by @transformers@ and @mtl@. It is
+    -- also the approach taken by many effect systems, including
+    -- @fused-effects@ and @polysemy@.
     --
     -- To summarize, this approach is all very nice because it allows
     -- for "fine grained effects" and "encapsulation".  "Fine grained
@@ -263,9 +271,9 @@ module Bluefin
     -- | Unfortunately not everything in the garden is nice.
     -- Synthetic effects have two notable downsides: firstly they have
     -- unpredictable performance, and secondly they make it hard to
-    -- achieve resource safety.  The first point, that good
+    -- achieve resource safety.  The first point – that good
     -- performance of synthetic effects relies critically on fragile
-    -- inlining optimizations, is described in detail by Alexis King
+    -- inlining optimizations – is described in detail by Alexis King
     -- in the talk [Effects for
     -- Less](https://www.youtube.com/watch?v=0jI-AlWEwYI) (at Zurihac
     -- 2020).
@@ -342,7 +350,7 @@ module Bluefin
     -- That works fine, except we are now trapped in @IO@.  The
     -- function @exampleIO@ does not have any externally-observable
     -- effects.  It always returns the same value each time it is run,
-    -- but the type does not reflect that. There is no
+    -- but its type does not reflect that. There is no
     -- /encapsulation/.  A better alternative is @ST@.  Using @ST@ we
     -- can write
     --
@@ -362,7 +370,7 @@ module Bluefin
     -- using @runST@, so we end up with an @Int@ that, we can see from
     -- the type system, does not depend on any @IO@ operations.  But
     -- @ST@ is not a good solution either, because it /only/ allows
-    -- state effects, no exceptions, no I/O, so we can hardly call it
+    -- state effects, no exceptions, no I/O. We can hardly call it
     -- "resource safe" because it can't obtain resources at all, let
     -- alone safely.
 
@@ -371,7 +379,7 @@ module Bluefin
     -- |
     --
     -- \"Analytic\" effect systems are those whose effects take place
-    -- in a monad that is a lightweight wrapper around @IO@ with a
+    -- in a monad that is a lightweight wrapper around @IO@, with a
     -- type parameter to track effects.  For example, Bluefin's @Eff@
     -- is defined as:
     --
@@ -379,14 +387,14 @@ module Bluefin
     -- newtype 'Bluefin.Eff.Eff' es a = UnsafeMkEff (IO a)
     -- @
     --
-    -- Because those effect systems use a wrapper around @IO@ they
+    -- Because analytic effect systems use a wrapper around @IO@ they
     -- inherit the desirable properties of @IO@: predictable
     -- performance and resource safety.  Because they use a type
     -- parameter to track effects they also provide fine grained
     -- effects and encapsulation. The best of both worlds!
     --
     -- Here are some examples of encapsulation in Bluefin and
-    -- effectful, two analytic effect systems, respectively:
+    -- effectful – two analytic effect systems – respectively:
     --
     -- @
     -- /-- > exampleBluefin/
@@ -412,7 +420,39 @@ module Bluefin
 
     -- |
     --
-    -- If we get the best of both worlds 
+    -- If we get the best of both worlds with analytic effect systems,
+    -- what is the downside?  The downside is that analytic effect
+    -- systems do not support multishot continuations, like
+    -- 'Control.Monad.Logic.LogicT' implements.  Here's an example of
+    -- using multishot continuations to calculate all sums of paths
+    -- from root to leaf in a tree.  In the @Branch@ alternative,
+    -- @allSums t@ is a "multishot" continuation because it is run
+    -- twice, once for @t = t1@ and once for @t = t2@.
+    --
+    -- @
+    -- data Tree = Branch Int Tree Tree | Leaf Int
+    --
+    -- -- > flip evalStateT 0 (allSums aTree)
+    -- -- [3,8,9]
+    -- allSums :: Tree -> StateT Int [] Int
+    -- allSums t = case t of
+    --   Leaf n -> do
+    --     modify (+ n)
+    --     get
+    --   Branch n t1 t2 -> do
+    --     modify (+ n)
+    --     t <- pure t1 \<|\> pure t2
+    --     allSums t
+    -- @
+    --
+    -- Analytic effect systems do not support multishot continuations
+    -- because @IO@ doesn't either, at least safely.  GHC does have
+    -- delimited continuation primitives which could in theory be used
+    -- to implement multishot continuations in analytic effect
+    -- systems, but so for that has not been achieved safely.  See the
+    -- talk [Unresolved challenges of scoped
+    -- effects](https://www.twitch.tv/videos/1163853841) by Alexis
+    -- King for more details.
 
 
     -- |
