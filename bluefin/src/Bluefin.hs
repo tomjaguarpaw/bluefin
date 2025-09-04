@@ -5,6 +5,51 @@
 
 -- TODO: deal with this "garden is nice" phrase
 
+    --
+    -- ----
+    --
+    -- https://academy.fpblock.com/blog/2017/06/tale-of-two-brackets/
+    --
+    --
+    -- Haskell's referential transparency
+    --
+    --
+    -- The point of using an effect system is to "make invalid
+    -- behavior unrepresentable" by ensuring that effects that are
+    -- externally visible in the behavior of an operation are also
+    -- visible in the type of the operation.
+    --
+    -- Historically in Haskell there has a been a tension between
+    -- achieving "fine-grained effects and encapsulation" on the one
+    -- hand and achieving "resource safety and predictable
+    -- performance" on the other.
+    --
+    -- Transformers (and effect systems built along similar principles
+    -- such as MTL, @polysemy@ and @fused-effects@) achieve
+    -- "encapsulation and fine-grained effects", that is, you can tell
+    -- which effects ... FIXME: continue
+
+    --  In vanilla Haskell, there is an innate trade-off between
+    -- encapsulation and fine-grained effects vs.  resource safety and
+    -- predictable performance. Bluefin manages to be both the
+    -- _fine-grained encapsulation of effects_ and still provides
+    -- predictable performance.
+    --
+    -- Bluefin, similar to @effectful@, also defines its own @Eff@
+    -- monad, as an opaque wrapper around the IO monad, but in
+    -- contrast, effects are accessed explicitly through value-level
+    -- handles which occur as arguments to effectful operations.
+    -- Passing effects at the value-level comes with some benefits
+    -- over other effect systems like @effectful@:
+    --
+    --  * Type inference is better (GHC gives good constraint and
+    --    argument warnings)
+    --  * Multiple effects of the same type
+    --  * Creating new effects is the same as creating new data types
+    --    in Haskell (see "Bluefin.Compound" for more information on
+    --    creating new data types).
+
+
 module Bluefin
   ( -- * In brief
 
@@ -454,55 +499,15 @@ module Bluefin
     -- effects](https://www.twitch.tv/videos/1163853841) by Alexis
     -- King for more details.
 
+    -- * A Comparison of effect systems at a glance
+
+    -- ** Mixing effects
 
     -- |
-    -- ----
-    --
-    -- https://academy.fpblock.com/blog/2017/06/tale-of-two-brackets/
-    --
-    --
-    -- Haskell's referential transparency
-    --
-    --
-    -- The point of using an effect system is to "make invalid
-    -- behavior unrepresentable" by ensuring that effects that are
-    -- externally visible in the behavior of an operation are also
-    -- visible in the type of the operation.
-    --
-    -- Historically in Haskell there has a been a tension between
-    -- achieving "fine-grained effects and encapsulation" on the one
-    -- hand and achieving "resource safety and predictable
-    -- performance" on the other.
-    --
-    -- Transformers (and effect systems built along similar principles
-    -- such as MTL, @polysemy@ and @fused-effects@) achieve
-    -- "encapsulation and fine-grained effects", that is, you can tell
-    -- which effects ... FIXME: continue
-
-
-
-
-    -- | In vanilla Haskell, there is an innate trade-off between
-    -- encapsulation and fine-grained effects vs.  resource safety and
-    -- predictable performance. Bluefin manages to be both the
-    -- _fine-grained encapsulation of effects_ and still provides
-    -- predictable performance.
-    --
-    -- Bluefin, similar to @effectful@, also defines its own @Eff@
-    -- monad, as an opaque wrapper around the IO monad, but in
-    -- contrast, effects are accessed explicitly through value-level
-    -- handles which occur as arguments to effectful operations.
-    -- Passing effects at the value-level comes with some benefits
-    -- over other effect systems like @effectful@:
-    --
-    --  * Type inference is better (GHC gives good constraint and
-    --    argument warnings)
-    --  * Multiple effects of the same type
-    --  * Creating new effects is the same as creating new data types
-    --    in Haskell (see "Bluefin.Compound" for more information on
-    --    creating new data types).
-
-    -- * A Comparison of effect systems
+    -- - ✅ __IO__: State via @IORef@, exceptions via @throw@/@catch@
+    -- - ❌ __ST__: State only
+    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__
+    -- - ✅ __Bluefin__\/__effectful__
 
     -- ** Fine-grained Effects
 
@@ -515,40 +520,46 @@ module Bluefin
     -- ** Encapsulation
 
     -- |
-    -- - ❌ __IO__: Can handle exceptions, but they are not reflected in the type
-    -- - ✅ __ST__: Encapsulates state effects
-    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__: Exceptions handled in the function body are not present in the function's type signature
-    -- - ✅ __Bluefin__\/__effectful__: Proper encapsulation of effects in the type system
-
-    -- ** Mixing effects
-
-    -- |
-    -- - ✅ __IO__
+    --
+    -- - ❌ __IO__: Can handle exceptions, but doing so is not
+    --   reflected in the type
+    --
     -- - ❌ __ST__: State only
-    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__
-    -- - ✅ __Bluefin__\/__effectful__
+    --
+    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__: Exceptions,
+    --   state and other effects handled in the body of an operation
+    --   are not present in the operation's type signature
+    --
+    -- - ✅ __Bluefin__\/__effectful__: Exceptions, state and other
+    --   effects handled in the body of an operation are not present
+    --   in the operation's type signature
 
     -- ** Resource Safety
 
     -- |
     -- - ✅ __IO__: Operations can be bracketed (see
     --   @Control.Exception.'Control.Exception.bracket'@)
-    -- - ❌ __ST__: Because only state effects are possible
-    -- - ❌ __MTL__\/__fused-effects__\/__Polysemy__: Difficult to enforce
+    --
+    -- - ❌ __ST__: State only
+    --
+    -- - ❌ __MTL__\/__fused-effects__\/__Polysemy__: Difficult to
+    --   achieve resource safety for arbitrary effects
+    --
     -- - ✅ __Bluefin__\/__effectful__: Operations can be bracketed
-    --   (see @Bluefin.Eff.'Bluefin.Eff.bracket'@)
+    --   (see e.g. @Bluefin.Eff.'Bluefin.Eff.bracket'@) because these
+    --   effect systems wrap @IO@
 
     -- ** Predictable Performance
 
     -- |
-    -- - ✅ __IO__: Performance is easy to predict based on code structure
-    -- - ✅ __ST__: Same as IO
-    -- - ❌ __MTL__\/__fused-effects__\/__Polysemy__: Good performance depends critically on GHC optimization
-    -- - ✅ __Bluefin__\/__effectful__: In Bluefin, effects are given named handles or are present in the type signature of the function if left unhandled
-    --   Making it easy to read and surmise the performance of the code.
+    -- - ✅ __IO__: Predictable performance
+    -- - ✅ __ST__: Predictable performance
     --
-    -- Bluefin allows for explicit control over IO\/State\/Streams, and
-    -- effective scoping the effects needed to make our code useful.
+    -- - ❌ __MTL__\/__fused-effects__\/__Polysemy__: Good performance
+    --   depends critically on GHC optimization
+    --
+    -- - ✅ __Bluefin__\/__effectful__: Predictable performance
+    --   because these effect systems wrap @IO@
 
     -- ** Multishot continuations
 
