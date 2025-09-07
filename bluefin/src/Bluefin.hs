@@ -155,11 +155,11 @@ module Bluefin
     -- question: if @let@ bindings don't interact with effects,
     -- because we can inline them freely, then how /can/ we perform
     -- effects in Haskell, and maintain control over the order in
-    -- which various externally-observable operations occur?  For a
-    -- hour-long answer, concluding with an explanation of the
-    -- development of effect systems, you can watch [A History of
-    -- Effect systems](https://www.youtube.com/watch?v=RsTuy1jXQ6Y) by
-    -- Tom Ellis (recorded at Zurihac 2025).
+    -- which various operations occur?  For a hour-long answer,
+    -- concluding with an explanation of the development of effect
+    -- systems, you can watch "[A History of Effect
+    -- systems](https://www.youtube.com/watch?v=RsTuy1jXQ6Y)" by Tom
+    -- Ellis (recorded at Zurihac 2025).
     --
     -- The short answer is: 'Control.Monad.Monad's.  @Monad@ is a
     -- general interface that permits ordering of operations.
@@ -187,7 +187,7 @@ module Bluefin
     --
     -- which is not what we want at all: the final value would just be
     -- @"Initial value"@. An approach that /does/ work is to simulate
-    -- mutable state using a ad hoc "state passing" pattern:
+    -- mutable state using an ad hoc "state passing" pattern:
     --
     -- @
     -- let s1 = "Initial value"
@@ -222,9 +222,9 @@ module Bluefin
     -- | The @State s@ monad allows manipulation a state of type @s@,
     -- only, and the @Either e@ monad allows throwing and catching an
     -- exception of type @e@, only.  This property of supporting a
-    -- limited set of effects is very nice, because it allows us "fine
-    -- grained" control over what a component of our program may do.
-    -- Inevitably, however, one wants to write components that
+    -- limited set of effects is very nice, because it allows us
+    -- "fine-grained" control over what a component of our program may
+    -- do.  Inevitably, however, one wants to write components that
     -- /combine/ effects, for example to write a function that allows
     -- manipulation of a state of type @Int@ /and/ to throw an
     -- "exception" of type @String@.
@@ -240,7 +240,7 @@ module Bluefin
     -- 'Control.Monad.Error.MonadError'.  We won't go into more detail
     -- here because this documentation isn't a transformers or MTL
     -- tutorial, but here is an example of an MTL-style function that
-    -- uses those two types of effects, and no others:
+    -- uses those two effects, and no others:
     --
     -- @
     -- exampleMTL ::
@@ -306,10 +306,10 @@ module Bluefin
     --
     -- To summarize, this approach is all very nice because it allows
     -- for "fine-grained effects" and "encapsulation".  "Fine-grained
-    -- effects" means that we can specify the individual effets that
-    -- an operation may perform in its type.  \"Encapsulation\" takes
-    -- that a step further: we can /remove/ from the set of possible
-    -- effects by handling an effect.
+    -- effects" means that we can specify in its type the individual
+    -- effets that an operation may perform.  \"Encapsulation\" takes
+    -- that a property step further: we can /remove/ from the set of
+    -- possible effects by handling an effect.
 
     -- *** The downside of synthetic effects
     --
@@ -319,8 +319,8 @@ module Bluefin
     -- achieve resource safety.  The first point – that good
     -- performance of synthetic effects relies critically on fragile
     -- inlining optimizations – is described in detail by Alexis King
-    -- in the talk [Effects for
-    -- Less](https://www.youtube.com/watch?v=0jI-AlWEwYI) (at Zurihac
+    -- in the talk "[Effects for
+    -- Less](https://www.youtube.com/watch?v=0jI-AlWEwYI)" (at Zurihac
     -- 2020).
     --
     -- Resource safety means that you don't hold on to a resource (for
@@ -348,19 +348,19 @@ module Bluefin
     -- 'Control.Exception.bracket' is a general function that
     -- implements bracketing in @IO@.  The problem is that bracketing
     -- doesn't combine well with synthetic effect systems.  Michael
-    -- Snoyman has written about this at length, for example at [The
+    -- Snoyman has written about this at length, for example at "[The
     -- Tale of Two
-    -- Brackets](https://academy.fpblock.com/blog/2017/06/tale-of-two-brackets/).
+    -- Brackets](https://academy.fpblock.com/blog/2017/06/tale-of-two-brackets/)".
 
     -- ** @IO@-wrapper effect systems
     --
     -- |
     --
-    -- An alternative that does allows predictable performance and
-    -- bracketing is simply to use @IO@.  @IO@ supports state via
-    -- @IORefs@ and exceptions via @throw@ and @catch@.  To see, for
-    -- example, how to translate @State@-based code to @IORef@ based
-    -- code consider this function:
+    -- An alternative to synthetic effects that does allows
+    -- predictable performance and bracketing is simply to use @IO@.
+    -- @IO@ supports state via @IORefs@ and exceptions via @throw@ and
+    -- @catch@.  To see, for example, how to translate @State@-based
+    -- code to @IORef@ based code consider this function:
     --
     -- @
     -- /-- > exampleState/
@@ -390,14 +390,18 @@ module Bluefin
     -- example for demonstrating the /poor performance/ of synthetic
     -- effects.  Good examples are those where inlining doesn't kick
     -- in, for example because they require cross module inlining.
-    -- See Alexis's talk mentioned above for more details.)
+    -- See Alexis King's talk mentioned above for more details.)
     --
-    -- That works fine, except we are now trapped in @IO@.  The
-    -- function @exampleIO@ does not have any externally-observable
-    -- effects.  It always returns the same value each time it is run,
-    -- but its type does not reflect that. There is no
-    -- /encapsulation/.  A better alternative is @ST@.  Using @ST@ we
-    -- can write
+    -- An extension of this style has been described as "[The
+    -- @ReaderT@ design
+    -- pattern](https://academy.fpblock.com/blog/2017/06/readert-design-pattern/)"
+    -- by Michael Snoyman and has proved to work well in practice.
+    -- However, the downside is that once you are in @IO@ you are now
+    -- trapped inside @IO@.  The function @exampleIO@ above does not
+    -- have any externally-observable effects.  It always returns the
+    -- same value each time it is run, but its type does not reflect
+    -- that. There is no /encapsulation/.  To achieve encapsulation we
+    -- can use @ST@. For example we can write
     --
     -- @
     -- /-- > exampleST/
@@ -414,19 +418,17 @@ module Bluefin
     -- crucially, @ST@ allows us to handle the state effects within it
     -- using @runST@, so we end up with an @Int@ that, we can see from
     -- the type system, does not depend on any @IO@ operations.  But
-    -- @ST@ is not a good solution either, because it /only/ allows
-    -- state effects, no exceptions, no I/O. We can hardly call it
-    -- "resource safe" because it can't obtain resources at all, let
-    -- alone safely.
+    -- @ST@ has a downside too: it /only/ allows state effects, no
+    -- exceptions, no I/O. We can hardly call it "resource safe"
+    -- because it can't manage resources at all, let alone safely.
 
     -- *** \"Analytic\" effect systems
 
-    -- |
-    --
-    -- \"Analytic\" effect systems are those whose effects take place
-    -- in a monad that is a lightweight wrapper around @IO@, with a
-    -- type parameter to track effects.  For example, Bluefin's @Eff@
-    -- is defined as:
+    -- | We can have the best of both worlds using \"analytic\" effect
+    -- systems. Analytic effect systems are those whose effects take
+    -- place in a monad that is a lightweight wrapper around @IO@,
+    -- with a type parameter to track effects.  For example, Bluefin's
+    -- @Eff@ is defined as:
     --
     -- @
     -- newtype 'Bluefin.Eff.Eff' es a = UnsafeMkEff (IO a)
@@ -435,11 +437,9 @@ module Bluefin
     -- Because analytic effect systems use a wrapper around @IO@ they
     -- inherit the desirable properties of @IO@: predictable
     -- performance and resource safety.  Because they use a type
-    -- parameter to track effects they also provide fine grained
-    -- effects and encapsulation. The best of both worlds!
-    --
-    -- Here are some examples of encapsulation in Bluefin and
-    -- effectful – two analytic effect systems – respectively:
+    -- parameter to track effects they also provide fine-grained
+    -- effects and encapsulation.  Here are examples of encapsulation
+    -- in Bluefin and effectful – two analytic effect systems:
     --
     -- @
     -- /-- > exampleBluefin/
@@ -466,7 +466,7 @@ module Bluefin
     -- |
     --
     -- If we get the best of both worlds with analytic effect systems,
-    -- what is the downside?  The downside is that analytic effect
+    -- is there a downside?  Yes, the downside is that analytic effect
     -- systems do not support multishot continuations, like
     -- 'Control.Monad.Logic.LogicT' implements.  Here's an example of
     -- using multishot continuations to calculate all sums of paths
@@ -476,6 +476,9 @@ module Bluefin
     --
     -- @
     -- data Tree = Branch Int Tree Tree | Leaf Int
+    --
+    -- aTree :: Tree
+    -- aTree = Branch 1 (Leaf 2) (Branch 3 (Leaf 4) (Leaf 5))
     --
     -- -- > flip evalStateT 0 (allSums aTree)
     -- -- [3,8,9]
@@ -495,8 +498,8 @@ module Bluefin
     -- delimited continuation primitives which could in theory be used
     -- to implement multishot continuations in analytic effect
     -- systems, but so for that has not been achieved safely.  See the
-    -- talk [Unresolved challenges of scoped
-    -- effects](https://www.twitch.tv/videos/1163853841) by Alexis
+    -- talk "[Unresolved challenges of scoped
+    -- effects](https://www.twitch.tv/videos/1163853841)" by Alexis
     -- King for more details.
 
     -- * A Comparison of effect systems at a glance
@@ -504,7 +507,7 @@ module Bluefin
     -- ** Mixing effects
 
     -- |
-    -- - ✅ __IO__: State via @IORef@, exceptions via @throw@/@catch@
+    -- - ✅ __IO__: I\/O, state via @IORef@, exceptions via @throw@/@catch@
     -- - ❌ __ST__: State only
     -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__
     -- - ✅ __Bluefin__\/__effectful__
@@ -514,8 +517,8 @@ module Bluefin
     -- |
     -- - ❌ __IO__: No distinction between different effects (state, exceptions, I/O, etc.)
     -- - ✅ __ST__: But state only
-    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__: Fine-grained effect management
-    -- - ✅ __Bluefin__\/__effectful__: Effects are represented at the type level
+    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__: Individual effects are represented at the type level
+    -- - ✅ __Bluefin__\/__effectful__: Individual effects are represented at the type level
 
     -- ** Encapsulation
 
