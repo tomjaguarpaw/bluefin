@@ -40,7 +40,14 @@ import Unsafe.Coerce (unsafeCoerce)
 type EffReaderListF :: [Effects -> Type] -> Effects -> Type -> Type
 
 newtype EffArrow h eff es r
-  = MkEffArrow (forall e. h e -> eff (e :& es) r)
+  = MkEffArrow {runEffArrow :: forall e. h e -> eff (e :& es) r}
+
+runEffArrow' ::
+  (e :> es) =>
+  EffArrow h eff e r ->
+  h es ->
+  eff es r
+runEffArrow' (MkEffArrow _k) = undefined
 
 newtype EffReaderListArrow h hs es r
   = MkEffReaderListArrow (EffArrow h (EffReaderList hs) es r)
@@ -136,6 +143,21 @@ instance (Finite hs) => Finite (h : hs) where
                 runInEff rie $
                   apply (mapEffReaderListEffect m) h
       }
+
+withRunInEffNext ::
+  (Handle h) =>
+  ( forall e.
+    (InEffRunner hs `EffArrow` Eff) e r ->
+    EffReaderList hs e r
+  ) ->
+  (InEffRunner (h : hs) `EffArrow` Eff) es r ->
+  EffReaderList (h : hs) es r
+withRunInEffNext rie ea = MkEffReaderList $ mkEffReaderListArrow $ \h ->
+  rie $ MkEffArrow $ \ier ->
+    runEffArrow' ea $ MkInEffRunner $ \(MkEffReaderList ierl) ->
+      case ierl of
+        MkEffReaderListArrow erla ->
+          runInEff ier (runEffArrow' erla (mapHandle h))
 
 instance (Finite hs) => Functor (EffReaderList hs es) where
   -- FIXME: Use a more efficient implementation. Will probably have to
