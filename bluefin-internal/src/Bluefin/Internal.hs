@@ -564,8 +564,8 @@ subsume1 i = cmp (bimap (eq ZW) i) (merge ZW)
 subsume2 :: (e1 `In` e2) -> (e1 :& e2) `In` e2
 subsume2 i = cmp (bimap i (eq ZW)) (merge ZW)
 
--- swap :: (# #) -> (a :& b) `In` (b :& a)
--- swap (# #) = In# (# #)
+swap :: (# #) -> (a :& b) `In` (b :& a)
+swap (# #) = In# (# #)
 
 withBase :: forall a (r :: TYPE a). ((# #) -> r) -> r
 withBase f = f (# #)

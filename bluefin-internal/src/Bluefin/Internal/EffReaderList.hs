@@ -161,6 +161,18 @@ instance (Finite hs) => Finite (h : hs) where
                   apply (mapEffReaderListEffect m) h
       }
 
+myPure :: Finite hs => r -> EffReaderList hs es r
+myPure r = withRunInEff $ \_ -> pure r
+
+myBind ::
+  Finite hs =>
+  EffReaderList hs es a ->
+  (a -> EffReaderList hs es b) ->
+  EffReaderList hs es b
+myBind m f = withRunInEff $ \ier -> do
+  a <- runInEff1 (mapHandle ier) (mapEffReaderListEffect m)
+  runInEff1 (mapHandle ier) (mapEffReaderListEffect (f a))
+
 instance Finite hs => Handle (Flip (EffReaderList hs) a) where
   mapHandle = MkFlip . mapHandle_ finiteImpl . unFlip
 
@@ -297,6 +309,13 @@ runInEff ::
 runInEff ier m = do
   let MkInEffRunner f = mapHandle ier
   makeOp (f m)
+
+runInEff1 ::
+  InEffRunner hs es ->
+  EffReaderList hs es r ->
+  Eff es r
+runInEff1 (MkInEffRunner ier) =
+  makeOp . unFlip . B.mapHandleIn (withBase B.swap) . MkFlip . ier
 
 withRunInEff ::
   (Finite hs) =>
