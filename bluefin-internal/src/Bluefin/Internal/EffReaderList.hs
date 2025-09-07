@@ -106,16 +106,7 @@ newtype EffReaderListHandle hs r es
   = MkEffReaderListHandle {unEffReaderListHandle :: EffReaderList hs es r}
 
 data FiniteD hs = MkFiniteD
-  { pure_ ::
-      forall es r.
-      r ->
-      EffReaderList hs es r,
-    bind_ ::
-      forall es a b.
-      EffReaderList hs es a ->
-      (a -> EffReaderList hs es b) ->
-      EffReaderList hs es b,
-    mapHandle_ ::
+  { mapHandle_ ::
       forall e es r.
       (e :> es) =>
       EffReaderList hs e r ->
@@ -135,10 +126,7 @@ class Finite hs where
 instance Finite '[] where
   finiteImpl =
     MkFiniteD
-      { pure_ = effReaderList . pure,
-        bind_ = \m f ->
-          effReaderList (runEffReaderList m >>= (runEffReaderList . f)),
-        mapHandle_ = effReaderList . useImpl . runEffReaderList,
+      { mapHandle_ = effReaderList . useImpl . runEffReaderList,
         withRunInEff_ = \toRun ->
           effReaderList
             (makeOp (toRun (MkInEffRunner (useImpl . runEffReaderList))))
@@ -147,11 +135,7 @@ instance Finite '[] where
 instance (Finite hs) => Finite (h : hs) where
   finiteImpl =
     MkFiniteD
-      { pure_ = MkEffReaderList . pure,
-        bind_ = \m f ->
-          MkEffReaderList $
-            runEffReaderList_ m >>= \a -> runEffReaderList_ (f a),
-        mapHandle_ =
+      { mapHandle_ =
           MkEffReaderList . mapEffReaderListArrow . runEffReaderList_,
         withRunInEff_ = \toRun -> do
           abstract $ \(h :: h e) -> do
@@ -184,12 +168,11 @@ withRunInEffNext ::
   ) ->
   (InEffRunner (h : hs) `EffArrow` Eff) es r ->
   EffReaderList (h : hs) es r
-withRunInEffNext rie ea = MkEffReaderList $ mkEffReaderListArrow $ \h ->
+withRunInEffNext rie ea = abstract $ \h ->
   rie $ MkEffArrow $ \ier ->
-    runEffArrow' ea $ MkInEffRunner $ \(MkEffReaderList ierl) ->
-      case ierl of
-        MkEffReaderListArrow erla ->
-          runInEff ier (runEffArrow' erla (mapHandle h))
+    runEffArrow' ea $ MkInEffRunner $ \m ->
+      runInEff ier $
+        apply (mapEffReaderListEffect m) h
 
 instance (Finite hs) => Functor (EffReaderList hs es) where
   -- FIXME: Use a more efficient implementation. Will probably have to
@@ -200,7 +183,7 @@ fmapFromMonad :: (Monad m) => (a -> b) -> m a -> m b
 fmapFromMonad f m = (pure . f) =<< m
 
 instance (Finite hs) => Applicative (EffReaderList hs es) where
-  pure = pure_ finiteImpl
+  pure = myPure
 
   (*>) = inefficientTailFromAp
   (<*>) = ap
@@ -209,7 +192,7 @@ inefficientTailFromAp :: (Applicative f) => f a -> f b -> f b
 inefficientTailFromAp m1 m2 = (id <$ m1) <*> m2
 
 instance (Finite hs) => Monad (EffReaderList hs es) where
-  (>>=) = bind_ finiteImpl
+  (>>=) = myBind
 
 type family EffReaderListF l es r = e | e -> l es r where
   EffReaderListF '[] es r = Eff es r
