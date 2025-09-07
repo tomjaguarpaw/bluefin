@@ -38,26 +38,35 @@ import Unsafe.Coerce (unsafeCoerce)
 
 type EffReaderListF :: [Effects -> Type] -> Effects -> Type -> Type
 
+newtype EffArrow h eff es r
+  = MkEffArrow (forall e. h e -> eff (e :& es) r)
+
 newtype EffReaderListArrow h hs es r
-  = MkEffReaderListArrow
-  { runEffReaderListArrow ::
-      forall e.
-      h e ->
-      EffReaderList hs (e :& es) r
-  }
+  = MkEffReaderListArrow (EffArrow h (EffReaderList hs) es r)
+
+runEffReaderListArrow ::
+  EffReaderListArrow h hs es r ->
+  h e ->
+  EffReaderList hs (e :& es) r
+runEffReaderListArrow (MkEffReaderListArrow (MkEffArrow k)) = k
+
+mkEffReaderListArrow ::
+  (forall e. h e -> EffReaderList hs (e :& es) r) ->
+  EffReaderListArrow h hs es r
+mkEffReaderListArrow k = MkEffReaderListArrow (MkEffArrow k)
 
 instance (Finite hs) => Functor (EffReaderListArrow h hs es) where
-  fmap f x = MkEffReaderListArrow $ \h ->
+  fmap f x = mkEffReaderListArrow $ \h ->
     fmap f (runEffReaderListArrow x h)
 
 instance (Finite hs) => Applicative (EffReaderListArrow h hs es) where
-  pure a = MkEffReaderListArrow (\_ -> pure a)
+  pure a = mkEffReaderListArrow (\_ -> pure a)
   (*>) = inefficientTailFromAp
-  f <*> x = MkEffReaderListArrow $ \h ->
+  f <*> x = mkEffReaderListArrow $ \h ->
     runEffReaderListArrow f h <*> runEffReaderListArrow x h
 
 instance (Finite hs) => Monad (EffReaderListArrow h hs es) where
-  m >>= f = MkEffReaderListArrow $ \h ->
+  m >>= f = mkEffReaderListArrow $ \h ->
     runEffReaderListArrow m h >>= \a ->
       runEffReaderListArrow (f a) h
 
@@ -208,7 +217,14 @@ abstract ::
   -- | ͘
   EffReaderList (h : hs) es r
 -- TODO: maybe this should be unsafeCoerce for efficiency
-abstract f = coerce (MkEffReaderListArrow f)
+abstract = abstractNoFinite
+
+abstractNoFinite ::
+  (forall e. h e -> EffReaderList hs (e :& es) r) ->
+  -- | ͘
+  EffReaderList (h : hs) es r
+-- TODO: maybe this should be unsafeCoerce for efficiency
+abstractNoFinite f = coerce (mkEffReaderListArrow f)
 
 effReaderList ::
   Eff es r ->
