@@ -10,10 +10,11 @@ import Bluefin.Internal
     Eff,
     Effects,
     Handle,
-    HandleReader,
+    HandleReader (UnsafeMkHandleReader),
     In,
     State,
     bimap,
+    evalState,
     has,
     have,
     makeOp,
@@ -25,9 +26,9 @@ import Bluefin.Internal
     weakenEff,
     withBase,
     (:&),
-    (:>), evalState, HandleReader (UnsafeMkHandleReader),
+    (:>),
   )
-import qualified Bluefin.Internal as B
+import Bluefin.Internal qualified as B
 import Control.Monad (ap)
 import Control.Monad.RWS.Class (MonadState (put))
 import Control.Monad.State (MonadState (get))
