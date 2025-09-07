@@ -474,6 +474,9 @@ instance (Handle h) => Handle (M1 i t h) where
 instance (Handle h1, Handle h2) => Handle (h1 :*: h2) where
   handleImpl = handleMapHandle $ \(h1 :*: h2) -> mapHandle h1 :*: mapHandle h2
 
+mapHandleIn :: forall e es h. (Handle h) => e `In` es -> h e -> h es
+mapHandleIn in_ = case have in_ of Dict -> mapHandle
+
 -- { OneWayCoercibleHandle
 
 -- | 'OneWayCoercibleHandle' is used to derive 'Handle' instances

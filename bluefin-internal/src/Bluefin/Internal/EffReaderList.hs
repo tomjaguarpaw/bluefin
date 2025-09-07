@@ -39,15 +39,32 @@ import Unsafe.Coerce (unsafeCoerce)
 
 type EffReaderListF :: [Effects -> Type] -> Effects -> Type -> Type
 
+newtype Flip k r es = MkFlip {unFlip :: k es r}
+
 newtype EffArrow h eff es r
   = MkEffArrow {runEffArrow :: forall e. h e -> eff (e :& es) r}
 
+instance Handle (Flip Eff r) where
+  mapHandle = MkFlip . useImpl . unFlip
+
+instance (Handle (Flip eff r)) => Handle (Flip (EffArrow h eff) r) where
+  mapHandle (MkFlip k) = MkFlip $ MkEffArrow $ \h ->
+    unFlip (B.mapHandleIn (B.b has) (MkFlip (runEffArrow k h)))
+
 runEffArrow' ::
-  (e :> es) =>
+  (e :> es, Handle (Flip eff r)) =>
   EffArrow h eff e r ->
   h es ->
   eff es r
-runEffArrow' (MkEffArrow _k) = undefined
+runEffArrow' (MkEffArrow k) h =
+  unFlip $ B.mapHandleIn (B.subsume1 has) $ MkFlip (k h)
+
+runEffArrow1 ::
+  (Handle (Flip eff r)) =>
+  EffArrow h eff es r ->
+  h es ->
+  eff es r
+runEffArrow1 = runEffArrow'
 
 newtype EffReaderListArrow h hs es r
   = MkEffReaderListArrow (EffArrow h (EffReaderList hs) es r)
@@ -144,8 +161,11 @@ instance (Finite hs) => Finite (h : hs) where
                   apply (mapEffReaderListEffect m) h
       }
 
+instance Finite hs => Handle (Flip (EffReaderList hs) a) where
+  mapHandle = MkFlip . mapHandle_ finiteImpl . unFlip
+
 withRunInEffNext ::
-  (Handle h) =>
+  (Handle h, Finite hs) =>
   ( forall e.
     (InEffRunner hs `EffArrow` Eff) e r ->
     EffReaderList hs e r
