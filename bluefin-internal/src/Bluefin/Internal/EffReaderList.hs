@@ -161,7 +161,7 @@ instance (Finite hs) => Handle (Flip (EffReaderList hs) a) where
   mapHandle = MkFlip . mapHandle_ finiteImpl . unFlip
 
 withRunInEffNext ::
-  (Handle h, Finite hs) =>
+  (Finite hs) =>
   ( forall e.
     (InEffRunner hs `EffArrow` Eff) e r ->
     EffReaderList hs e r
