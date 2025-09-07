@@ -142,7 +142,7 @@ instance (Finite hs) => Finite (h : hs) where
             withRunInEff_ finiteImpl $ \rie ->
               useImplIn toRun $ MkInEffRunner $ \m -> do
                 runInEff rie $
-                  apply (mapEffReaderListEffect m) h
+                  apply (useImplG m) h
       }
 
 myPure :: (Finite hs) => r -> EffReaderList hs es r
@@ -154,8 +154,8 @@ myBind ::
   (a -> EffReaderList hs es b) ->
   EffReaderList hs es b
 myBind m f = withRunInEff $ \ier -> do
-  a <- runInEff1 (mapHandle ier) (mapEffReaderListEffect m)
-  runInEff1 (mapHandle ier) (mapEffReaderListEffect (f a))
+  a <- runInEff1 (mapHandle ier) (useImplG m)
+  runInEff1 (mapHandle ier) (useImplG (f a))
 
 instance (Finite hs) => Handle (Flip (EffReaderList hs) a) where
   mapHandle = MkFlip . mapHandle_ finiteImpl . unFlip
@@ -172,7 +172,7 @@ withRunInEffNext rie ea = abstract $ \h ->
   rie $ MkEffArrow $ \ier ->
     runEffArrow' ea $ MkInEffRunner $ \m ->
       runInEff ier $
-        apply (mapEffReaderListEffect m) h
+        apply (useImplG m) h
 
 instance (Finite hs) => Functor (EffReaderList hs es) where
   -- FIXME: Use a more efficient implementation. Will probably have to
@@ -201,27 +201,27 @@ type family EffReaderListF l es r = e | e -> l es r where
 newtype EffReaderList hs es r
   = MkEffReaderList {runEffReaderList_ :: EffReaderListF hs es r}
 
-mapEffReaderListEffectIn ::
+useImplGIn ::
   forall es e l r.
   (Finite l) =>
   e `In` es ->
   EffReaderList l e r ->
   EffReaderList l es r
-mapEffReaderListEffectIn in_ =
+useImplGIn in_ =
   unFlip . B.mapHandleIn in_ . MkFlip
 
-mapEffReaderListEffect ::
-  (e :> es, Finite l) =>
-  EffReaderList l e r ->
-  EffReaderList l es r
-mapEffReaderListEffect = mapEffReaderListEffectIn has
+useImplG ::
+  (e :> es, Handle (Flip eff r)) =>
+  eff e r ->
+  eff es r
+useImplG = unFlip . B.mapHandleIn has . MkFlip
 
-mapEffReaderListEffectUnder ::
+useImplGUnder ::
   forall es e e1 l r.
   (e :> es, Finite l) =>
   EffReaderList l (e1 :& e) r ->
   EffReaderList l (e1 :& es) r
-mapEffReaderListEffectUnder = mapEffReaderListEffectIn (bimap has has)
+useImplGUnder = useImplGIn (bimap has has)
 
 apply0 ::
   (e :> es, es' :> es, Finite hs) =>
@@ -229,7 +229,7 @@ apply0 ::
   h e ->
   -- | ͘
   EffReaderList hs es r
-apply0 e = apply (mapEffReaderListEffect e)
+apply0 e = apply (useImplG e)
 
 apply ::
   (e :> es, Finite hs) =>
@@ -238,14 +238,14 @@ apply ::
   -- | ͘
   EffReaderList hs es r
 apply (MkEffReaderList e) h =
-  mapEffReaderListEffectIn (subsume2 has) (runEffReaderListArrow e h)
+  useImplGIn (subsume2 has) (runEffReaderListArrow e h)
 
 apply1 ::
   EffReaderList (h : '[]) es r ->
   h es ->
   -- | ͘
   Eff es r
-apply1 e h = runEffReaderList (apply (mapEffReaderListEffect e) h)
+apply1 e h = runEffReaderList (apply (useImplG e) h)
 
 abstract ::
   -- Finite is a redundant constraint, but it seems prudent to add it
@@ -315,7 +315,7 @@ blah ::
   EffReaderList '[h] es r ->
   r1
 blah h erl = h $ \st ->
-  runEffReaderList (apply (mapEffReaderListEffectIn (withBase sndI) erl) st)
+  runEffReaderList (apply (useImplGIn (withBase sndI) erl) st)
 
 blaz ::
   (Finite hs, e3 :> es) =>
@@ -327,7 +327,7 @@ blaz karg b =
     karg $ abstract $ \h ->
       effReaderList $
         runInEff rie $ do
-          mapEffReaderListEffect b `apply` h
+          useImplG b `apply` h
 
 -- | Use an 'Eff' handler to handler an 'EffReaderList'
 effReaderListHandler ::
@@ -342,12 +342,12 @@ newtype Membership h hs
 
 here :: (Finite hs) => Membership h (h : hs)
 here = MkMembership $ \erl -> abstract $ \h -> do
-  let p = apply (mapEffReaderListEffect erl) h
+  let p = apply (useImplG erl) h
   liftEff (runEffReaderList p)
 
 there :: (Finite hs) => Membership h hs -> Membership h (h' : hs)
 there m = MkMembership $ \erl -> abstract $ \_ -> do
-  case m of MkMembership k -> mapEffReaderListEffect (k erl)
+  case m of MkMembership k -> useImplG (k erl)
 
 class (Finite hs) => Member h hs where
   member :: Membership h hs

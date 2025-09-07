@@ -11,7 +11,7 @@ import Bluefin.Internal.EffReaderList
     apply,
     effReaderList,
     effReaderListHandler,
-    mapEffReaderListEffect,
+    useImplG,
     runEffReaderList,
     runInEff,
     withRunInEff,

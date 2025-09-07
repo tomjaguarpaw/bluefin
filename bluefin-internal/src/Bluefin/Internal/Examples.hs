@@ -847,7 +847,7 @@ data Counter7e e = MkCounter7e
 instance Handle Counter7e where
   mapHandle c =
     MkCounter7e
-      { incCounter7Imple = mapEffReaderListEffect (incCounter7Imple c),
+      { incCounter7Imple = useImplG (incCounter7Imple c),
         counter7Statee = mapHandle (counter7Statee c),
         counter7Streame = mapHandle (counter7Streame c)
       }
@@ -978,10 +978,10 @@ blahg ::
   es :> es' =>
   (forall e. h e -> Eff (e :& es) r) ->
   EffReaderList '[h] es' r
-blahg k = mapEffReaderListEffect (abstract1 k)
+blahg k = useImplG (abstract1 k)
 
 weaken :: (Finite hs) => EffReaderList hs es r -> EffReaderList hs (e :& es) r
-weaken = mapEffReaderListEffect
+weaken = useImplG
 
 runFileSystemIO ::
   forall e1 e2 es r.
