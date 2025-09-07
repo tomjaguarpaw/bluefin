@@ -34,7 +34,7 @@ toStateAndUnit b = State.StateT $ \s -> do
       evalState () $ \stu -> do
         try $ \ex ->
           runInEff rie $ do
-            ((mapEffReaderListEffect b `apply` st) `apply` stu) `apply` ex
+            useImplG b `apply` st `apply` stu `apply` ex
 
 toState ::
   (Finite hs) =>
