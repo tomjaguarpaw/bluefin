@@ -207,8 +207,8 @@ mapEffReaderListEffectIn ::
   e `In` es ->
   EffReaderList l e r ->
   EffReaderList l es r
-mapEffReaderListEffectIn in_ m =
-  case have in_ of Dict -> mapHandle_ finiteImpl m
+mapEffReaderListEffectIn in_ =
+  unFlip . B.mapHandleIn in_ . MkFlip
 
 mapEffReaderListEffect ::
   (e :> es, Finite l) =>
