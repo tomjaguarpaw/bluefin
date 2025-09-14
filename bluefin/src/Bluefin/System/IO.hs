@@ -1,5 +1,4 @@
 -- | A safer interface to @System.IO.'System.IO.Handle'@
-
 module Bluefin.System.IO
   ( -- * Handle
     Handle,
@@ -16,7 +15,6 @@ module Bluefin.System.IO
     hFlush,
 
     -- * Unsafe
-
     unsafeWithHandle,
   )
 where

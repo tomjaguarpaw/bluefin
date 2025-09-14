@@ -5,7 +5,7 @@ module Bluefin.Examples.CloneableHandle where
 import Bluefin.CloneableHandle
   ( CloneableHandle,
     Generic1,
-    GenericCloneableHandle(..),
+    GenericCloneableHandle (..),
     withEffToIOCloneHandle,
   )
 import Bluefin.Compound

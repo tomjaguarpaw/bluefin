@@ -6,8 +6,10 @@ module Bluefin.Jump
 
     -- * Handle
     Jump,
+
     -- * Handlers
     withJump,
+
     -- * Effectful operations
     jumpTo,
   )

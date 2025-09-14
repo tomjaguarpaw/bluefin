@@ -10,11 +10,11 @@ import Bluefin.Compound
     useImplUnder,
   )
 import Bluefin.Eff (Eff, (:&), (:>))
-import qualified Bluefin.Eff as BF
+import Bluefin.Eff qualified as BF
 import Bluefin.Exception (Exception)
-import qualified Bluefin.Exception as BF
+import Bluefin.Exception qualified as BF
 import Bluefin.IO (IOE)
-import qualified Bluefin.IO as BF
+import Bluefin.IO qualified as BF
 
 newtype DbHandle = DbHandle String deriving (Show)
 

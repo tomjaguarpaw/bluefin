@@ -31,7 +31,7 @@ import Prelude hiding
     take,
     writeFile,
   )
-import qualified Prelude
+import Prelude qualified
 
 -- An example form elaforge at
 --
