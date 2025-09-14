@@ -6,9 +6,11 @@ module Bluefin.Writer
 
     -- * Handle
     Writer,
+
     -- * Handlers
     runWriter,
     execWriter,
+
     -- * Effectful operations
     tell,
   )

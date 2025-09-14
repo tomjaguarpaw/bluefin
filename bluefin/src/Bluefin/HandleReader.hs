@@ -11,14 +11,16 @@
 -- new behaviors.
 
 module Bluefin.HandleReader
-  (-- * Handle
-   HandleReader,
-   -- * Handlers
-   runHandleReader,
-   -- * Effectful operations
-   askHandle,
-   localHandle,
+  ( -- * Handle
+    HandleReader,
+
+    -- * Handlers
+    runHandleReader,
+
+    -- * Effectful operations
+    askHandle,
+    localHandle,
   )
-  where
+where
 
 import Bluefin.Internal

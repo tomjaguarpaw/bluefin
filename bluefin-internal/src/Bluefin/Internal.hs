@@ -12,7 +12,7 @@
 
 module Bluefin.Internal where
 
-import qualified Bluefin.Internal.Exception.Scoped as ScopedException
+import Bluefin.Internal.Exception.Scoped as qualified ScopedException
 import Bluefin.Internal.OneWayCoercible
   ( OneWayCoercible (oneWayCoercibleImpl),
     OneWayCoercion,
@@ -22,15 +22,15 @@ import Bluefin.Internal.OneWayCoercible
     oneWayCoercible,
     unsafeOneWayCoercible,
   )
-import qualified Control.Concurrent.Async as Async
+import Control.Concurrent.Async qualified as Async
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
-import qualified Control.Exception
+import Control.Exception qualified
 import Control.Monad (forever)
 import Control.Monad.Base (MonadBase (liftBase))
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
 import Control.Monad.Trans.Control (MonadBaseControl, StM, liftBaseWith, restoreM)
-import qualified Control.Monad.Trans.Reader as Reader
+import Control.Monad.Trans.Reader qualified as Reader
 import Data.Coerce (coerce)
 import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)

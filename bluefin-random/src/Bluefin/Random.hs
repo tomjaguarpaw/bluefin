@@ -25,8 +25,8 @@ import Bluefin.Compound (Handle)
 import Bluefin.Eff (Eff, Effects, (:&), (:>))
 import Bluefin.IO (IOE, effIO)
 import Bluefin.State (State, get, put, runState)
-import qualified System.Random as Rnd
-import qualified System.Random.Stateful as Rnd
+import System.Random qualified as Rnd
+import System.Random.Stateful qualified as Rnd
 
 -- $specialpurposehandlers
 --
