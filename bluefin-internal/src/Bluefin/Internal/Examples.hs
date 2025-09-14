@@ -17,9 +17,9 @@ import Bluefin.Internal.Pipes
     takeWhile',
     (>->),
   )
-import qualified Bluefin.Internal.Pipes as P
+import Bluefin.Internal.Pipes qualified as P
 import Control.Exception (IOException)
-import qualified Control.Exception
+import Control.Exception qualified
 import Control.Monad (forever, replicateM_, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
@@ -36,7 +36,7 @@ import Prelude hiding
     return,
     writeFile,
   )
-import qualified Prelude
+import Prelude qualified
 
 monadIOExample :: IO ()
 monadIOExample = runEff_ $ \io -> withMonadIO io $ liftIO $ do
