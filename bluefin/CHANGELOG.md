@@ -1,5 +1,10 @@
+## 0.0.17.0
+
 * Added `streamConsume`, `cycleToStream`, `takeConsume` (thanks to
   @iteratee)
+
+* Added introduction to effect systems documentation (thanks to
+  @ShilohAlleyne)
 
 ## 0.0.16.0
 
