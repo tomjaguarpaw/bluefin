@@ -7,9 +7,9 @@ where
 
 import Bluefin.Internal.Key (Key, eqKey, newKey)
 import Control.Exception (throwIO, tryJust)
-import qualified Control.Exception
-import Data.Type.Equality ((:~~:) (HRefl))
+import Control.Exception qualified
 import Data.Kind (Type)
+import Data.Type.Equality ((:~~:) (HRefl))
 
 try :: (Exception e -> IO a) -> IO (Either e a)
 try k = do

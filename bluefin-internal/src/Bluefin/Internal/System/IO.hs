@@ -14,8 +14,8 @@ import Bluefin.Internal
     (:&),
     (:>),
   )
-import qualified Bluefin.Internal
-import qualified System.IO
+import Bluefin.Internal qualified
+import System.IO qualified
 
 -- We can probably get away without the IOE and just use
 -- unsafeProvideIO on all Handle functions
