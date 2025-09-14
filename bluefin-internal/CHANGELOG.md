@@ -1,3 +1,5 @@
+## 0.1.1.0
+
 * Added `streamConsume`, `cycleToStream`, `takeConsume` (thanks to
   @iteratee)
 
