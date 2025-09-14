@@ -5,7 +5,7 @@ module Bluefin.Examples.DslBuilder.Robots where
 import Bluefin.Compound
   ( Generic,
     Handle (mapHandle),
-    OneWayCoercible(oneWayCoercibleImpl),
+    OneWayCoercible (oneWayCoercibleImpl),
     OneWayCoercibleHandle (..),
     gOneWayCoercible,
   )

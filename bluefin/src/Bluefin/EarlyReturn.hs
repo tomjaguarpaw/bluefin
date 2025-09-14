@@ -5,8 +5,10 @@ module Bluefin.EarlyReturn
 
     -- * Handle
     EarlyReturn,
+
     -- * Handlers
     withEarlyReturn,
+
     -- * Effectful operations
     returnEarly,
   )

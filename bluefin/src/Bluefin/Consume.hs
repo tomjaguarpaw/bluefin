@@ -5,10 +5,12 @@ module Bluefin.Consume
 
     -- * Handle
     Consume,
+
     -- * Handlers
     consumeEach,
     consumeStream,
     streamConsume,
+
     -- * Effectful operations
     await,
     takeConsume,

@@ -6,7 +6,7 @@ import Bluefin.Random (Random, withInitStdGen)
 import Data.ByteString (ByteString)
 import Data.ByteString.Short (ShortByteString)
 import System.Random.Stateful (RandomGen, Uniform, UniformRange, randomRM)
-import qualified System.Random.Stateful as RS
+import System.Random.Stateful qualified as RS
 
 exampleRandomUsage :: IO ()
 exampleRandomUsage = runEff_ $ \io -> do

@@ -8,6 +8,7 @@ module Bluefin.Stream
 
     -- * Handle
     Stream,
+
     -- * Handlers
     forEach,
     yieldToList,
@@ -20,6 +21,7 @@ module Bluefin.Stream
     catMaybes,
     consumeStream,
     streamConsume,
+
     -- * Effectful operations
     yield,
     inFoldable,
