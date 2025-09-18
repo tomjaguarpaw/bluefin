@@ -647,7 +647,31 @@ module Bluefin
     -- "Control.Monad.ST": it ensures that a handle can never escape
     -- the scope of its handler.  That is, once the handler has
     -- finished running there is no way you can use the handle
-    -- anymore.
+    -- anymore.  For example, in @exampleNoEscape@ below we attempt to
+    -- pass the state handle @st@ out of the inner @do@ block. The
+    -- type system prevents us, giving the error message below.
+    --
+    -- @
+    -- exampleNoEscape = do
+    --   (total, st) \<- 'Bluefin.State.evalState' 0 $ \\st -> do
+    --     -- /Add up the numbers 1 to 10/
+    --     for_ [1..10] $ \i -> do
+    --        'Bluefin.State.modify' st (+ i)
+    --     r <- 'Bluefin.State.get' st
+    --     -- /Pass out the result, plus the/
+    --     -- /state handle itself/
+    --     pure (r, st)
+    --
+    --   modify st (* 10)
+    --   get st
+    -- @
+    --
+    -- @
+    -- • Couldn't match type ‘e0’ with ‘e’
+    --   Expected: (Integer, State Integer e0)
+    --     Actual: (Integer, State Integer e)
+    --     because type variable ‘e’ would escape its scope
+    -- @
 
     -- ** Type signatures
 
