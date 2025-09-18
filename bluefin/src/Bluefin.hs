@@ -647,7 +647,67 @@ module Bluefin
     -- "Control.Monad.ST": it ensures that a handle can never escape
     -- the scope of its handler.  That is, once the handler has
     -- finished running there is no way you can use the handle
-    -- anymore.
+    -- anymore. For an example of a correctly-scoped function see
+    -- @correctlyScoped@ below.  It uses Bluefin’s @State@ handle to
+    -- compute the sum of the numbers 1 to 10, before multiplying the
+    -- result by 20. In @correctlyScoped@ the @State@ handle is scoped
+    -- to its handler, @evalState@, and everything works as expected:
+    --
+    -- @
+    -- -- /Result: 1100/
+    -- correctlyScoped :: Eff es Integer
+    -- correctlyScoped = do
+    --   -- /Initial state 0/
+    --   r \<- 'Bluefin.State.evalState' 0 $ \\st -> do
+    --     -- The 'Bluefin.State.State' handle "st" is scoped to the
+    --     -- handler that introduced it, evalState,
+    --     -- and therefore it can only be used within
+    --     -- this do block.
+    --
+    --     -- /Add up the numbers 1 to 10/
+    --     for_ [1..10] $ \\i -> do
+    --       'Bluefin.State.modify' st (+ i)
+    --
+    --     -- /Get the result/
+    --     'Bluefin.State.get' st
+    --
+    --   pure (r * 20)
+    -- @
+    --
+    -- Now let's look at an incorrectly-scoped example,
+    -- @incorrectlyScoped@. It attempts to pass the state handle @st@
+    -- out of the scope of @evalState@:
+    --
+    -- @
+    -- incorrectlyScoped :: Eff es Integer
+    -- incorrectlyScoped = do
+    --   -- /Initial state 0/
+    --   (total, st) \<- 'Bluefin.State.evalState' 0 $ \\st -> do
+    --     -- /Add up the numbers 1 to 10/
+    --     for_ [1..10] $ \\i -> do
+    --       'Bluefin.State.modify' st (+ i)
+    --
+    --     -- /Get the result/
+    --     r <- 'Bluefin.State.get' st
+    --
+    --     -- /Pass out the result, and try to pass the/
+    --     -- /'Bluefin.State.State' handle outside its scope, i.e. this/
+    --     -- /do block introduced by evalState/
+    --     pure (r, st)
+    --
+    --   modify st (* 20)
+    --   get st
+    -- @
+    --
+    -- The type system prevents us from passing the @State@ handle out
+    -- of its scope, giving this error message:
+    --
+    -- @
+    -- • Couldn't match type ‘e0’ with ‘e’
+    --   Expected: (Integer, State Integer e0)
+    --     Actual: (Integer, State Integer e)
+    --     because type variable ‘e’ would escape its scope
+    -- @
 
     -- ** Type signatures
 
