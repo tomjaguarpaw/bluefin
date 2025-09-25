@@ -6,7 +6,7 @@ module Bluefin.Examples.DB where
 import Bluefin.Compound
   ( Handle (mapHandle),
     makeOp,
-    useImplIn,
+    useImplIn0,
     useImplUnder,
   )
 import Bluefin.Eff (Eff, (:&), (:>))
@@ -43,15 +43,15 @@ runDbEffIo ::
   (forall e. DbEff e -> Eff (e :& es) r) ->
   Eff es r
 runDbEffIo ex _ fn =
-  useImplIn
+  useImplIn0 $
     fn
-    ( MkDbEff
-        { queryImpl = \_ userId -> do
-            if userId == UserId "1"
-              then pure $ User "Alice"
-              else BF.throw ex "not found"
-        }
-    )
+      ( MkDbEff
+          { queryImpl = \_ userId -> do
+              if userId == UserId "1"
+                then pure $ User "Alice"
+                else BF.throw ex "not found"
+          }
+      )
 
 main :: IO ()
 main = do

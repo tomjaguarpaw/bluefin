@@ -3,7 +3,7 @@
 
 module Bluefin.Examples.Terminal where
 
-import Bluefin.Compound (Handle (mapHandle), useImplIn)
+import Bluefin.Compound (Handle (mapHandle), useImplIn0)
 import Bluefin.Eff (Eff, type (:&), type (:>))
 import Bluefin.IO (IOE, effIO)
 
@@ -18,4 +18,4 @@ runTerminal ::
   IOE termEff ->
   (forall e. Terminal e -> Eff (e :& es) r) ->
   Eff es r
-runTerminal ioe k = useImplIn k (MkTerminal (mapHandle ioe))
+runTerminal ioe k = useImplIn0 $ k (MkTerminal (mapHandle ioe))

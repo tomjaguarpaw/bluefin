@@ -29,8 +29,8 @@ infixl 7 >->
   Eff es r
 (>->) k1 k2 (MkProxy c1 c2) =
   receiveStream
-    (\c -> useImplIn k2 (MkProxy (mapHandle c) (mapHandle c2)))
-    (\s -> useImplIn k1 (MkProxy (mapHandle c1) (mapHandle s)))
+    (\c -> useImplIn0 $ k2 (MkProxy (mapHandle c) (mapHandle c2)))
+    (\s -> useImplIn0 $ k1 (MkProxy (mapHandle c1) (mapHandle s)))
 
 infixr 7 <-<
 
@@ -51,8 +51,8 @@ for ::
   -- | ͘
   Eff es a'
 for k1 k2 (MkProxy c1 c2) =
-  forEach (\bk -> useImplIn k1 (MkProxy (mapHandle c1) (mapHandle bk))) $ \b_ ->
-    useImplIn (k2 b_) (MkProxy (mapHandle c1) (mapHandle c2))
+  forEach (\bk -> useImplIn0 $ k1 (MkProxy (mapHandle c1) (mapHandle bk))) $ \b_ ->
+    useImplIn0 $ (k2 b_) (MkProxy (mapHandle c1) (mapHandle c2))
 
 infixr 4 ~>
 
@@ -123,9 +123,9 @@ runEffect k =
     ( \c1 ->
         forEach
           ( \c2 ->
-              useImplIn
+              useImplIn0 $
                 k
-                (MkProxy (mapHandle c1) (mapHandle c2))
+                  (MkProxy (mapHandle c1) (mapHandle c2))
           )
           absurd
     )

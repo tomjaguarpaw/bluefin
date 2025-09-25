@@ -577,7 +577,7 @@ runCounter3 ::
 runCounter3 k =
   evalState 0 $ \st -> do
     _ <- try $ \ex -> do
-      useImplIn k (MkCounter3 (mapHandle st) (mapHandle ex))
+      useImplIn0 $ k (MkCounter3 (mapHandle st) (mapHandle ex))
     get st
 
 exampleCounter3 :: Int
@@ -601,7 +601,7 @@ runCounter3B ::
   IOE e1 ->
   (forall e. Counter3B e -> Eff (e :& es) r) ->
   Eff es r
-runCounter3B io k = useImplIn k (MkCounter3B (mapHandle io))
+runCounter3B io k = useImplIn0 $ k (MkCounter3B (mapHandle io))
 
 exampleCounter3B :: IO ()
 exampleCounter3B = runEff_ $ \io -> runCounter3B io $ \c -> do
@@ -644,7 +644,7 @@ runCounter4 ::
 runCounter4 y k =
   evalState 0 $ \st -> do
     _ <- try $ \ex -> do
-      useImplIn k (MkCounter4 (mapHandle st) (mapHandle ex) (mapHandle y))
+      useImplIn0 $ k (MkCounter4 (mapHandle st) (mapHandle ex) (mapHandle y))
     get st
 
 exampleCounter4 :: ([String], Int)
@@ -687,24 +687,24 @@ runCounter5 ::
 runCounter5 y k =
   evalState 0 $ \st -> do
     _ <- try $ \ex -> do
-      useImplIn
+      useImplIn0 $
         k
-        ( MkCounter5
-            { incCounter5Impl = do
-                count <- get st
+          ( MkCounter5
+              { incCounter5Impl = do
+                  count <- get st
 
-                when (even count) $
-                  yield y "Count was even"
+                  when (even count) $
+                    yield y "Count was even"
 
-                when (count >= 10) $
-                  throw ex ()
+                  when (count >= 10) $
+                    throw ex ()
 
-                put st (count + 1),
-              getCounter5Impl = \msg -> do
-                yield y msg
-                get st
-            }
-        )
+                  put st (count + 1),
+                getCounter5Impl = \msg -> do
+                  yield y msg
+                  get st
+              }
+          )
     get st
 
 exampleCounter5 :: ([String], Int)
@@ -751,23 +751,23 @@ runCounter6 ::
 runCounter6 y k =
   evalState 0 $ \st -> do
     _ <- try $ \ex -> do
-      useImplIn
+      useImplIn0 $
         k
-        ( MkCounter6
-            { incCounter6Impl = do
-                count <- get st
+          ( MkCounter6
+              { incCounter6Impl = do
+                  count <- get st
 
-                when (even count) $
-                  yield y "Count was even"
+                  when (even count) $
+                    yield y "Count was even"
 
-                when (count >= 10) $
-                  throw ex ()
+                  when (count >= 10) $
+                    throw ex ()
 
-                put st (count + 1),
-              counter6State = mapHandle st,
-              counter6Stream = mapHandle y
-            }
-        )
+                  put st (count + 1),
+                counter6State = mapHandle st,
+                counter6Stream = mapHandle y
+              }
+          )
     get st
 
 exampleCounter6 :: ([String], Int)
@@ -815,23 +815,23 @@ runCounter7 ::
 runCounter7 y k =
   evalState 0 $ \st -> do
     _ <-
-      useImplIn
+      useImplIn0 $
         k
-        ( MkCounter7
-            { incCounter7Impl = \ex -> do
-                count <- get st
+          ( MkCounter7
+              { incCounter7Impl = \ex -> do
+                  count <- get st
 
-                when (even count) $
-                  yield y "Count was even"
+                  when (even count) $
+                    yield y "Count was even"
 
-                when (count >= 10) $
-                  throw ex ()
+                  when (count >= 10) $
+                    throw ex ()
 
-                put st (count + 1),
-              counter7State = mapHandle st,
-              counter7Stream = mapHandle y
-            }
-        )
+                  put st (count + 1),
+                counter7State = mapHandle st,
+                counter7Stream = mapHandle y
+              }
+          )
     get st
 
 exampleCounter7A :: ([String], Int)
@@ -885,18 +885,18 @@ runFileSystemPure ::
   Eff es r
 runFileSystemPure ex fs0 k =
   evalState fs0 $ \fs ->
-    useImplIn
+    useImplIn0 $
       k
-      MkFileSystem
-        { readFileImpl = \path -> do
-            fs' <- get fs
-            case lookup path fs' of
-              Nothing ->
-                throw ex ("File not found: " <> path)
-              Just s -> pure s,
-          writeFileImpl = \path contents ->
-            modify fs ((path, contents) :)
-        }
+        MkFileSystem
+          { readFileImpl = \path -> do
+              fs' <- get fs
+              case lookup path fs' of
+                Nothing ->
+                  throw ex ("File not found: " <> path)
+                Just s -> pure s,
+            writeFileImpl = \path contents ->
+              modify fs ((path, contents) :)
+          }
 
 runFileSystemIO ::
   forall e1 e2 es r.
@@ -906,14 +906,14 @@ runFileSystemIO ::
   (forall e. FileSystem e -> Eff (e :& es) r) ->
   Eff es r
 runFileSystemIO ex io k =
-  useImplIn
+  useImplIn0 $
     k
-    MkFileSystem
-      { readFileImpl =
-          adapt . Prelude.readFile,
-        writeFileImpl =
-          \path -> adapt . Prelude.writeFile path
-      }
+      MkFileSystem
+        { readFileImpl =
+            adapt . Prelude.readFile,
+          writeFileImpl =
+            \path -> adapt . Prelude.writeFile path
+        }
   where
     adapt :: (e1 :> ess, e2 :> ess) => IO a -> Eff ess a
     adapt m =
@@ -1076,9 +1076,9 @@ runDynamicReader ::
   Eff es a
 runDynamicReader r k =
   runReader r $ \h -> do
-    useImplIn
+    useImplIn0 $
       k
-      DynamicReader
-        { askLRImpl = ask h,
-          localLRImpl = \f k' -> makeOp (local h f (useImpl k'))
-        }
+        DynamicReader
+          { askLRImpl = ask h,
+            localLRImpl = \f k' -> makeOp (local h f (useImpl k'))
+          }

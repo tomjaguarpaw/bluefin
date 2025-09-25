@@ -1,3 +1,5 @@
+* Add `useImplIn0` and soft deprecate `useImplIn`
+
 ## 0.0.17.1
 
 * Documentation only, thanks to @ShilohAlleyne

@@ -284,11 +284,16 @@ inContext :: (e2 :> e1) => Eff (e1 :& e2) r -> Eff e1 r
 inContext = weakenEff (subsume1 has)
 
 -- | Used to define dynamic effects.
-makeOp :: Eff (e :& e) r -> Eff e r
-makeOp = inContext
+makeOp :: Eff (e :& e) r ->
+   -- | ͘
+    Eff e r
+makeOp = useImplIn0
 
 -- | Used to define dynamic effects.
-useImpl :: (e :> es) => Eff e r -> Eff es r
+useImpl ::
+  (e :> es) => Eff e r ->
+  -- | ͘
+  Eff es r
 useImpl = weakenEff has
 
 -- | Like 'useImpl'
@@ -299,14 +304,22 @@ useImplUnder ::
   Eff (e1 :& es) r
 useImplUnder = insertManySecond
 
--- | Used to define handlers of compound effects.
+-- | Use 'useImplIn0' instead.
 useImplIn ::
   (e :> es) =>
   (t -> Eff (es :& e) r) ->
   t ->
   -- | ͘
   Eff es r
-useImplIn f h = inContext (f h)
+useImplIn f h = useImplIn0 (f h)
+
+-- | Used to define handlers of compound effects.
+useImplIn0 ::
+  (e :> es) =>
+  Eff (es :& e) r ->
+  -- | ͘
+  Eff es r
+useImplIn0 = inContext
 
 -- | Deprecated.  Use 'useImplUnder' instead.
 useImplWithin ::
@@ -702,7 +715,7 @@ withStateSource ::
   (forall e. StateSource e -> Eff (e :& es) a) ->
   -- | ͘
   Eff es a
-withStateSource f = useImplIn f StateSource
+withStateSource f = useImplIn0 $ f StateSource
 
 -- |
 -- @
@@ -802,7 +815,7 @@ forEach ::
   -- | Apply this effectful function for each element of the coroutine
   (a -> Eff es b) ->
   Eff es r
-forEach f h = useImplIn f (MkCoroutine h)
+forEach f h = useImplIn0 $ f (MkCoroutine h)
 
 -- |
 --
@@ -1257,7 +1270,7 @@ unsafeProvideIO ::
   (forall e. IOE e -> Eff (e :& es) a) ->
   -- | ͘
   Eff es a
-unsafeProvideIO eff = useImplIn eff MkIOE
+unsafeProvideIO eff = useImplIn0 $ eff MkIOE
 
 connect ::
   (forall e1. Coroutine a b e1 -> Eff (e1 :& es) r1) ->
@@ -1460,7 +1473,7 @@ runHandleReader h k = do
           Coercion ->
             UnsafeMkHandleReader (mapS (mapHandle st))
 
-    useImplIn k h'
+    useImplIn0 $ k h'
 
 instance (Handle h) => Handle (HandleReader h) where mapHandle = mapHandleReader
 
@@ -1471,7 +1484,7 @@ runConstEffect ::
   (forall e. ConstEffect r e -> Eff (e :& es) a) ->
   -- | ͘
   Eff es a
-runConstEffect r k = useImplIn k (MkConstEffect r)
+runConstEffect r k = useImplIn0 $ k (MkConstEffect r)
 
 instance Handle (ConstEffect r) where
   mapHandle = coerce
