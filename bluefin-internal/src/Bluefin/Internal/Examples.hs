@@ -1082,3 +1082,53 @@ runDynamicReader r k =
         { askLRImpl = ask h,
           localLRImpl = \f k' -> makeOp (local h f (useImpl k'))
         }
+
+data Spin e = UnsafeMkSpin
+  { io :: IOE e,
+    spin :: State (Maybe Bool) e,
+    isOther :: Bool
+  }
+
+runEntangled ::
+  (e1 :> es) =>
+  IOE e1 ->
+  (forall e. Spin e -> Spin e -> Eff (e :& es) r) ->
+  Eff es r
+runEntangled io act = evalState Nothing $ \s -> do
+  let s1 = UnsafeMkSpin (mapHandle io) (mapHandle s) False
+  let s2 = UnsafeMkSpin (mapHandle io) (mapHandle s) True
+  useImplIn2 act s1 s2
+
+measure ::
+  (e :> es) =>
+  Spin e ->
+  Eff es Bool
+measure (UnsafeMkSpin io mbSpin isOther) = do
+  get mbSpin >>= \case
+    Just spin -> pure $ if isOther then not spin else spin
+    Nothing -> do
+      spin <- effIO io fakeRandomBool
+      put mbSpin (Just spin)
+      pure $ if isOther then not spin else spin
+  where
+    fakeRandomBool :: IO Bool
+    fakeRandomBool = pure True
+
+useImplIn2example :: IO (Either String String)
+useImplIn2example = runEff_ $ \io -> do
+  try $ \ex -> do
+    for_ (take 10 (cycle [True, False])) $ \whoFirst -> do
+      runEntangled io $ \alice bob -> do
+        (r1, r2) <-
+          if whoFirst
+            then do
+              ra <- measure alice
+              rb <- measure bob
+              pure (ra, rb)
+            else do
+              rb <- measure bob
+              ra <- measure alice
+              pure (rb, ra)
+        when (r1 == r2) $ do
+          throw ex "the universe is broken"
+    pure "all good"
