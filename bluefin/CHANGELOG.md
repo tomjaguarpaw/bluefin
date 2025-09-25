@@ -1,3 +1,7 @@
+## 0.0.17.1
+
+* Documentation only, thanks to @ShilohAlleyne
+
 ## 0.0.17.0
 
 * Added `streamConsume`, `cycleToStream`, `takeConsume` (thanks to
