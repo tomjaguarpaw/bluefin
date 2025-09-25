@@ -285,7 +285,7 @@ inContext = weakenEff (subsume1 has)
 
 -- | Used to define dynamic effects.
 makeOp :: Eff (e :& e) r -> Eff e r
-makeOp = inContext
+makeOp = useImplIn0
 
 -- | Used to define dynamic effects.
 useImpl :: (e :> es) => Eff e r -> Eff es r
@@ -306,7 +306,7 @@ useImplIn ::
   t ->
   -- | ͘
   Eff es r
-useImplIn f h = inContext (f h)
+useImplIn f h = useImplIn0 (f h)
 
 -- | Used to define handlers of compound effects.
 useImplIn0 ::
