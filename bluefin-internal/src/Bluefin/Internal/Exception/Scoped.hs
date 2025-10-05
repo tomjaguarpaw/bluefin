@@ -21,6 +21,8 @@ try k = do
 throw :: Exception e -> e -> IO a
 throw ex e = throwIO (MkInFlight ex e)
 
+-- Corresponds to what Bluefin calls an "Exception", i.e. "a handle to
+-- an exception" or "the capability to throw an exception".
 newtype Exception (e :: Type) = MkException (Key e)
 
 data InFlight = forall e. MkInFlight !(Exception e) !e
