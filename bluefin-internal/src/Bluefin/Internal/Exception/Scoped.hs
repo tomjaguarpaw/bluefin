@@ -25,6 +25,8 @@ throw ex e = throwIO (MkInFlight ex e)
 -- an exception" or "the capability to throw an exception".
 newtype Exception (e :: Type) = MkException (Key e)
 
+-- InFlight is like Locker from vault.  MkInflight is like lock from
+-- vault.
 data InFlight = forall e. MkInFlight !(Exception e) !e
 
 instance Show InFlight where
@@ -32,5 +34,6 @@ instance Show InFlight where
 
 instance Control.Exception.Exception InFlight
 
+-- Like unlock from vault
 check :: Key a -> InFlight -> Maybe a
 check k1 (MkInFlight (MkException k2) e) = fmap (\HRefl -> e) (k1 `eqKey` k2)
