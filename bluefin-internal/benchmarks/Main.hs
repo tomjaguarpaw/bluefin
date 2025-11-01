@@ -9,10 +9,7 @@ import Effectful.State.Static.Local qualified as Effectful.State
 
 benchBluefin :: Int -> Int
 benchBluefin n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
-  replicateM_ n (go st)
-  where
-    go !ref = do
-      modify' ref $ \(!cur, !next) -> (next, cur + next)
+  replicateM_ n (modify' st $ \(!cur, !next) -> (next, cur + next))
 
 benchIORef :: Int -> IO Int
 benchIORef n =
