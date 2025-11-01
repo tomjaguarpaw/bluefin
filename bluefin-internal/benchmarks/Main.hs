@@ -1,10 +1,11 @@
 import Bluefin.Internal
 import Control.Monad (replicateM_)
-import Criterion.Main ( defaultMain, bench, bgroup, whnf, whnfIO )
-import Data.IORef
-import qualified Effectful
-import Effectful.State.Static.Local qualified as Effectful.State
 import Control.Monad.Trans.State qualified as Trans.State
+import Criterion.Main (bench, bgroup, defaultMain, whnf, whnfIO)
+import Data.Foldable (for_)
+import Data.IORef
+import Effectful qualified
+import Effectful.State.Static.Local qualified as Effectful.State
 
 benchBluefin :: Int -> Int
 benchBluefin n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
@@ -39,8 +40,8 @@ benchTrans n = fst $ Trans.State.execState go (0, 1)
         (!cur, !next) <- Trans.State.get
         Trans.State.put (next, cur + next)
 
-main :: IO ()
-main = do
+benchMain :: IO ()
+benchMain = do
   let n = 5000000
   defaultMain
     [ bgroup
@@ -51,3 +52,22 @@ main = do
           bench "trans" $ whnf benchTrans n
         ]
     ]
+
+justTest :: IO ()
+justTest = do
+  let l = [0 .. 20] :: [Int]
+  let fs =
+        map
+          (`map` l)
+          [ return <$> benchBluefin,
+            return <$> benchTrans,
+            benchIORef,
+            return <$> benchEffectful
+          ]
+  results <- mapM sequence fs
+  for_ results $ \result -> print result
+
+main :: IO ()
+main = do
+  justTest
+  benchMain
