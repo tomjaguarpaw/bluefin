@@ -11,6 +11,10 @@ benchBluefin :: Int -> Int
 benchBluefin n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
   replicateM_ n (modify' st $ \(!cur, !next) -> (next, cur + next))
 
+benchBluefinOld :: Int -> Int
+benchBluefinOld n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
+  replicateM_ n (modify st $ \(!cur, !next) -> (next, cur + next))
+
 benchIORef :: Int -> IO Int
 benchIORef n =
   fst <$> do
@@ -57,6 +61,7 @@ justTest = do
         map
           (`map` l)
           [ return <$> benchBluefin,
+            return <$> benchBluefinOld,
             return <$> benchTrans,
             benchIORef,
             return <$> benchEffectful
