@@ -47,10 +47,11 @@ benchMain = do
   defaultMain
     [ bgroup
         "my benchmarks"
-        [ bench "bluefin state" $ whnf benchBluefin n,
-          bench "IORef" $ whnfIO (benchIORef n),
-          bench "effectful state" $ whnf benchEffectful n,
-          bench "trans" $ whnf benchTrans n
+        [ bench "IORef" $ whnfIO (benchIORef n),
+          bench "bluefin state" $ whnf benchBluefin n
+--          bench "bluefin state old" $ whnf benchBluefinOld n,
+--          bench "effectful state" $ whnf benchEffectful n,
+--          bench "trans" $ whnf benchTrans n
         ]
     ]
 
