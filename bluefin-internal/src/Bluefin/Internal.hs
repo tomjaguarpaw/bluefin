@@ -323,7 +323,7 @@ useImplUnder ::
 useImplUnder = insertManySecond
 
 -- | Used to define handlers of compound effects.
-{-# INLINE useImplIn #-}
+{-# INLINE [1] useImplIn #-}
 useImplIn ::
   (e :> es) =>
   (t -> Eff (es :& e) r) ->
@@ -331,6 +331,7 @@ useImplIn ::
   -- | ͘
   Eff es r
 useImplIn f h = inContext (f h)
+
 
 -- | Deprecated.  Use 'useImplUnder' instead.
 useImplWithin ::
@@ -855,6 +856,7 @@ modify' ::
   Eff es ()
 modify' st f = do
   unsafeProvideIO $ \io -> withStateInIO io st (flip modifyIORef' f)
+
 
 withScopedException_ :: ((forall a. e -> IO a) -> IO r) -> IO (Either e r)
 withScopedException_ f =

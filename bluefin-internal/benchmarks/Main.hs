@@ -11,6 +11,7 @@ benchBluefin :: Int -> Int
 benchBluefin n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
   replicateM_ n (modify' st $ \(!cur, !next) -> (next, cur + next))
 
+{-
 benchBluefinOld :: Int -> Int
 benchBluefinOld n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
   replicateM_ n (modify st $ \(!cur, !next) -> (next, cur + next))
@@ -40,6 +41,7 @@ benchTrans n = fst $ Trans.State.execState go (0, 1)
       replicateM_ n $ do
         (!cur, !next) <- Trans.State.get
         Trans.State.put (next, cur + next)
+-}
 
 benchMain :: IO ()
 benchMain = do
@@ -47,7 +49,7 @@ benchMain = do
   defaultMain
     [ bgroup
         "my benchmarks"
-        [ bench "IORef" $ whnfIO (benchIORef n),
+        [ -- bench "IORef" $ whnfIO (benchIORef n),
           bench "bluefin state" $ whnf benchBluefin n
 --          bench "bluefin state old" $ whnf benchBluefinOld n,
 --          bench "effectful state" $ whnf benchEffectful n,
@@ -61,11 +63,11 @@ justTest = do
   let fs =
         map
           (`map` l)
-          [ return <$> benchBluefin,
-            return <$> benchBluefinOld,
-            return <$> benchTrans,
-            benchIORef,
-            return <$> benchEffectful
+          [ return <$> benchBluefin --,
+--            return <$> benchBluefinOld,
+--            return <$> benchTrans,
+--            benchIORef,
+--            return <$> benchEffectful
           ]
   results <- mapM sequence fs
   for_ results $ \result -> print result
