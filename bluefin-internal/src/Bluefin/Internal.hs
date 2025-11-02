@@ -257,9 +257,11 @@ withMonadFail f m = unEffReader m f
 runPureEff :: (forall es. Eff es a) -> a
 runPureEff e = unsafePerformIO (runEff_ (\_ -> e))
 
+{-# INLINE unsafeCoerceEff #-}
 unsafeCoerceEff :: Eff t r -> Eff t' r
 unsafeCoerceEff = coerce
 
+{-# INLINE weakenEff #-}
 weakenEff :: t `In` t' -> Eff t r -> Eff t' r
 weakenEff _ = unsafeCoerceEff
 
@@ -281,6 +283,7 @@ pushFirst = weakenEff (fstI (# #))
 mergeEff :: Eff (a :& a) r -> Eff a r
 mergeEff = weakenEff (merge (# #))
 
+{-# INLINE inContext #-}
 inContext :: (e2 :> e1) => Eff (e1 :& e2) r -> Eff e1 r
 inContext = weakenEff (subsume1 has)
 
@@ -301,6 +304,7 @@ useImplUnder ::
 useImplUnder = insertManySecond
 
 -- | Used to define handlers of compound effects.
+{-# INLINE useImplIn #-}
 useImplIn ::
   (e :> es) =>
   (t -> Eff (es :& e) r) ->
@@ -401,9 +405,11 @@ instance Handle IOE where
 
 newtype In (a :: Effects) (b :: Effects) = In# (# #)
 
+{-# INLINE merge #-}
 merge :: (# #) -> (a :& a) `In` a
 merge (# #) = In# (# #)
 
+{-# INLINE eq #-}
 eq :: (# #) -> a `In` a
 eq (# #) = In# (# #)
 
@@ -413,9 +419,11 @@ fstI (# #) = In# (# #)
 sndI :: (# #) -> a `In` (b :& a)
 sndI (# #) = In# (# #)
 
+{-# INLINE cmp #-}
 cmp :: a `In` b -> b `In` c -> a `In` c
 cmp (In# (# #)) (In# (# #)) = In# (# #)
 
+{-# INLINE bimap #-}
 bimap :: a `In` b -> c `In` d -> (a :& c) `In` (b :& d)
 bimap (In# (# #)) (In# (# #)) = In# (# #)
 
@@ -440,6 +448,7 @@ b2 h = bimap h (eq (# #))
 b :: (a `In` b) -> (c :& a) `In` (c :& b)
 b = bimap (eq (# #))
 
+{-# INLINE subsume1 #-}
 subsume1 :: (e2 `In` e1) -> (e1 :& e2) `In` e1
 subsume1 i = cmp (bimap (eq (# #)) i) (merge (# #))
 
@@ -498,6 +507,7 @@ throw ::
   Eff es a
 throw h = case mapHandle h of MkException throw_ -> throw_
 
+{-# INLINE has #-}
 has :: forall a b. (a :> b) => a `In` b
 has = In# (# #)
 
@@ -638,6 +648,7 @@ bracket before after body =
         (effToIO . useImpl . after)
         (effToIO . useImpl . body)
 
+{-# INLINE withStateInIO #-}
 withStateInIO ::
   (e1 :> es, e2 :> es) =>
   IOE e1 ->
@@ -722,6 +733,7 @@ withScopedException_ f =
 --   get total
 -- 15
 -- @
+{-# INLINE withStateSource #-}
 withStateSource ::
   (forall e. StateSource e -> Eff (e :& es) a) ->
   -- | ͘
@@ -743,6 +755,7 @@ withStateSource f = useImplIn f StateSource
 --   get total
 -- 15
 -- @
+{-# INLINE newState #-}
 newState ::
   (e :> es) =>
   StateSource e ->
@@ -760,6 +773,7 @@ newState StateSource s = unsafeProvideIO $ \io -> do
 --       pure (2 * n)
 -- (20,10)
 -- @
+{-# INLINE runState #-}
 runState ::
   -- | Initial state
   s ->
@@ -1237,6 +1251,7 @@ type role IOE nominal
 --       effIO io (putStrLn "Hello world!")
 -- Hello, world!
 -- @
+{-# INLINE effIO #-}
 effIO ::
   (e :> es) =>
   IOE e ->
@@ -1277,6 +1292,7 @@ runEff_ ::
   IO a
 runEff_ eff = unsafeUnEff (eff MkIOE)
 
+{-# INLINE unsafeProvideIO #-}
 unsafeProvideIO ::
   (forall e. IOE e -> Eff (e :& es) a) ->
   -- | ͘
