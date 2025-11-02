@@ -842,8 +842,8 @@ modify' ::
   -- is forced before writing it to the state.
   (s -> s) ->
   Eff es ()
-modify' (UnsafeMkState r) f = do
-  UnsafeMkEff (modifyIORef' r f)
+modify' st f = do
+  unsafeProvideIO $ \io -> withStateInIO io st (flip modifyIORef' f)
 
 withScopedException_ :: ((forall a. e -> IO a) -> IO r) -> IO (Either e r)
 withScopedException_ f =
@@ -909,11 +909,12 @@ runState ::
   (forall e. State s e -> Eff (e :& es) a) ->
   -- | Result and final state
   Eff es (a, s)
-runState s f = UnsafeMkEff $ do
-  state <- newIORef s
-  a <- case f (UnsafeMkState state) of UnsafeMkEff m -> m
-  s' <- readIORef state
-  pure (a, s')
+runState s f = do
+  withStateSource $ \source -> do
+    state <- newState source s
+    a <- f state
+    s' <- get state
+    pure (a, s')
 
 yieldCoroutine ::
   (e1 :> es) =>
