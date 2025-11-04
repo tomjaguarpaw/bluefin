@@ -26,6 +26,17 @@ benchIORef n =
     go !ref = do
       modifyIORef' ref $ \(!cur, !next) -> (next, cur + next)
 
+benchIORefGetPut :: Int -> IO Int
+benchIORefGetPut n =
+  fst <$> do
+    ref <- newIORef @(Int, Int) (0, 1)
+    replicateM_ n $ go ref
+    readIORef ref
+  where
+    go !ref = do
+      (!cur, !next) <- readIORef ref
+      writeIORef ref (next, cur + next)
+
 benchEffectful :: Int -> Int
 benchEffectful n = fst $
   Effectful.runPureEff $
@@ -49,11 +60,12 @@ benchMain = do
   defaultMain
     [ bgroup
         "my benchmarks"
-        [ -- bench "IORef" $ whnfIO (benchIORef n),
-          bench "bluefin state" $ whnf benchBluefin n
---          bench "bluefin state old" $ whnf benchBluefinOld n,
---          bench "effectful state" $ whnf benchEffectful n,
---          bench "trans" $ whnf benchTrans n
+        [ bench "bluefin state old" $ whnf benchBluefinOld n,
+          bench "bluefin state" $ whnf benchBluefin n,
+          bench "IORef" $ whnfIO (benchIORef n),
+          bench "IORefGetPut" $ whnfIO (benchIORefGetPut n),
+          bench "effectful state" $ whnf benchEffectful n,
+          bench "trans" $ whnf benchTrans n
         ]
     ]
 
