@@ -1,4 +1,12 @@
+## 0.1.2.0
+
+* Fix strictness of `Bluefin.State.put`. It was accidentally made lazy
+  in 0.1.0.0.
+
 ## 0.1.1.0
+
+* WARNING: `Bluefin.State.put` is still lazy in this version.  It is
+  fixed in 0.1.2.0.
 
 * Added `streamConsume`, `cycleToStream`, `takeConsume` (thanks to
   @iteratee)
@@ -8,6 +16,9 @@
   `Bluefin.Internal.ConstEffect` to `Effects`
 
 ## 0.1.0.0
+
+* WARNING: `Bluefin.State.put` accidentally became lazy in this
+  version.  It is fixed in 0.1.2.0.
 
 * Implement `Exception` using `Eff` not naked `IO`
 
