@@ -7,8 +7,8 @@ import Data.IORef
 import Effectful qualified
 import Effectful.State.Static.Local qualified as Effectful.State
 
-benchBluefin :: Int -> Int
-benchBluefin n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
+benchBluefinModify' :: Int -> Int
+benchBluefinModify' n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
   replicateM_ n (modify' st $ \(!cur, !next) -> (next, cur + next))
 
 benchBluefinOld :: Int -> Int
@@ -66,11 +66,11 @@ benchMain = do
         "my benchmarks"
         [ bench "bluefin state old" $ whnf benchBluefinOld n,
           bench "bluefin state getput" $ whnf benchBluefinGetPut n,
-          bench "bluefin state" $ whnf benchBluefin n,
+          bench "bluefin state modify'" $ whnf benchBluefinModify' n,
           bench "IORef" $ whnfIO (benchIORef n),
-          bench "IORefGetPut" $ whnfIO (benchIORefGetPut n)
---          bench "effectful state" $ whnf benchEffectful n,
---          bench "trans" $ whnf benchTrans n
+          bench "IORefGetPut" $ whnfIO (benchIORefGetPut n),
+          bench "effectful state" $ whnf benchEffectful n,
+          bench "trans" $ whnf benchTrans n
         ]
     ]
 
@@ -80,11 +80,11 @@ justTest = do
   let fs =
         map
           (`map` l)
-          [ return <$> benchBluefin --,
---            return <$> benchBluefinOld,
---            return <$> benchTrans,
---            benchIORef,
---            return <$> benchEffectful
+          [ return <$> benchBluefinModify',
+            return <$> benchBluefinOld,
+            return <$> benchTrans,
+            benchIORef,
+            return <$> benchEffectful
           ]
   results <- mapM sequence fs
   for_ results $ \result -> print result
