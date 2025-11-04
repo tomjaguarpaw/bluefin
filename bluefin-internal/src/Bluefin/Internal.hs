@@ -660,7 +660,7 @@ put ::
   -- writing it to the state.
   s ->
   Eff es ()
-put st s = unsafeProvideIO $ \io -> withStateInIO io st (flip writeIORef s)
+put st s = unsafeProvideIO $ \io -> withStateInIO io st (flip writeIORef $! s)
 
 -- |
 -- @
