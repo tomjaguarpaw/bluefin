@@ -11,10 +11,15 @@ benchBluefin :: Int -> Int
 benchBluefin n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
   replicateM_ n (modify' st $ \(!cur, !next) -> (next, cur + next))
 
-{-
 benchBluefinOld :: Int -> Int
 benchBluefinOld n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
   replicateM_ n (modify st $ \(!cur, !next) -> (next, cur + next))
+
+benchBluefinGetPut :: Int -> Int
+benchBluefinGetPut n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
+  replicateM_ n $ do
+    (!cur, !next) <- get st
+    put st (next, cur + next)
 
 benchIORef :: Int -> IO Int
 benchIORef n =
@@ -52,7 +57,6 @@ benchTrans n = fst $ Trans.State.execState go (0, 1)
       replicateM_ n $ do
         (!cur, !next) <- Trans.State.get
         Trans.State.put (next, cur + next)
--}
 
 benchMain :: IO ()
 benchMain = do
@@ -61,11 +65,12 @@ benchMain = do
     [ bgroup
         "my benchmarks"
         [ bench "bluefin state old" $ whnf benchBluefinOld n,
+          bench "bluefin state getput" $ whnf benchBluefinGetPut n,
           bench "bluefin state" $ whnf benchBluefin n,
           bench "IORef" $ whnfIO (benchIORef n),
-          bench "IORefGetPut" $ whnfIO (benchIORefGetPut n),
-          bench "effectful state" $ whnf benchEffectful n,
-          bench "trans" $ whnf benchTrans n
+          bench "IORefGetPut" $ whnfIO (benchIORefGetPut n)
+--          bench "effectful state" $ whnf benchEffectful n,
+--          bench "trans" $ whnf benchTrans n
         ]
     ]
 
