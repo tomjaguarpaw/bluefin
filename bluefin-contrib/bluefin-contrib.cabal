@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               bluefin-contrib
-version:            0.0.16.0
+version:            0.2.0.0
 license:            MIT
 license-file:       LICENSE
 author:             Tom Ellis
@@ -76,6 +76,6 @@ library
     hs-source-dirs: src
     build-depends:
       base >= 4.12 && < 4.22,
-      bluefin >= 0.0.16.0 && < 0.1
+      bluefin >= 0.2.0.0 && < 0.3
     exposed-modules:
       Bluefin.Contrib.State

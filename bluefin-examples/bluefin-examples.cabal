@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               bluefin-examples
-version:            0.1.0.0
+version:            0.2.0.0
 license:            MIT
 license-file:       LICENSE
 author:             Tom Ellis
@@ -82,7 +82,7 @@ library
       base,
       bytestring,
       random >= 1.3 && < 2,
-      bluefin >= 0.0.12.0 && < 0.1,
-      bluefin-random >= 0.0.16.0 && < 0.1
+      bluefin >= 0.2.0.0 && < 0.3,
+      bluefin-random >= 0.2.0.0 && < 0.3
     hs-source-dirs:   src
     default-language: Haskell2010

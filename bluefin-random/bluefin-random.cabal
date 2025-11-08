@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               bluefin-random
-version:            0.0.16.1
+version:            0.2.0.0
 license:            MIT
 license-file:       LICENSE
 author:             Tom Ellis
@@ -77,6 +77,6 @@ library
     build-depends:
       base >= 4.14 && < 4.22,
       random >= 1.3 && < 1.4,
-      bluefin >= 0.0.16.0 && < 0.1
+      bluefin >= 0.2.0.0 && < 0.3
     exposed-modules:
       Bluefin.Random

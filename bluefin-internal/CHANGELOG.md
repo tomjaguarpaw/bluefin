@@ -1,3 +1,10 @@
+## 0.2.0.0
+
+* Choose different incoherent instance for `:>` for better type
+  inference.  This is very unlikely to break existing code, but if it
+  does happen then please [open an
+  issue](https://github.com/tomjaguarpaw/bluefin/issues/new).
+
 ## 0.1.2.0
 
 * Fix strictness of `Bluefin.State.put`. It was accidentally made lazy
