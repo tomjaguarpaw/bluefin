@@ -1091,7 +1091,7 @@ example = runPureEff $
   evalState () $ \st1 ->
     evalState () $ \st2 -> do
       Proxy :: Proxy es <- effTag
-      -- subset @es @es
+      subset @es @es
 
       Proxy :: Proxy e1 <- handleTag st1
       Proxy :: Proxy e2 <- handleTag st2
@@ -1101,5 +1101,4 @@ example = runPureEff $
       subset @e1 @(e1 :& e2)
       subset @e2 @(e1 :& e2)
 
-      -- subset @(e1 :& e2) @(e1 :& e2)
-      pure ()
+      subset @(e1 :& e2) @(e1 :& e2)
