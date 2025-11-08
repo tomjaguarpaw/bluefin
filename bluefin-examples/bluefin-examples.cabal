@@ -86,3 +86,20 @@ library
       bluefin-random >= 0.0.16.0 && < 0.1
     hs-source-dirs:   src
     default-language: Haskell2010
+
+executable evilrpn
+    import:           warnings
+    main-is:          EvilRPN.hs
+    hs-source-dirs:   app src
+    build-depends:
+      base,
+      bluefin >= 0.0.12.0 && < 0.1,
+      bluefin-contrib,
+      containers,
+      data-default,
+      lens,
+      time
+    other-modules:
+      Bluefin.Examples.EvilRPN.Application
+      Bluefin.Examples.EvilRPN.Language
+      Bluefin.Examples.EvilRPN.Store

@@ -76,6 +76,9 @@ library
     hs-source-dirs: src
     build-depends:
       base >= 4.12 && < 4.22,
-      bluefin >= 0.0.16.0 && < 0.1
+      bluefin >= 0.0.16.0 && < 0.1,
+      data-default >= 0.6 && < 1,
+      time >= 1.11 && < 2
     exposed-modules:
+      Bluefin.Contrib.Application
       Bluefin.Contrib.State
