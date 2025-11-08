@@ -1398,6 +1398,8 @@ asks ::
   Eff es a
 asks (MkReader st) f = fmap f (get st)
 
+-- | Locally override the value in the @Reader@. It will be restored
+-- when the @local@ block ends.
 local ::
   (e1 :> es) =>
   Reader r e1 ->
