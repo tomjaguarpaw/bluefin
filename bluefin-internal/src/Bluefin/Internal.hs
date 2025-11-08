@@ -792,7 +792,7 @@ handleCoroutine update finish f = do
 --
 -- @
 -- >>> runPureEff $ yieldToList $ \\y -> do
---       for_ [0 .. 4] $ \\i -> do
+--       forEach (inFoldable [0 .. 3]) $ \\i -> do
 --         yield y i
 --         yield y (i * 10)
 -- ([0, 0, 1, 10, 2, 20, 3, 30], ())
