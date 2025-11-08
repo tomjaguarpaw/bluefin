@@ -19,6 +19,7 @@ import Control.Monad (forever, replicateM_, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
 import Data.Monoid (Any (Any, getAny))
+import Data.Proxy (Proxy (Proxy))
 import Text.Read (readMaybe)
 import Prelude hiding
   ( break,
@@ -1082,3 +1083,23 @@ runDynamicReader r k =
         { askLRImpl = ask h,
           localLRImpl = \f k' -> makeOp (local h f (useImpl k'))
         }
+
+-- Fails to compile unless '(e :> es) => e :> (x :& es)' is incoherent
+-- (otherwise I guess it "commits to it too soon")
+example :: ()
+example = runPureEff $
+  evalState () $ \st1 ->
+    evalState () $ \st2 -> do
+      Proxy :: Proxy es <- effTag
+      -- subset @es @es
+
+      Proxy :: Proxy e1 <- handleTag st1
+      Proxy :: Proxy e2 <- handleTag st2
+
+      subset @e1 @e1
+      subset @e2 @e2
+      subset @e1 @(e1 :& e2)
+      subset @e2 @(e1 :& e2)
+
+      -- subset @(e1 :& e2) @(e1 :& e2)
+      pure ()

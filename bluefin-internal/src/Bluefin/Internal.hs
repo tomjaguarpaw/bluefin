@@ -23,6 +23,7 @@ import Data.Coerce (coerce)
 import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
+import Data.Proxy (Proxy (Proxy))
 import Data.Type.Coercion (Coercion (Coercion))
 import GHC.Exts (Proxy#, proxy#)
 import System.IO.Unsafe (unsafePerformIO)
@@ -462,6 +463,19 @@ instance (e :> es) => e :> (x :& es)
 
 -- | @e@ is a subset of a larger set @e :& es@
 instance {-# INCOHERENT #-} e :> (e :& es)
+
+subset ::
+  forall e1 es m.
+  (Monad m) =>
+  (e1 :> es) =>
+  m ()
+subset = pure ()
+
+effTag :: Eff es (Proxy es)
+effTag = pure Proxy
+
+handleTag :: h e -> Eff es (Proxy e)
+handleTag _ = pure Proxy
 
 -- |
 -- @
