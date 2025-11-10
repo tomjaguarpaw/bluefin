@@ -85,6 +85,7 @@ library
       Bluefin.Internal,
       Bluefin.Internal.Examples,
       Bluefin.Internal.Exception.Scoped,
+      Bluefin.Internal.FunctorCoroutine,
       Bluefin.Internal.Key,
       Bluefin.Internal.Pipes,
       Bluefin.Internal.System.IO
