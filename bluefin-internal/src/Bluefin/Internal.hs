@@ -33,7 +33,7 @@ import Control.Monad.Trans.Control (MonadBaseControl, StM, liftBaseWith, restore
 import qualified Control.Monad.Trans.Reader as Reader
 import Data.Coerce (coerce)
 import Data.Foldable (for_)
-import Data.IORef (IORef, newIORef, readIORef, writeIORef, modifyIORef')
+import Data.IORef (IORef, atomicWriteIORef, newIORef, readIORef, writeIORef, modifyIORef')
 import Data.Kind (Type)
 import Data.Proxy (Proxy (Proxy))
 import Data.Type.Coercion (Coercion (Coercion))
@@ -846,6 +846,16 @@ modify' ::
 modify' st f = do
   unsafeProvideIO $ \io -> withStateInIO io st (flip modifyIORef' f)
 
+modifyAtomic ::
+  (e :> es) =>
+  State s e ->
+  -- | Apply this function to the state.  The new value of the state
+  -- is forced before writing it to the state.
+  (s -> s) ->
+  Eff es ()
+modifyAtomic state f = do
+  s <- get state
+  unsafeProvideIO $ \io -> withStateInIO io state (flip atomicWriteIORef $! f s)
 
 withScopedException_ :: ((forall a. e -> IO a) -> IO r) -> IO (Either e r)
 withScopedException_ f =
