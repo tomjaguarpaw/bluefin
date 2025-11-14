@@ -60,6 +60,8 @@ data E :: Effect where
   Op2 :: E m ()
   Op3 :: E m ()
 
+newtype Wrapped f r e = MkWrapped (f (Eff e) r)
+
 class MFunctor f where
   mfmap :: (forall r. m1 r -> m2 r) -> f m1 a -> f m2 a
 
