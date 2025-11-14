@@ -11,6 +11,10 @@ benchBluefinModify' :: Int -> Int
 benchBluefinModify' n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
   replicateM_ n (modify' st $ \(!cur, !next) -> (next, cur + next))
 
+benchBluefinAtomic :: Int -> Int
+benchBluefinAtomic n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
+  replicateM_ n (modifyAtomic st $ \(!cur, !next) -> (next, cur + next))
+
 benchBluefinOld :: Int -> Int
 benchBluefinOld n = fst $ snd $ runPureEff $ runState (0 :: Int, 1 :: Int) $ \st -> do
   replicateM_ n (modify st $ \(!cur, !next) -> (next, cur + next))
@@ -65,12 +69,13 @@ benchMain = do
     [ bgroup
         "my benchmarks"
         [ bench "bluefin state old" $ whnf benchBluefinOld n,
-          bench "bluefin state getput" $ whnf benchBluefinGetPut n,
-          bench "bluefin state modify'" $ whnf benchBluefinModify' n,
-          bench "IORef" $ whnfIO (benchIORef n),
-          bench "IORefGetPut" $ whnfIO (benchIORefGetPut n),
-          bench "effectful state" $ whnf benchEffectful n,
-          bench "trans" $ whnf benchTrans n
+          -- bench "bluefin state getput" $ whnf benchBluefinGetPut n,
+          -- bench "bluefin state modify'" $ whnf benchBluefinModify' n,
+          bench "bluefin state atomicWriteIORef" $ whnf benchBluefinAtomic n
+          -- bench "IORef" $ whnfIO (benchIORef n)
+          -- bench "IORefGetPut" $ whnfIO (benchIORefGetPut n),
+          -- bench "effectful state" $ whnf benchEffectful n,
+          -- bench "trans" $ whnf benchTrans n
         ]
     ]
 
@@ -82,6 +87,7 @@ justTest = do
           (`map` l)
           [ return <$> benchBluefinModify',
             return <$> benchBluefinOld,
+            return <$> benchBluefinAtomic,
             return <$> benchTrans,
             benchIORef,
             return <$> benchEffectful
