@@ -1440,6 +1440,7 @@ mapHandleReader = case coerceH of Coercion -> coerce
     coerceH :: Coercion (h e) (h es)
     coerceH = unsafeCoerce (Coercion :: Coercion (h e) (h e))
 
+-- Maybe we should make a verison of this that takes @h e -> h es@.
 localHandle ::
   (e :> es, Handle h) =>
   HandleReader h e ->

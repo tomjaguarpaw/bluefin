@@ -3,6 +3,8 @@ module Bluefin.Internal.FunctorCoroutine where
 import Bluefin.Internal
   ( Eff,
     Handle (mapHandle),
+    HandleReader,
+    localHandle,
     useImpl,
     useImplIn,
     useImplUnder,
@@ -52,3 +54,12 @@ passthrough ::
   -- | ͘
   Eff es r
 passthrough fc = send fc . mfmap useImpl
+
+interpose ::
+  (e1 :> es) =>
+  (Send f es -> EffectHandler f es) ->
+  HandleReader (Send f) e1 ->
+  Eff es r ->
+  -- | ͘
+  Eff es r
+interpose h hr = localHandle hr (\fcOrig -> MkSend (h fcOrig))
