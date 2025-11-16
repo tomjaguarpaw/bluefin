@@ -1674,6 +1674,16 @@ askHandle ::
   Eff es (h es)
 askHandle hh = let UnsafeMkHandleReader st = mapHandle hh in get st
 
+asksHandle ::
+  (e1 :> es, Handle h) =>
+  HandleReader h e1 ->
+  (forall e. h e -> Eff (e :& es) r) ->
+  -- | ͘
+  Eff es r
+asksHandle hh k = do
+  h <- askHandle hh
+  makeOp (k h)
+
 runHandleReader ::
   (e1 :> es, Handle h) =>
   h e1 ->

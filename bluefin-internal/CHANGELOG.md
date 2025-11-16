@@ -1,3 +1,5 @@
+* Add `Bluefin.Internal.asksHandle`
+
 * Restrict type parameter of `PrimStateEff` to `Effects`
 
   This is technically a breaking change, but we did not enforce a

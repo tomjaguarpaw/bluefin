@@ -20,6 +20,7 @@ module Bluefin.HandleReader
 
     -- * Effectful operations
     askHandle,
+    asksHandle,
     localHandle,
   )
 where
