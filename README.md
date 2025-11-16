@@ -21,6 +21,13 @@ There is an `bluefin-examples` package which you can see in this
 repository at
 [`bluefin-examples/src/Bluefin/Examples`](bluefin-examples/src/Bluefin/Examples).
 
+## Poor performance under GHC 9.12.1 and 9.12.2
+
+Due to a bug in GHC 9.12.1 and 9.12.2, Bluefin performance suffers
+greatly on those compilers.  The bug will be fixed in GHC 9.12.3 and
+9.14.1.  See https://github.com/tomjaguarpaw/bluefin/issues/77 for
+more details.
+
 ## Contact
 
 If you have a question about Bluefin, you think you might have found a
