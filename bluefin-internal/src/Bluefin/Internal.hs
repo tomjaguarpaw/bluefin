@@ -469,7 +469,10 @@ subset ::
   (Monad m) =>
   (e1 :> es) =>
   m ()
-subset = pure ()
+subset = satisfied @(e1 :> es)
+
+satisfied :: forall c m. (Monad m, c) => m ()
+satisfied = pure ()
 
 effTag :: Eff es (Proxy es)
 effTag = pure Proxy
