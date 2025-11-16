@@ -1091,14 +1091,14 @@ example = runPureEff $
   evalState () $ \st1 ->
     evalState () $ \st2 -> do
       Proxy :: Proxy es <- effTag
-      subset @es @es
+      satisfied @(es :> es)
 
       Proxy :: Proxy e1 <- handleTag st1
       Proxy :: Proxy e2 <- handleTag st2
 
-      subset @e1 @e1
-      subset @e2 @e2
-      subset @e1 @(e1 :& e2)
-      subset @e2 @(e1 :& e2)
+      satisfied @(e1 :> e1)
+      satisfied @(e2 :> e2)
+      satisfied @(e1 :> (e1 :& e2))
+      satisfied @(e2 :> (e1 :& e2))
 
-      subset @(e1 :& e2) @(e1 :& e2)
+      satisfied @((e1 :& e2) :> (e1 :& e2))
