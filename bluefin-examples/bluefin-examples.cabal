@@ -74,6 +74,7 @@ library
     import:           warnings
     exposed-modules:
       Bluefin.Examples.DB,
+      Bluefin.Examples.FunctorCoroutine,
       Bluefin.Examples.HandleReader,
       Bluefin.Examples.Random,
       Bluefin.Examples.Stream.InsideAndOut,
