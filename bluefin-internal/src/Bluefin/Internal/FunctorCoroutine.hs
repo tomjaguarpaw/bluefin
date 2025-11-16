@@ -26,22 +26,29 @@ send ::
 send (MkSend g) = useImplIn g
 
 type EffectHandler f es =
-  forall e r1. f (Eff e) r1 -> Eff (e :& es) r1
+  forall e r1.
+  f (Eff e) r1 ->
+  -- | ͘
+  Eff (e :& es) r1
 
 interpret ::
   EffectHandler f es ->
   (forall e. Send f e -> Eff (e :& es) r) ->
+  -- | ͘
   Eff es r
 interpret g k = useImplIn k (MkSend g)
 
-newtype Wrapped f r e = MkWrapped (f (Eff e) r)
-
 class MFunctor f where
-  mfmap :: (forall r. m1 r -> m2 r) -> f m1 a -> f m2 a
+  mfmap ::
+    (forall r. m1 r -> m2 r) ->
+    f m1 a ->
+    -- | ͘
+    f m2 a
 
 passthrough ::
   (MFunctor f, e1 :> es, e2 :> es) =>
   Send f e1 ->
   f (Eff e2) r ->
+  -- | ͘
   Eff es r
 passthrough fc = send fc . mfmap useImpl
