@@ -1359,7 +1359,7 @@ unwrap j = \case
 
 -- | Handle that allows you to run 'IO' operations
 type IOE :: Effects -> Type
-data IOE (e :: Effects) = MkIOE'
+newtype IOE (e :: Effects) = MkIOE' ()
   deriving (Handle) via OneWayCoercibleHandle IOE
 
 type role IOE nominal
@@ -1368,9 +1368,9 @@ instance (e :> es) => OneWayCoercible (IOE e) (IOE es) where
   oneWayCoercibleImpl = unsafeOneWayCoercible
 
 pattern MkIOE :: IOE e
-pattern MkIOE <- MkIOE'
+pattern MkIOE <- MkIOE' ()
   where
-    MkIOE = MkIOE'
+    MkIOE = MkIOE' ()
 
 {-# COMPLETE MkIOE #-}
 
