@@ -13,7 +13,6 @@ import Bluefin.Internal
     bracket,
     effIO,
     mapHandle,
-    mapIOE#,
     useImplIn,
     (:&),
     (:>),
@@ -26,7 +25,7 @@ import System.IO qualified
 data Handle e = UnsafeMkHandle System.IO.Handle (IOE# e)
 
 instance Bluefin.Internal.Handle Handle where
-  mapHandle (UnsafeMkHandle h io) = UnsafeMkHandle h (mapIOE# io)
+  mapHandle (UnsafeMkHandle h io) = UnsafeMkHandle h (mapHandle io)
 
 withFile ::
   (e1 :> es) =>
@@ -42,7 +41,7 @@ withFile io@(MkIOE' io#) fp iomode k =
     )
     ( \handle -> effIO io (System.IO.hClose handle)
     )
-    ( \handle -> useImplIn k (UnsafeMkHandle handle (mapIOE# io#))
+    ( \handle -> useImplIn k (UnsafeMkHandle handle (mapHandle io#))
     )
 
 hPutChar ::
