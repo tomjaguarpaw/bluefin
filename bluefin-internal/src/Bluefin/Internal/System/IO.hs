@@ -8,10 +8,11 @@ where
 
 import Bluefin.Internal
   ( Eff,
-    IOE(MkIOE'),
+    IOE,
     IOE#,
     bracket,
     effIO,
+    fromIOE#,
     mapHandle,
     toIOE#,
     useImplIn,
@@ -99,4 +100,4 @@ unsafeWithHandle ::
   Handle e1 ->
   (System.IO.Handle -> IO r) ->
   Eff es r
-unsafeWithHandle (UnsafeMkHandle h io) k = effIO (MkIOE' io) (k h)
+unsafeWithHandle (UnsafeMkHandle h io) k = effIO (fromIOE# io) (k h)
