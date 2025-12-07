@@ -1382,6 +1382,12 @@ pattern MkIOE <- MkIOE' (MkIOE# (# #))
 
 {-# COMPLETE MkIOE #-}
 
+toIOE# :: IOE e -> IOE# e
+toIOE# (MkIOE' io#) = io#
+
+fromIOE# :: IOE# e -> IOE e
+fromIOE# io# = MkIOE' io#
+
 -- | Run an 'IO' operation in 'Eff'
 --
 -- @
