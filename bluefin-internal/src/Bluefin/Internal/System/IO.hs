@@ -1,3 +1,5 @@
+{-# LANGUAGE MagicHash #-}
+
 module Bluefin.Internal.System.IO
   ( module Bluefin.Internal.System.IO,
     System.IO.IOMode (..),
@@ -6,10 +8,12 @@ where
 
 import Bluefin.Internal
   ( Eff,
-    IOE,
+    IOE(MkIOE'),
+    IOE#,
     bracket,
     effIO,
     mapHandle,
+    mapIOE#,
     useImplIn,
     (:&),
     (:>),
@@ -19,10 +23,10 @@ import System.IO qualified
 
 -- We can probably get away without the IOE and just use
 -- unsafeProvideIO on all Handle functions
-data Handle e = UnsafeMkHandle System.IO.Handle (IOE e)
+data Handle e = UnsafeMkHandle System.IO.Handle (IOE# e)
 
 instance Bluefin.Internal.Handle Handle where
-  mapHandle (UnsafeMkHandle h io) = UnsafeMkHandle h (mapHandle io)
+  mapHandle (UnsafeMkHandle h io) = UnsafeMkHandle h (mapIOE# io)
 
 withFile ::
   (e1 :> es) =>
@@ -32,13 +36,13 @@ withFile ::
   (forall e. Handle e -> Eff (e :& es) r) ->
   -- | ͘
   Eff es r
-withFile io fp iomode k =
+withFile io@(MkIOE' io#) fp iomode k =
   bracket
     ( effIO io (System.IO.openFile fp iomode)
     )
     ( \handle -> effIO io (System.IO.hClose handle)
     )
-    ( \handle -> useImplIn k (UnsafeMkHandle handle (mapHandle io))
+    ( \handle -> useImplIn k (UnsafeMkHandle handle (mapIOE# io#))
     )
 
 hPutChar ::
@@ -95,4 +99,4 @@ unsafeWithHandle ::
   Handle e1 ->
   (System.IO.Handle -> IO r) ->
   Eff es r
-unsafeWithHandle (UnsafeMkHandle h io) k = effIO io (k h)
+unsafeWithHandle (UnsafeMkHandle h io) k = effIO (MkIOE' io) (k h)
