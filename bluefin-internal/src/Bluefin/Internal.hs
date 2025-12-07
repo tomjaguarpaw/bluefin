@@ -465,9 +465,15 @@ class (es1 :: Effects) :> (es2 :: Effects)
 -- | A set of effects @e@ is a subset of itself
 instance e :> e
 
+instanceProof1 :: ZW -> e `In` e
+instanceProof1 ZW = eq ZW
+
 -- | If @e@ is subset of @es@ then @e@ is a subset of a larger set, @x
 -- :& es@
 instance {-# INCOHERENT #-} (e :> es) => e :> (x :& es)
+
+instanceProof2 :: e `In` es -> e `In` (x :& es)
+instanceProof2 = drop
 
 -- Do we want this?
 -- instance {-# incoherent #-} (e :> es) => (e' :& e) :> (e' :> es)
@@ -476,6 +482,9 @@ instance {-# INCOHERENT #-} (e :> es) => e :> (x :& es)
 
 -- | @e@ is a subset of a larger set @e :& es@
 instance e :> (e :& es)
+
+instanceProof3 :: ZW -> e `In` (e :& es)
+instanceProof3 ZW = fstI ZW
 
 subset ::
   forall e1 es m.
@@ -515,6 +524,8 @@ throw ::
 throw h = case mapHandle h of MkException throw_ -> throw_
 
 has :: forall a b. (a :> b) => a `In` b
+-- This is safe because, as shown by instanceProof1/2/3, the only way
+-- to construct `a :> b` is if `a `In` b`.
 has = In# (# #)
 
 data Dict c where
