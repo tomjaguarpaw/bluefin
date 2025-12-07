@@ -37,7 +37,7 @@ import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
 import Data.Proxy (Proxy (Proxy))
 import Data.Type.Coercion (Coercion (Coercion))
-import GHC.Exts (Proxy#, proxy#)
+import GHC.Exts (Proxy#, proxy#, ZeroBitType)
 import GHC.Generics (Generic, M1 (M1), Rec1 (Rec1), (:*:) ((:*:)))
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
@@ -1357,9 +1357,17 @@ unwrap j = \case
   Nothing -> jumpTo j
   Just a -> pure a
 
+type IOE# :: Effects -> ZeroBitType
+newtype IOE# e = MkIOE# (# #)
+
+type role IOE# nominal
+
+mapIOE# :: e :> es => IOE# e -> IOE# es
+mapIOE# (MkIOE# (# #)) = MkIOE# (# #)
+
 -- | Handle that allows you to run 'IO' operations
 type IOE :: Effects -> Type
-newtype IOE (e :: Effects) = MkIOE' ()
+data IOE (e :: Effects) = MkIOE' (IOE# e)
   deriving (Handle) via OneWayCoercibleHandle IOE
 
 type role IOE nominal
@@ -1368,9 +1376,9 @@ instance (e :> es) => OneWayCoercible (IOE e) (IOE es) where
   oneWayCoercibleImpl = unsafeOneWayCoercible
 
 pattern MkIOE :: IOE e
-pattern MkIOE <- MkIOE' ()
+pattern MkIOE <- MkIOE' (MkIOE# (# #))
   where
-    MkIOE = MkIOE' ()
+    MkIOE = MkIOE' (MkIOE# (# #))
 
 {-# COMPLETE MkIOE #-}
 
