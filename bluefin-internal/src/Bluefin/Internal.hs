@@ -37,7 +37,7 @@ import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
 import Data.Proxy (Proxy (Proxy))
 import Data.Type.Coercion (Coercion (Coercion))
-import GHC.Exts (Proxy#, proxy#, ZeroBitType)
+import GHC.Exts (Proxy#, proxy#, TYPE, ZeroBitType)
 import GHC.Generics (Generic, M1 (M1), Rec1 (Rec1), (:*:) ((:*:)))
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
@@ -398,7 +398,7 @@ type Consume a = Coroutine () a
 -- instance (e :> es) => 'OneWayCoercible' (Application e) (Application es) where
 --   oneWayCoercibleImpl = 'gOneWayCoercible'
 -- @
-class Handle (h :: Effects -> Type) where
+class Handle (h :: Effects -> TYPE r) where
   {-# MINIMAL handleImpl | mapHandle #-}
   -- | Define @handleImpl@ using 'handleMapHandle'.
   handleImpl :: HandleD h
@@ -1362,8 +1362,8 @@ newtype IOE# e = MkIOE# (# #)
 
 type role IOE# nominal
 
-mapIOE# :: e :> es => IOE# e -> IOE# es
-mapIOE# (MkIOE# (# #)) = MkIOE# (# #)
+instance Handle IOE# where
+  mapHandle (MkIOE# (# #)) = MkIOE# (# #)
 
 -- | Handle that allows you to run 'IO' operations
 type IOE :: Effects -> Type
