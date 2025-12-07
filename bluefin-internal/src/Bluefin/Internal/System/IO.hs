@@ -13,6 +13,7 @@ import Bluefin.Internal
     bracket,
     effIO,
     mapHandle,
+    toIOE#,
     useImplIn,
     (:&),
     (:>),
@@ -35,13 +36,13 @@ withFile ::
   (forall e. Handle e -> Eff (e :& es) r) ->
   -- | ͘
   Eff es r
-withFile io@(MkIOE' io#) fp iomode k =
+withFile io fp iomode k =
   bracket
     ( effIO io (System.IO.openFile fp iomode)
     )
     ( \handle -> effIO io (System.IO.hClose handle)
     )
-    ( \handle -> useImplIn k (UnsafeMkHandle handle (mapHandle io#))
+    ( \handle -> useImplIn k (UnsafeMkHandle handle (mapHandle (toIOE# io)))
     )
 
 hPutChar ::
