@@ -1,6 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
@@ -264,7 +265,7 @@ weakenEff :: t `In` t' -> Eff t r -> Eff t' r
 weakenEff _ = unsafeCoerceEff
 
 insertFirst :: Eff b r -> Eff (c1 :& b) r
-insertFirst = weakenEff (drop (eq (# #)))
+insertFirst = weakenEff (drop (eq ZW))
 
 insertSecond :: Eff (c1 :& b) r -> Eff (c1 :& (c2 :& b)) r
 insertSecond = insertManySecond
@@ -273,13 +274,13 @@ insertManySecond :: (b :> c) => Eff (c1 :& b) r -> Eff (c1 :& c) r
 insertManySecond = weakenEff (bimap has has)
 
 assoc1Eff :: Eff ((a :& b) :& c) r -> Eff (a :& (b :& c)) r
-assoc1Eff = weakenEff (assoc1 (# #))
+assoc1Eff = weakenEff (assoc1 ZW)
 
 pushFirst :: Eff a r -> Eff (a :& b) r
-pushFirst = weakenEff (fstI (# #))
+pushFirst = weakenEff (fstI ZW)
 
 mergeEff :: Eff (a :& a) r -> Eff a r
-mergeEff = weakenEff (merge (# #))
+mergeEff = weakenEff (merge ZW)
 
 inContext :: (e2 :> e1) => Eff (e1 :& e2) r -> Eff e1 r
 inContext = weakenEff (subsume1 has)
@@ -399,19 +400,31 @@ instance Handle (Writer w) where
 instance Handle IOE where
   mapHandle MkIOE = MkIOE
 
+-- | A convenience type whose only purpose is to avoid writing @(# #)@
+-- as an argument to functions which are only function because
+-- top-level definitions of unlifted kind are forbidden.
+newtype ZW = MkZW (# #)
+
+pattern ZW :: ZW
+pattern ZW <- MkZW (# #)
+  where
+    ZW = MkZW (# #)
+
+{-# COMPLETE ZW #-}
+
 newtype In (a :: Effects) (b :: Effects) = In# (# #)
 
-merge :: (# #) -> (a :& a) `In` a
-merge (# #) = In# (# #)
+merge :: ZW -> (a :& a) `In` a
+merge ZW = In# (# #)
 
-eq :: (# #) -> a `In` a
-eq (# #) = In# (# #)
+eq :: ZW -> a `In` a
+eq ZW = In# (# #)
 
-fstI :: (# #) -> a `In` (a :& b)
-fstI (# #) = In# (# #)
+fstI :: ZW -> a `In` (a :& b)
+fstI ZW = In# (# #)
 
-sndI :: (# #) -> a `In` (b :& a)
-sndI (# #) = In# (# #)
+sndI :: ZW -> a `In` (b :& a)
+sndI ZW = In# (# #)
 
 cmp :: a `In` b -> b `In` c -> a `In` c
 cmp (In# (# #)) (In# (# #)) = In# (# #)
@@ -419,8 +432,8 @@ cmp (In# (# #)) (In# (# #)) = In# (# #)
 bimap :: a `In` b -> c `In` d -> (a :& c) `In` (b :& d)
 bimap (In# (# #)) (In# (# #)) = In# (# #)
 
-assoc1 :: (# #) -> ((a :& b) :& c) `In` (a :& (b :& c))
-assoc1 (# #) = In# (# #)
+assoc1 :: ZW -> ((a :& b) :& c) `In` (a :& (b :& c))
+assoc1 ZW = In# (# #)
 
 drop :: a `In` b -> a `In` (c :& b)
 drop h = w2 (b h)
@@ -429,22 +442,22 @@ here :: a `In` b -> (a `In` (b :& c))
 here h = w (b2 h)
 
 w :: (a :& b) `In` c -> (a `In` c)
-w = cmp (fstI (# #))
+w = cmp (fstI ZW)
 
 w2 :: (b :& a) `In` c -> (a `In` c)
-w2 = cmp (sndI (# #))
+w2 = cmp (sndI ZW)
 
 b2 :: (a `In` b) -> ((a :& c) `In` (b :& c))
-b2 h = bimap h (eq (# #))
+b2 h = bimap h (eq ZW)
 
 b :: (a `In` b) -> (c :& a) `In` (c :& b)
-b = bimap (eq (# #))
+b = bimap (eq ZW)
 
 subsume1 :: (e2 `In` e1) -> (e1 :& e2) `In` e1
-subsume1 i = cmp (bimap (eq (# #)) i) (merge (# #))
+subsume1 i = cmp (bimap (eq ZW) i) (merge ZW)
 
 subsume2 :: (e1 `In` e2) -> (e1 :& e2) `In` e2
-subsume2 i = cmp (bimap i (eq (# #))) (merge (# #))
+subsume2 i = cmp (bimap i (eq ZW)) (merge ZW)
 
 -- | Effect subset constraint
 class (es1 :: Effects) :> (es2 :: Effects)
