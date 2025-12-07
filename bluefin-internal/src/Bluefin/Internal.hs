@@ -1395,7 +1395,15 @@ effIO ::
   IO a ->
   -- | ͘
   Eff es a
-effIO MkIOE = UnsafeMkEff
+effIO (MkIOE' io#) = effIO# io#
+
+effIO# ::
+  (e :> es) =>
+  IOE# e ->
+  IO a ->
+  -- | ͘
+  Eff es a
+effIO# (MkIOE# (# #)) = UnsafeMkEff
 
 -- | Run an 'Eff' whose only unhandled effect is 'IO'.
 --
@@ -1427,13 +1435,25 @@ runEff_ ::
   (forall e. IOE e -> Eff e a) ->
   -- | ͘
   IO a
-runEff_ eff = unsafeUnEff (eff MkIOE)
+runEff_ eff = runEff# (\ioe# -> eff (MkIOE' ioe#))
+
+runEff# ::
+  (forall e. IOE# e -> Eff e a) ->
+  -- | ͘
+  IO a
+runEff# eff = unsafeUnEff (eff (MkIOE# (# #)))
 
 unsafeProvideIO ::
   (forall e. IOE e -> Eff (e :& es) a) ->
   -- | ͘
   Eff es a
-unsafeProvideIO eff = useImplIn eff MkIOE
+unsafeProvideIO eff = unsafeProvideIO# (\io# -> eff (MkIOE' io#))
+
+unsafeProvideIO# ::
+  (forall e. IOE# e -> Eff (e :& es) a) ->
+  -- | ͘
+  Eff es a
+unsafeProvideIO# eff = useImplIn (\() -> eff (MkIOE# (# #))) ()
 
 connect ::
   (forall e1. Coroutine a b e1 -> Eff (e1 :& es) r1) ->
