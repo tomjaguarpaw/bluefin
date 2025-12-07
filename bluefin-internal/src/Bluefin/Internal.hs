@@ -1358,6 +1358,7 @@ unwrap j = \case
   Just a -> pure a
 
 -- | Handle that allows you to run 'IO' operations
+type IOE :: Effects -> Type
 data IOE (e :: Effects) = MkIOE'
   deriving (Handle) via OneWayCoercibleHandle IOE
 
