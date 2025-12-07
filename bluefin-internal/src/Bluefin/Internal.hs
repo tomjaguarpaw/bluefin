@@ -414,26 +414,29 @@ pattern ZW <- MkZW (# #)
 
 newtype In (a :: Effects) (b :: Effects) = In# (# #)
 
+unsafeInAxiom :: ZW -> e1 `In` e2
+unsafeInAxiom ZW = In# (# #)
+
 merge :: ZW -> (a :& a) `In` a
 merge ZW = In# (# #)
 
 eq :: ZW -> a `In` a
-eq ZW = In# (# #)
+eq ZW = unsafeInAxiom ZW
 
 fstI :: ZW -> a `In` (a :& b)
-fstI ZW = In# (# #)
+fstI ZW = unsafeInAxiom ZW
 
 sndI :: ZW -> a `In` (b :& a)
-sndI ZW = In# (# #)
+sndI ZW = unsafeInAxiom ZW
 
 cmp :: a `In` b -> b `In` c -> a `In` c
-cmp (In# (# #)) (In# (# #)) = In# (# #)
+cmp (In# (# #)) (In# (# #)) = unsafeInAxiom ZW
 
 bimap :: a `In` b -> c `In` d -> (a :& c) `In` (b :& d)
-bimap (In# (# #)) (In# (# #)) = In# (# #)
+bimap (In# (# #)) (In# (# #)) = unsafeInAxiom ZW
 
 assoc1 :: ZW -> ((a :& b) :& c) `In` (a :& (b :& c))
-assoc1 ZW = In# (# #)
+assoc1 ZW = unsafeInAxiom ZW
 
 drop :: a `In` b -> a `In` (c :& b)
 drop h = w2 (b h)
@@ -526,7 +529,7 @@ throw h = case mapHandle h of MkException throw_ -> throw_
 has :: forall a b. (a :> b) => a `In` b
 -- This is safe because, as shown by instanceProof1/2/3, the only way
 -- to construct `a :> b` is if `a `In` b`.
-has = In# (# #)
+has = unsafeInAxiom ZW
 
 data Dict c where
   Dict :: forall c. (c) => Dict c
