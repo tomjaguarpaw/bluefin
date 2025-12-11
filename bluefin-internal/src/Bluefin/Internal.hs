@@ -328,6 +328,8 @@ type role StateSource nominal
 newtype Exception exn (e :: Effects)
   = MkException (forall a. exn -> Eff e a)
 
+type role Exception representational nominal
+
 -- | A handle to a strict mutable state of type @s@
 newtype State s (e :: Effects) = UnsafeMkState (IORef s)
 
