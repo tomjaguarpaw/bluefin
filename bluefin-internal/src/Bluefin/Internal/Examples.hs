@@ -901,10 +901,12 @@ handleCounter7aMapHandle = handleMapHandle $ \c ->
 
 --
 
-class (forall e es. e :> es => OneWayCoercible (h e) (h es)) =>
+class
+  (forall e es. (e :> es) => OneWayCoercible (h e) (h es)) =>
   AllCoercible h
 
-instance (forall e es. e :> es => OneWayCoercible (h e) (h es)) =>
+instance
+  (forall e es. (e :> es) => OneWayCoercible (h e) (h es)) =>
   AllCoercible h
 
 -- { FooP
@@ -997,9 +999,13 @@ instance
 instance (forall e. Handle (h e)) => Handle (B h) where
   handleImpl = handleMapHandle $ \(MkB h) -> MkB (useHandleUnder h)
 
-useHandleUnder :: (Handle h, e :> es) => h (e1 :& e) -> h (e1 :& es)
--- Make this safe
-useHandleUnder = unsafeCoerce
+useHandleUnder ::
+  forall h e e1 es.
+  (Handle h, e :> es) =>
+  h (e1 :& e) ->
+  h (e1 :& es)
+useHandleUnder = case have (bimap (has @e1 @e1) (has @e @es)) of
+  Dict -> mapHandle
 
 unB :: (forall e'. Handle (h e'), e :> es) => B h e -> h es es
 unB = getB . mapHandle
@@ -1007,9 +1013,9 @@ unB = getB . mapHandle
 getB :: (Handle (h e)) => B h e -> h e e
 getB (MkB b) = makeOpHandle b
 
-makeOpHandle :: (Handle h) => h (e :& e) -> h e
--- Make this safe
-makeOpHandle = unsafeCoerce
+makeOpHandle :: forall h e. (Handle h) => h (e :& e) -> h e
+makeOpHandle = case have (subsume1 (has @e @e)) of
+  Dict -> mapHandle
 
 blahh ::
   forall h es es'.
