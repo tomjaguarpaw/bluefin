@@ -919,11 +919,16 @@ instance
   oneWayCoercibleImpl = fooOneWayCoercible
 -}
 
+handleGenericCoercible ::
+  (forall e es. (e :> es) => FooC h e es) =>
+  HandleD (FooP h)
+handleGenericCoercible = handleOneWayCoercion (coerceNewtype oneWayFromFoo)
+
 instance
   (forall e es. (e :> es) => FooC h e es) =>
   Handle (FooP h)
   where
-  handleImpl = handleOneWayCoercion (coerceNewtype oneWayFromFoo)
+  handleImpl = handleGenericCoercible
 
 coerceNewtype ::
   forall k (f :: k -> Type) (g :: k -> Type) (e :: k) (e' :: k).
