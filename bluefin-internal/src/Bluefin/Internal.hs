@@ -405,7 +405,8 @@ instance Handle (State s) where
   mapHandle = \(UnsafeMkState s) -> UnsafeMkState s
 
 instance Handle (Exception s) where
-  mapHandle = \(MkException s) -> MkException (weakenEff has . s)
+  mapHandle = \(MkException s) ->
+    MkException (weakenEff has . s)
 
 instance Handle (Coroutine a b) where
   mapHandle = \(MkCoroutine f) -> MkCoroutine (fmap useImpl f)
