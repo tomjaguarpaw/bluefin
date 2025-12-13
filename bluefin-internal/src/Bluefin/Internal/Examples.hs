@@ -668,7 +668,7 @@ data Counter5 e = MkCounter5
   }
 
 instance Handle Counter5 where
-  mapHandle c =
+  mapHandle = \c ->
     MkCounter5
       { incCounter5Impl = useImplUnder (incCounter5Impl c),
         getCounter5Impl = \msg -> useImplUnder (getCounter5Impl c msg)
@@ -729,7 +729,7 @@ data Counter6 e = MkCounter6
   }
 
 instance Handle Counter6 where
-  mapHandle c =
+  mapHandle = \c ->
     MkCounter6
       { incCounter6Impl = useImplUnder (incCounter6Impl c),
         counter6State = mapHandle (counter6State c),
@@ -792,7 +792,7 @@ data Counter7 e = MkCounter7
   }
 
 instance Handle Counter7 where
-  mapHandle c =
+  mapHandle = \c ->
     MkCounter7
       { incCounter7Impl = \ex -> useImplUnder (incCounter7Impl c ex),
         counter7State = mapHandle (counter7State c),
@@ -865,7 +865,7 @@ data FileSystem es = MkFileSystem
   }
 
 instance Handle FileSystem where
-  mapHandle fs =
+  mapHandle = \fs ->
     MkFileSystem
       { readFileImpl = \fp -> useImplUnder (readFileImpl fs fp),
         writeFileImpl = \fp s -> useImplUnder (writeFileImpl fs fp s)
@@ -1052,7 +1052,7 @@ data DynamicReader r e = DynamicReader
   }
 
 instance Handle (DynamicReader r) where
-  mapHandle h =
+  mapHandle = \h ->
     DynamicReader
       { askLRImpl = useImplUnder (askLRImpl h),
         localLRImpl = \f k -> useImplUnder (localLRImpl h f k)

@@ -402,19 +402,19 @@ handleMapHandle ::
 handleMapHandle = MkHandleD
 
 instance Handle (State s) where
-  mapHandle (UnsafeMkState s) = UnsafeMkState s
+  mapHandle = \(UnsafeMkState s) -> UnsafeMkState s
 
 instance Handle (Exception s) where
-  mapHandle (MkException s) = MkException (weakenEff has . s)
+  mapHandle = \(MkException s) -> MkException (weakenEff has . s)
 
 instance Handle (Coroutine a b) where
-  mapHandle (MkCoroutine f) = MkCoroutine (fmap useImpl f)
+  mapHandle = \(MkCoroutine f) -> MkCoroutine (fmap useImpl f)
 
 instance Handle (Writer w) where
-  mapHandle (Writer wr) = Writer (mapHandle wr)
+  mapHandle = \(Writer wr) -> Writer (mapHandle wr)
 
 instance Handle IOE where
-  mapHandle MkIOE = MkIOE
+  mapHandle = \MkIOE -> MkIOE
 
 -- | A convenience type whose only purpose is to avoid writing @(# #)@
 -- as an argument to functions which are only function because
