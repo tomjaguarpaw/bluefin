@@ -894,6 +894,7 @@ instance Handle (Counter7a e) where
 -- handleCounter7aViaCoercible :: HandleD (Counter7a e)
 -- handleCounter7aViaCoercible = handleOneWayCoercible
 
+-- Don't need this anymore!
 handleCounter7aMapHandle :: HandleD (Counter7a e)
 handleCounter7aMapHandle = handleMapHandle $ \c ->
   MkCounter7a
