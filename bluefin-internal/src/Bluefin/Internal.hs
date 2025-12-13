@@ -595,6 +595,13 @@ subset = satisfied @(e1 :> es)
 satisfied :: forall c m. (Monad m, c) => m ()
 satisfied = pure ()
 
+equalSets ::
+  forall e1 e2 m.
+  (Monad m) =>
+  (e1 ~ e2) =>
+  m ()
+equalSets = pure ()
+
 effTag :: Eff es (Proxy es)
 effTag = pure Proxy
 
@@ -1588,6 +1595,7 @@ mapHandleReader = case coerceH of Coercion -> coerce
     coerceH :: Coercion (h e) (h es)
     coerceH = unsafeCoerce (Coercion :: Coercion (h e) (h e))
 
+-- Maybe we should make a verison of this that takes @h e -> h es@.
 localHandle ::
   (e :> es, Handle h) =>
   HandleReader h e ->
