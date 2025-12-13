@@ -88,6 +88,7 @@ library
       Bluefin.Internal.DslBuilderEffects,
       Bluefin.Internal.Examples,
       Bluefin.Internal.Exception.Scoped,
+      Bluefin.Internal.FunctorCoroutine,
       Bluefin.Internal.Key,
       Bluefin.Internal.OneWayCoercible,
       Bluefin.Internal.Pipes,

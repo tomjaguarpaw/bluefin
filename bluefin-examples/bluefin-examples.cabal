@@ -76,6 +76,7 @@ library
       Bluefin.Examples.CloneableHandle,
       Bluefin.Examples.DB,
       Bluefin.Examples.DslBuilder.Robots,
+      Bluefin.Examples.FunctorCoroutine,
       Bluefin.Examples.HandleReader,
       Bluefin.Examples.Random,
       Bluefin.Examples.Stream.InsideAndOut,
