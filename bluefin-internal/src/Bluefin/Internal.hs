@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RoleAnnotations #-}
@@ -10,6 +11,7 @@
 
 module Bluefin.Internal where
 
+import GHC.Generics
 import Bluefin.Internal.Exception.Scoped qualified as ScopedException
 import Control.Concurrent.Async qualified as Async
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
@@ -20,7 +22,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
 import Control.Monad.Trans.Control (MonadBaseControl, StM, liftBaseWith, restoreM)
 import Control.Monad.Trans.Reader qualified as Reader
-import Data.Coerce (coerce)
+import Data.Coerce (Coercible, coerce)
 import Data.Foldable (for_)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
@@ -383,6 +385,7 @@ type Consume a = Coroutine () a
 --               logger = mapHandle l
 --             }
 -- @
+
 class Handle (h :: Effects -> Type) where
   {-# MINIMAL handleImpl | mapHandle #-}
   -- | Define @handleImpl@ using 'handleMapHandle'.
@@ -411,6 +414,139 @@ class Handle (h :: Effects -> Type) where
   mapHandle :: (e :> es) => h e -> h es
   mapHandle = case handleImpl of MkHandleD f -> f
 
+class Handle' f where
+  handleImpl' :: HandleD f
+
+mapHandle' :: Handle' f => forall e es. e :> es => f e -> f es
+mapHandle' = case handleImpl' of MkHandleD f -> f
+
+instance Handle' V1 where
+  handleImpl' = handleMapHandle $ \case { }
+
+instance Handle' U1 where
+  handleImpl' = handleMapHandle $ \case { U1 -> U1 }
+
+instance (Handle' f, Handle' g) => Handle' (f :+: g) where
+  handleImpl' = handleMapHandle $ \case
+    L1 x -> L1 (mapHandle' x)
+    R1 x -> R1 (mapHandle' x)
+
+instance (Handle' f, Handle' g) => Handle' (f :*: g) where
+  handleImpl' = handleMapHandle $ \case
+    x :*: y -> mapHandle' x :*: mapHandle' y
+
+instance (Handle' f) => Handle' (M1 i t f) where
+  handleImpl' = handleMapHandle $ \case
+    M1 x -> M1 (mapHandle' x)
+
+instance Handle f => Handle' (Rec1 f) where
+  handleImpl' = handleMapHandle $ \case
+    Rec1 x -> Rec1 (mapHandle x)
+
+blap :: Coercible f f' => Dict (Coercible (M1 i t f) (M1 i' t' f'))
+blap = Dict
+
+dimapHandleD :: (forall e. a e  -> b e) -> (forall e. b e -> a e) -> HandleD a -> HandleD b
+dimapHandleD f g (MkHandleD h) = MkHandleD (f . h . g)
+
+data MyerHandle e = MkMyerHandle (State Int e) (IOE e)
+  deriving Generic
+  deriving Generic1
+
+genericHandle :: (Handle' (Rep1 h), Generic1 h) => HandleD h
+genericHandle = dimapHandleD to1 from1 handleImpl'
+
+oneWayCoercible :: Coercible f g => OneWayCoercibleD f g
+oneWayCoercible = MkOneWayCoercibleD (MkOneWayCoercion Coercion)
+
+unsafeOneWayCoercion :: forall f g. OneWayCoercion f g
+unsafeOneWayCoercion = MkOneWayCoercion (unsafeCoerce (Coercion @f @f))
+
+unsafeOneWayCoercible :: forall f g. OneWayCoercibleD f g
+unsafeOneWayCoercible = MkOneWayCoercibleD unsafeOneWayCoercion
+
+newtype OneWayCoercion f g = MkOneWayCoercion (Coercion f g)
+
+newtype OneWayCoercibleD f g = MkOneWayCoercibleD (OneWayCoercion f g)
+
+oneWayCoercion :: OneWayCoercible f g => OneWayCoercion f g
+oneWayCoercion = case oneWayCoercibleImpl of
+  MkOneWayCoercibleD oneWay -> oneWay
+
+oneWayCoerce :: forall f g. OneWayCoercible f g => f -> g
+oneWayCoerce = case oneWayCoercion @f @g of
+  MkOneWayCoercion Coercion -> coerce
+
+class OneWayCoercible f g where
+  oneWayCoercibleImpl :: OneWayCoercibleD f g
+
+class Foo f g
+
+instance Foo U1 U1 where
+
+instance OneWayCoercible c c' => Foo (K1 i c) (K1 i' c') where
+
+instance Foo f f' => Foo (M1 i t f) (M1 i' t' f') where
+
+instance (Foo f f', Foo g g') => Foo (f :*: g) (f' :*: g') where
+
+instance (OneWayCoercible a a', OneWayCoercible b b') =>
+  OneWayCoercible (a' -> b) (a -> b') where
+  oneWayCoercibleImpl = case oneWayCoercion @a @a' of
+    MkOneWayCoercion Coercion -> case oneWayCoercion @b @b' of
+      MkOneWayCoercion Coercion ->
+        MkOneWayCoercibleD (MkOneWayCoercion Coercion)
+
+blah ::
+  (e :> e1, e1 :> es) =>
+  Dict (OneWayCoercible (State () e1 -> Eff e1 r) (State () e -> Eff es r))
+blah = Dict
+
+instance e :> es => OneWayCoercible (Eff e r) (Eff es r) where
+  oneWayCoercibleImpl = oneWayCoercible
+
+instance e :> es => OneWayCoercible (State s e) (State s es) where
+  oneWayCoercibleImpl = oneWayCoercible
+
+instance e :> es => OneWayCoercible (Exception ex e) (Exception ex es) where
+  oneWayCoercibleImpl = oneWayCoercible
+
+instance e :> es => OneWayCoercible (Coroutine a b e) (Coroutine a b es) where
+  oneWayCoercibleImpl = oneWayCoercible
+
+instance e :> es => OneWayCoercible (Writer w e) (Writer w es) where
+  oneWayCoercibleImpl = oneWayCoercible
+
+instance e :> es => OneWayCoercible (Reader r e) (Reader r es) where
+  oneWayCoercibleImpl = oneWayCoercible
+
+instance e :> es => OneWayCoercible (HandleReader h e) (HandleReader h es) where
+  oneWayCoercibleImpl = unsafeOneWayCoercible
+
+instance e :> es => OneWayCoercible (ConstEffect r e) (ConstEffect r es) where
+  oneWayCoercibleImpl = oneWayCoercible
+
+instance e :> es => OneWayCoercible (IOE e) (IOE es) where
+  oneWayCoercibleImpl = unsafeOneWayCoercible
+
+oneWayFromFoo ::
+  forall f g. Foo (Rep f) (Rep g) => OneWayCoercion f g
+oneWayFromFoo = unsafeOneWayCoercion
+
+fooOneWayCoercible ::
+  Foo (Rep (h e)) (Rep (h es)) => OneWayCoercibleD (h e) (h es)
+fooOneWayCoercible = MkOneWayCoercibleD oneWayFromFoo
+
+fooTwoArgOneWayCoercible ::
+  Foo (Rep (h e e')) (Rep (h es es')) => OneWayCoercibleD (h e e') (h es es')
+fooTwoArgOneWayCoercible = MkOneWayCoercibleD oneWayFromFoo
+
+instance e :> es => OneWayCoercible (MyerHandle e) (MyerHandle es) where
+  oneWayCoercibleImpl = fooOneWayCoercible
+
+instance Handle MyerHandle where
+  handleImpl = handleOneWayCoercible
+
 -- | The type of the 'handleImpl' method of the 'Handle' class.
 -- Create a @HandleD@ using 'handleMapHandle'.
 newtype HandleD h = MkHandleD (forall e es. (e :> es) => h e -> h es)
@@ -422,22 +558,26 @@ handleMapHandle ::
   HandleD h
 handleMapHandle = MkHandleD
 
+handleOneWayCoercible ::
+  (forall e es. e :> es => OneWayCoercible (h e) (h es)) =>
+  -- | ͘
+  HandleD h
+handleOneWayCoercible = MkHandleD oneWayCoerce
+
 instance Handle (State s) where
-  handleImpl = handleMapHandle $ \(UnsafeMkState s) -> UnsafeMkState s
+  handleImpl = handleOneWayCoercible
 
 instance Handle (Exception s) where
-  handleImpl = handleMapHandle $ \(MkException s) ->
-    MkException (weakenEff has . s)
+  handleImpl = handleOneWayCoercible
 
 instance Handle (Coroutine a b) where
-  handleImpl = handleMapHandle $ \(MkCoroutine f) ->
-    MkCoroutine (fmap useImpl f)
+  handleImpl = handleOneWayCoercible
 
 instance Handle (Writer w) where
-  handleImpl = handleMapHandle $ \(Writer wr) -> Writer (mapHandle wr)
+  handleImpl = handleOneWayCoercible
 
 instance Handle IOE where
-  handleImpl = handleMapHandle $ \MkIOE -> MkIOE
+  handleImpl = handleOneWayCoercible
 
 -- | A convenience type whose only purpose is to avoid writing @(# #)@
 -- as an argument to functions which are only function because
@@ -1548,7 +1688,7 @@ runHandleReader h k = do
     useImplIn k h'
 
 instance (Handle h) => Handle (HandleReader h) where
-  handleImpl = handleMapHandle mapHandleReader
+  handleImpl = handleOneWayCoercible
 
 newtype ConstEffect r (e :: Effects) = MkConstEffect r
 
@@ -1560,4 +1700,4 @@ runConstEffect ::
 runConstEffect r k = useImplIn k (MkConstEffect r)
 
 instance Handle (ConstEffect r) where
-  handleImpl = handleMapHandle coerce
+  handleImpl = handleOneWayCoercible

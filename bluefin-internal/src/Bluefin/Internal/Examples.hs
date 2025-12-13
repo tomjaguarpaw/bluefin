@@ -1,8 +1,12 @@
+{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Bluefin.Internal.Examples where
 
+import Data.Coerce
+import GHC.Exts qualified
 import Bluefin.Internal hiding (b, w)
 import Bluefin.Internal.Pipes
   ( Producer,
@@ -18,8 +22,10 @@ import Control.Exception qualified
 import Control.Monad (forever, replicateM_, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
-import Data.Monoid (Any (Any, getAny))
+import Data.Monoid qualified (Any (Any, getAny))
 import Data.Proxy (Proxy (Proxy))
+import Unsafe.Coerce (unsafeCoerce)
+import GHC.Generics
 import Text.Read (readMaybe)
 import Prelude hiding
   ( break,
@@ -454,12 +460,12 @@ countExample = runEff_ $ \io -> do
       modify sn (+ 1)
 
 writerExample1 :: Bool
-writerExample1 = getAny $ runPureEff $ execWriter $ \w -> do
-  for_ [] $ \_ -> tell w (Any True)
+writerExample1 = Data.Monoid.getAny $ runPureEff $ execWriter $ \w -> do
+  for_ [] $ \_ -> tell w (Data.Monoid.Any True)
 
 writerExample2 :: Bool
-writerExample2 = getAny $ runPureEff $ execWriter $ \w -> do
-  for_ [1 :: Int .. 10] $ \_ -> tell w (Any True)
+writerExample2 = Data.Monoid.getAny $ runPureEff $ execWriter $ \w -> do
+  for_ [1 :: Int .. 10] $ \_ -> tell w (Data.Monoid.Any True)
 
 while :: Eff es Bool -> Eff es a -> Eff es ()
 while condM body =
@@ -792,12 +798,104 @@ data Counter7 e = MkCounter7
   }
 
 instance Handle Counter7 where
-  handleImpl = handleMapHandle $ \c ->
+  mapHandle c =
     MkCounter7
       { incCounter7Impl = \ex -> useImplUnder (incCounter7Impl c ex),
         counter7State = mapHandle (counter7State c),
         counter7Stream = mapHandle (counter7Stream c)
       }
+
+data Counter7a e' e = MkCounter7a
+  { incCounter7aImpl :: Exception () e' -> Eff e (),
+    counter7aState :: State Int e,
+    counter7aStream :: Stream String e
+  }
+  deriving (Generic)
+
+instance (e' :> es') => OneWayCoercible (Counter7a e e') (Counter7a e es') where
+  oneWayCoercibleImpl = fooOneWayCoercible
+
+newtype B h es = MkB (forall e. h e (e :& es))
+
+unB :: e :> es => B h e -> h es es
+-- Make this safe
+unB (MkB b) = unsafeCoerce b
+
+blahh ::
+  forall h es es'.
+  (forall e. OneWayCoercible (h e es) (h e es')) =>
+  OneWayCoercion (B h es) (B h es')
+blahh = unsafeCoerce (oneWayCoercion @(h GHC.Exts.Any es) @(h GHC.Exts.Any es'))
+
+oneWayOfB ::
+  forall h es es'.
+  (forall e. OneWayCoercible (h e es) (h e es')) =>
+  OneWayCoercibleD (B h es) (B h es')
+oneWayOfB = MkOneWayCoercibleD blahh
+
+newtype CC e es = MkC (Proxy e -> Proxy es)
+
+blog :: Dict (Coercible (B CC e) (B CC es))
+blog = Dict
+
+bliz :: e :> es => OneWayCoercion (B Counter7a e) (B Counter7a es)
+bliz = blahh
+
+instance e :> es => OneWayCoercible (B Counter7a e) (B Counter7a es) where
+  oneWayCoercibleImpl = oneWayOfB
+
+instance Handle (B Counter7a) where
+  handleImpl = handleOneWayCoercible
+
+incCounter7a ::
+  (e1 :> es, e2 :> es) => B Counter7a e1 -> Exception () e2 -> Eff es ()
+incCounter7a e ex = incCounter7aImpl (unB e) (mapHandle ex)
+
+useImplInB ::
+  e :> es =>
+  (forall e'. B h e' -> Eff (e' :& e) r) ->
+  (forall e'. h e' (e' :& es)) ->
+  Eff es r
+useImplInB k c = useImplIn k (MkB c)
+
+runCounter7a ::
+  (e1 :> es) =>
+  Stream String e1 ->
+  (forall e. B Counter7a e -> Eff (e :& es) r) ->
+  Eff es Int
+runCounter7a y k =
+  evalState 0 $ \st -> do
+    _ <-
+      useImplInB
+        k
+        MkCounter7a
+            { incCounter7aImpl = \ex -> do
+                count <- get st
+
+                when (even count) $
+                  yield y "Count was even"
+
+                when (count >= 10) $
+                  throw ex ()
+
+                put st (count + 1),
+              counter7aState = mapHandle st,
+              counter7aStream = mapHandle y
+            }
+    get st
+-- Or could do this
+{-
+instance (forall e. OneWayCoercible (h e es) (h e es')) =>
+  OneWayCoercible (B h es) (B h es') where
+  oneWayCoercibleImpl = MkOneWayCoercibleD blahh
+-}
+
+blag :: es :> es' => Dict (OneWayCoercible (B Counter7a es) (B Counter7a es'))
+blag = Dict
+
+blig :: es :> es' =>
+  Dict (OneWayCoercible (State Int e -> Eff es ()) (State Int e -> Eff es' ()))
+blig = Dict
 
 incCounter7 ::
   (e :> es, e1 :> es) => Counter7 e -> Exception () e1 -> Eff es ()
