@@ -7,6 +7,7 @@
 
 module Bluefin.Internal.Examples where
 
+import Data.Kind (Type)
 import Bluefin.Internal hiding (b, w)
 import Bluefin.Internal.Pipes
   ( Producer,
@@ -875,11 +876,13 @@ data Counter7a e es = MkCounter7a
   deriving (Generic)
   deriving (Handle) via FooP (Counter7a e)
 
+{-
 instance
   (e :> e', es :> es') =>
   OneWayCoercible (Counter7a e' es) (Counter7a e es')
   where
   oneWayCoercibleImpl = fooTwoArgOneWayCoercible
+-}
 
 -- Alternatives
 
@@ -888,8 +891,8 @@ instance Handle (Counter7a e) where
   handleImpl = handleCounter7aMapHandle
 -}
 
-handleCounter7aViaCoercible :: HandleD (Counter7a e)
-handleCounter7aViaCoercible = handleOneWayCoercible
+-- handleCounter7aViaCoercible :: HandleD (Counter7a e)
+-- handleCounter7aViaCoercible = handleOneWayCoercible
 
 handleCounter7aMapHandle :: HandleD (Counter7a e)
 handleCounter7aMapHandle = handleMapHandle $ \c ->
@@ -899,32 +902,34 @@ handleCounter7aMapHandle = handleMapHandle $ \c ->
       counter7aStream = mapHandle (counter7aStream c)
     }
 
---
-
-class
-  (forall e es. (e :> es) => OneWayCoercible (h e) (h es)) =>
-  AllCoercible h
-
-instance
-  (forall e es. (e :> es) => OneWayCoercible (h e) (h es)) =>
-  AllCoercible h
-
 -- { FooP
 
 newtype FooP a es = MkFooP (a es)
   deriving (Generic)
 
+class (Foo (Rep (h e)) (Rep (h es))) => FooC h e es
+
+instance (Foo (Rep (h e)) (Rep (h es))) => FooC h e es
+
+{-
 instance
   (OneWayCoercible (h e1) (h es)) =>
   OneWayCoercible (FooP h e1) (FooP h es)
   where
   oneWayCoercibleImpl = fooOneWayCoercible
+-}
 
 instance
-  (forall e es. (e :> es) => OneWayCoercible (FooP h e) (FooP h es)) =>
+  (forall e es. (e :> es) => FooC h e es) =>
   Handle (FooP h)
   where
-  handleImpl = handleOneWayCoercible
+  handleImpl = handleOneWayCoercion (coerceNewtype oneWayFromFoo)
+
+coerceNewtype ::
+  forall k (f :: k -> Type) (g :: k -> Type) (e :: k) (e' :: k).
+  OneWayCoercion (f e) (g e') ->
+  OneWayCoercion (FooP f e) (FooP g e')
+coerceNewtype = coerce
 
 -- }
 
@@ -1034,8 +1039,8 @@ newtype CC e es = MkC (Proxy e -> Proxy es)
 blog :: Dict (Coercible (B CC e) (B CC es))
 blog = Dict
 
-bliz :: (e :> es) => OneWayCoercion (B Counter7a e) (B Counter7a es)
-bliz = blahh
+-- bliz :: (e :> es) => OneWayCoercion (B Counter7a e) (B Counter7a es)
+-- bliz = blahh
 
 -- Or could do this
 {-

@@ -474,8 +474,10 @@ oneWayCoercion = case oneWayCoercibleImpl of
   MkOneWayCoercibleD oneWay -> oneWay
 
 oneWayCoerce :: forall f g. OneWayCoercible f g => f -> g
-oneWayCoerce = case oneWayCoercion @f @g of
-  MkOneWayCoercion Coercion -> coerce
+oneWayCoerce = withOneWayCoercion (oneWayCoercion @f @g)
+
+withOneWayCoercion :: forall f g. OneWayCoercion f g -> f -> g
+withOneWayCoercion (MkOneWayCoercion Coercion) = coerce
 
 class OneWayCoercible f g where
   oneWayCoercibleImpl :: OneWayCoercibleD f g
@@ -563,6 +565,12 @@ handleOneWayCoercible ::
   -- | ͘
   HandleD h
 handleOneWayCoercible = MkHandleD oneWayCoerce
+
+handleOneWayCoercion ::
+  (forall e es. e :> es => OneWayCoercion (h e) (h es)) ->
+  -- | ͘
+  HandleD h
+handleOneWayCoercion owc = MkHandleD (withOneWayCoercion owc)
 
 instance Handle (State s) where
   handleImpl = handleOneWayCoercible
