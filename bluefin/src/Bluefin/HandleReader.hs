@@ -6,9 +6,10 @@
 -- exception.
 --
 -- @HandleReader@ supports functionality similiar to @effectful@'s
--- 'Effectful.Dispatch.Dynamic.interpose' and @polysemy@'s
--- 'Polysemy.intercept', that is, locally augmenting an effect with
--- new behaviors.
+-- [@interpose@](https://hackage.haskell.org/package/effectful-core/docs/Effectful-Dispatch-Dynamic.html#v:interpose)
+-- and @polysemy@'s
+-- [@intercept@](https://hackage.haskell.org/package/polysemy/docs/Polysemy.html#v:intercept),
+-- that is, locally augmenting an effect with new behaviors.
 
 module Bluefin.HandleReader
   ( -- * Handle
