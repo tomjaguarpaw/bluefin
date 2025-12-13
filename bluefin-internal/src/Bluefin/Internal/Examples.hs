@@ -930,14 +930,16 @@ handleCounter7aMapHandle = handleMapHandle $ \c ->
 newtype FooP a es = MkFooP (a es)
   deriving (Generic)
 
-class (Foo (Rep (h e)) (Rep (h es))) => FooC h e es
+class (forall e' es'. e' :> es' => OneWayCoercible (h e') (h es')) =>
+ FooC h e es
 
-instance (Foo (Rep (h e)) (Rep (h es))) => FooC h e es
+instance (forall e' es'. e' :> es' => OneWayCoercible (h e') (h es')) =>
+ FooC h e es
 
 handleGenericCoercible ::
   (forall e es. (e :> es) => FooC h e es) =>
   HandleD (FooP h)
-handleGenericCoercible = handleOneWayCoercion blag
+handleGenericCoercible = handleOneWayCoercible
 
 instance
   (forall e es. (e :> es) => FooC h e es) =>
@@ -971,16 +973,11 @@ instance
   (forall e1 es. (e1 :> es) => OneWayCoercible (h e1) (h es)) =>
   OneG h
 
-blag ::
-  (Foo (Rep (f (e :: Effects))) (Rep (g (e' :: Effects)))) =>
-  OneWayCoercion (FooP f e) (FooP g e')
-blag = coerceNewtype oneWayFromFoo
-
 instance
   FooC h (es :: Effects) (es' :: Effects) =>
   OneWayCoercible (FooP h es) (FooP h es')
   where
-  oneWayCoercibleImpl = MkOneWayCoercibleD blag
+  oneWayCoercibleImpl = MkOneWayCoercibleD oneWayCoercion
 
 -- }
 
