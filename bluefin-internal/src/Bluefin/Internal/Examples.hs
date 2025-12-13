@@ -876,19 +876,33 @@ data Counter7a e es = MkCounter7a
   deriving (Generic)
   deriving (Handle) via FooP (Counter7a e)
 
-newtype Counter7aN e es = MkCounter7aN (Counter7a e es)
-  deriving (Generic)
-  deriving (Handle) via FooP (Counter7aN e)
-
 instance
   (e :> e', es :> es') =>
   OneWayCoercible (Counter7a e' es) (Counter7a e es')
   where
   oneWayCoercibleImpl = fooTwoArgOneWayCoercible
 
+-- Counter7aN (to check we can recurse)
+
+newtype Counter7aN e es = MkCounter7aN (Counter7a e es)
+  deriving (Generic)
+  deriving (Handle) via FooP (Counter7aN e)
+
 instance
   (e :> e', es :> es') =>
   OneWayCoercible (Counter7aN e' es) (Counter7aN e es')
+  where
+  oneWayCoercibleImpl = fooTwoArgOneWayCoercible
+
+-- Counter7aD (to check we can recurse)
+
+data Counter7aD e es = MkCounter7aD (Counter7a e es)  (Counter7a e es)
+  deriving (Generic)
+  deriving (Handle) via FooP (Counter7aD e)
+
+instance
+  (e :> e', es :> es') =>
+  OneWayCoercible (Counter7aD e' es) (Counter7aD e es')
   where
   oneWayCoercibleImpl = fooTwoArgOneWayCoercible
 
@@ -920,33 +934,6 @@ class (Foo (Rep (h e)) (Rep (h es))) => FooC h e es
 
 instance (Foo (Rep (h e)) (Rep (h es))) => FooC h e es
 
-class
-  (forall e1 es. (e1 :> es) => OneWayCoercible (h e1) (h es)) =>
-  OneG h
-
-instance
-  (forall e1 es. (e1 :> es) => OneWayCoercible (h e1) (h es)) =>
-  OneG h
-
-{-
-instance
-  (OneWayCoercible (h e1) (h es)) =>
-  OneWayCoercible (FooP h e1) (FooP h es)
-  where
-  oneWayCoercibleImpl = fooOneWayCoercible
--}
-
-blag ::
-  (Foo (Rep (f (e :: Effects))) (Rep (g (e' :: Effects)))) =>
-  OneWayCoercion (FooP f e) (FooP g e')
-blag = coerceNewtype oneWayFromFoo
-
-instance
-  FooC h (es :: Effects) (es' :: Effects) =>
-  OneWayCoercible (FooP h es) (FooP h es')
-  where
-  oneWayCoercibleImpl = MkOneWayCoercibleD blag
-
 handleGenericCoercible ::
   (forall e es. (e :> es) => FooC h e es) =>
   HandleD (FooP h)
@@ -963,6 +950,37 @@ coerceNewtype ::
   OneWayCoercion (f e) (g e') ->
   OneWayCoercion (FooP f e) (FooP g e')
 coerceNewtype = coerce
+
+-- }
+
+-- { Trying to derive OneWayCoercible
+
+{-
+instance
+  (OneWayCoercible (h e1) (h es)) =>
+  OneWayCoercible (FooP h e1) (FooP h es)
+  where
+  oneWayCoercibleImpl = fooOneWayCoercible
+-}
+
+class
+  (forall e1 es. (e1 :> es) => OneWayCoercible (h e1) (h es)) =>
+  OneG h
+
+instance
+  (forall e1 es. (e1 :> es) => OneWayCoercible (h e1) (h es)) =>
+  OneG h
+
+blag ::
+  (Foo (Rep (f (e :: Effects))) (Rep (g (e' :: Effects)))) =>
+  OneWayCoercion (FooP f e) (FooP g e')
+blag = coerceNewtype oneWayFromFoo
+
+instance
+  FooC h (es :: Effects) (es' :: Effects) =>
+  OneWayCoercible (FooP h es) (FooP h es')
+  where
+  oneWayCoercibleImpl = MkOneWayCoercibleD blag
 
 -- }
 
