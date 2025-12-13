@@ -1,3 +1,19 @@
+## 0.2.1.0
+
+* Add `handleImpl`, `HandleD` and `handleMapHandle`
+
+* Add type role for `Exception`. This is technically a breaking change
+  but it seems extremely unlikely to break working code, so we are not
+  imposing a major version bump.
+
+* Internal details of proof terms
+
+  * Add proof terms for `:>~ instances.
+
+  * Use `ZW` as the argument instead of `(# #)`.
+
+  * Add `unsafeAxiom`
+
 ## 0.2.0.0
 
 * Choose different incoherent instance for `:>` for better type

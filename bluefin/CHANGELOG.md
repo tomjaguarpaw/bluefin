@@ -1,3 +1,8 @@
+## 0.2.1.0
+
+* `Bluefin.Compound`: Add `handleImpl`, `HandleD` and
+  `handleMapHandle`
+
 ## 0.2.0.0
 
 * Transitive version bump because of choice of different incoherent
