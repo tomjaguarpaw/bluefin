@@ -7,7 +7,6 @@
 
 module Bluefin.Internal.Examples where
 
-import Data.Kind (Type)
 import Bluefin.Internal hiding (b, w)
 import Bluefin.Internal.Pipes
   ( Producer,
@@ -24,6 +23,7 @@ import Control.Monad (forever, replicateM_, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Coerce
 import Data.Foldable (for_)
+import Data.Kind (Type)
 import Data.Monoid qualified (Any (Any, getAny))
 import Data.Proxy (Proxy (Proxy))
 import GHC.Exts qualified
@@ -876,13 +876,21 @@ data Counter7a e es = MkCounter7a
   deriving (Generic)
   deriving (Handle) via FooP (Counter7a e)
 
-{-
+newtype Counter7aN e es = MkCounter7aN (Counter7a e es)
+  deriving (Generic)
+  deriving (Handle) via FooP (Counter7aN e)
+
 instance
   (e :> e', es :> es') =>
   OneWayCoercible (Counter7a e' es) (Counter7a e es')
   where
   oneWayCoercibleImpl = fooTwoArgOneWayCoercible
--}
+
+instance
+  (e :> e', es :> es') =>
+  OneWayCoercible (Counter7aN e' es) (Counter7aN e es')
+  where
+  oneWayCoercibleImpl = fooTwoArgOneWayCoercible
 
 -- Alternatives
 
@@ -912,6 +920,14 @@ class (Foo (Rep (h e)) (Rep (h es))) => FooC h e es
 
 instance (Foo (Rep (h e)) (Rep (h es))) => FooC h e es
 
+class
+  (forall e1 es. (e1 :> es) => OneWayCoercible (h e1) (h es)) =>
+  OneG h
+
+instance
+  (forall e1 es. (e1 :> es) => OneWayCoercible (h e1) (h es)) =>
+  OneG h
+
 {-
 instance
   (OneWayCoercible (h e1) (h es)) =>
@@ -920,10 +936,21 @@ instance
   oneWayCoercibleImpl = fooOneWayCoercible
 -}
 
+blag ::
+  (Foo (Rep (f (e :: Effects))) (Rep (g (e' :: Effects)))) =>
+  OneWayCoercion (FooP f e) (FooP g e')
+blag = coerceNewtype oneWayFromFoo
+
+instance
+  FooC h (es :: Effects) (es' :: Effects) =>
+  OneWayCoercible (FooP h es) (FooP h es')
+  where
+  oneWayCoercibleImpl = MkOneWayCoercibleD blag
+
 handleGenericCoercible ::
   (forall e es. (e :> es) => FooC h e es) =>
   HandleD (FooP h)
-handleGenericCoercible = handleOneWayCoercion (coerceNewtype oneWayFromFoo)
+handleGenericCoercible = handleOneWayCoercion blag
 
 instance
   (forall e es. (e :> es) => FooC h e es) =>
