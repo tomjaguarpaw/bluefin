@@ -384,7 +384,6 @@ type Consume a = Coroutine () a
 --             }
 -- @
 class Handle (h :: Effects -> Type) where
-  {-# MINIMAL handleImpl | mapHandle #-}
   handleImpl :: HandleD h
   handleImpl = MkHandleD mapHandle
 
@@ -402,21 +401,21 @@ handleMapHandle ::
 handleMapHandle = MkHandleD
 
 instance Handle (State s) where
-  mapHandle = \(UnsafeMkState s) -> UnsafeMkState s
+  handleImpl = handleMapHandle $ \(UnsafeMkState s) -> UnsafeMkState s
 
 instance Handle (Exception s) where
-  mapHandle = \(MkException s) ->
+  handleImpl = handleMapHandle $ \(MkException s) ->
     MkException (weakenEff has . s)
 
 instance Handle (Coroutine a b) where
-  mapHandle = \(MkCoroutine f) ->
+  handleImpl = handleMapHandle $ \(MkCoroutine f) ->
     MkCoroutine (fmap useImpl f)
 
 instance Handle (Writer w) where
-  mapHandle = \(Writer wr) -> Writer (mapHandle wr)
+  handleImpl = handleMapHandle $ \(Writer wr) -> Writer (mapHandle wr)
 
 instance Handle IOE where
-  mapHandle = \MkIOE -> MkIOE
+  handleImpl = handleMapHandle $ \MkIOE -> MkIOE
 
 -- | A convenience type whose only purpose is to avoid writing @(# #)@
 -- as an argument to functions which are only function because
@@ -1527,7 +1526,7 @@ runHandleReader h k = do
     useImplIn k h'
 
 instance (Handle h) => Handle (HandleReader h) where
-  mapHandle = mapHandleReader
+  handleImpl = handleMapHandle mapHandleReader
 
 newtype ConstEffect r (e :: Effects) = MkConstEffect r
 
@@ -1539,4 +1538,4 @@ runConstEffect ::
 runConstEffect r k = useImplIn k (MkConstEffect r)
 
 instance Handle (ConstEffect r) where
-  mapHandle = coerce
+  handleImpl = handleMapHandle coerce
