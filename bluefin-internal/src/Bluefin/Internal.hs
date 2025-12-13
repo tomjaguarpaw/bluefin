@@ -409,7 +409,8 @@ instance Handle (Exception s) where
     MkException (weakenEff has . s)
 
 instance Handle (Coroutine a b) where
-  mapHandle = \(MkCoroutine f) -> MkCoroutine (fmap useImpl f)
+  mapHandle = \(MkCoroutine f) ->
+    MkCoroutine (fmap useImpl f)
 
 instance Handle (Writer w) where
   mapHandle = \(Writer wr) -> Writer (mapHandle wr)
