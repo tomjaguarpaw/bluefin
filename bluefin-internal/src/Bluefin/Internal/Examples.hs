@@ -689,21 +689,14 @@ runCounter5 ::
   Stream String e1 ->
   (forall e. Counter5 e -> Eff (e :& es) r) ->
   Eff es Int
-runCounter5 y k = do
-  Proxy @es <- effTag
+runCounter5 y k =
   evalState 0 $ \st -> do
-    Proxy @e1 <- handleTag st
     _ <- try $ \ex -> do
-      Proxy @e2 <- handleTag ex
       useImplIn
         k
         ( MkCounter5
             { incCounter5Impl = do
-                Proxy @(e' :& es') <- effTag
-
-                subset @e1 @es'
-                equalSets @es' @(e2 :& e1 :& es)
-                count <- get @e1 @(e' :& es') st
+                count <- get st
 
                 when (even count) $
                   yield y "Count was even"
@@ -716,7 +709,6 @@ runCounter5 y k = do
                 yield y msg
                 get st
             }
-            :: Counter5 (e2 :& e1 :& es)
         )
     get st
 
