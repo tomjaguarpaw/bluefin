@@ -806,30 +806,29 @@ instance Handle Counter7 where
         counter7Stream = mapHandle (counter7Stream c)
       }
 
-data Counter7a e' e = MkCounter7a
-  { incCounter7aImpl :: Exception () e' -> Eff e (),
-    counter7aState :: State Int e,
-    counter7aStream :: Stream String e
+data Counter7a e es = MkCounter7a
+  { incCounter7aImpl :: Exception () e -> Eff es (),
+    counter7aState :: State Int es,
+    counter7aStream :: Stream String es
   }
   deriving (Generic)
 
-instance (e' :> es') => OneWayCoercible (Counter7a e e') (Counter7a e es') where
+instance (es :> es') => OneWayCoercible (Counter7a e es) (Counter7a e es') where
   oneWayCoercibleImpl = fooOneWayCoercible
 
-instance (forall e. Handle (h e)) => Handle (B h) where
-  handleImpl = handleMapHandle $ \(MkB h) -> MkB (useHandleUnder h)
+handleCounter7aViaCoercible :: HandleD (Counter7a e)
+handleCounter7aViaCoercible = handleOneWayCoercible
 
-instance Handle (Counter7a e) where
-  handleImpl = handleMapHandle $ \c ->
+handleCounter7aMapHandle :: HandleD (Counter7a e)
+handleCounter7aMapHandle = handleMapHandle $ \c ->
     MkCounter7a
     { incCounter7aImpl = \ex -> useImpl (incCounter7aImpl c ex),
       counter7aState = mapHandle (counter7aState c),
       counter7aStream = mapHandle (counter7aStream c)
     }
 
-useHandleUnder :: (Handle h, e :> es) => h (e1 :& e) -> h (e1 :& es)
--- Make this safe
-useHandleUnder = unsafeCoerce
+instance Handle (Counter7a e) where
+  handleImpl = handleCounter7aMapHandle
 
 incCounter7a ::
   (e1 :> es, e2 :> es) => B Counter7a e1 -> Exception () e2 -> Eff es ()
@@ -874,6 +873,13 @@ runCounter7a y k =
     get st
 
 newtype B h es = MkB (forall e. h e (e :& es))
+
+instance (forall e. Handle (h e)) => Handle (B h) where
+  handleImpl = handleMapHandle $ \(MkB h) -> MkB (useHandleUnder h)
+
+useHandleUnder :: (Handle h, e :> es) => h (e1 :& e) -> h (e1 :& es)
+-- Make this safe
+useHandleUnder = unsafeCoerce
 
 instance (e :> es) => OneWayCoercible (B Counter7a e) (B Counter7a es) where
   oneWayCoercibleImpl = oneWayOfB
