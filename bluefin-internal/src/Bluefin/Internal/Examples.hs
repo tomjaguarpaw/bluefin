@@ -1,12 +1,11 @@
 {-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Bluefin.Internal.Examples where
 
-import Data.Coerce
-import GHC.Exts qualified
 import Bluefin.Internal hiding (b, w)
 import Bluefin.Internal.Pipes
   ( Producer,
@@ -21,12 +20,14 @@ import Control.Exception (IOException)
 import Control.Exception qualified
 import Control.Monad (forever, replicateM_, unless, when)
 import Control.Monad.IO.Class (liftIO)
+import Data.Coerce
 import Data.Foldable (for_)
 import Data.Monoid qualified (Any (Any, getAny))
 import Data.Proxy (Proxy (Proxy))
-import Unsafe.Coerce (unsafeCoerce)
+import GHC.Exts qualified
 import GHC.Generics
 import Text.Read (readMaybe)
+import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding
   ( break,
     drop,
@@ -815,11 +816,78 @@ data Counter7a e' e = MkCounter7a
 instance (e' :> es') => OneWayCoercible (Counter7a e e') (Counter7a e es') where
   oneWayCoercibleImpl = fooOneWayCoercible
 
+instance (forall e. Handle (h e)) => Handle (B h) where
+  handleImpl = handleMapHandle $ \(MkB h) -> MkB (useHandleUnder h)
+
+instance Handle (Counter7a e) where
+  handleImpl = handleMapHandle $ \c ->
+    MkCounter7a
+    { incCounter7aImpl = \ex -> useImpl (incCounter7aImpl c ex),
+      counter7aState = mapHandle (counter7aState c),
+      counter7aStream = mapHandle (counter7aStream c)
+    }
+
+useHandleUnder :: (Handle h, e :> es) => h (e1 :& e) -> h (e1 :& es)
+-- Make this safe
+useHandleUnder = unsafeCoerce
+
+incCounter7a ::
+  (e1 :> es, e2 :> es) => B Counter7a e1 -> Exception () e2 -> Eff es ()
+incCounter7a e ex = incCounter7aImpl (getB (mapHandle e)) (mapHandle ex)
+
+getCounter7a :: (e :> es) => B Counter7a e -> String -> Eff es Int
+getCounter7a (getB -> (MkCounter7a _ st y)) msg = do
+  yield y msg
+  get st
+
+useImplInB ::
+  (e :> es) =>
+  (forall e'. B h e' -> Eff (e' :& e) r) ->
+  (forall e'. h e' (e' :& es)) ->
+  Eff es r
+useImplInB k c = useImplIn k (MkB c)
+
+runCounter7a ::
+  (e1 :> es) =>
+  Stream String e1 ->
+  (forall e. B Counter7a e -> Eff (e :& es) r) ->
+  Eff es Int
+runCounter7a y k =
+  evalState 0 $ \st -> do
+    _ <-
+      useImplInB
+        k
+        MkCounter7a
+          { incCounter7aImpl = \ex -> do
+              count <- get st
+
+              when (even count) $
+                yield y "Count was even"
+
+              when (count >= 10) $
+                throw ex ()
+
+              put st (count + 1),
+            counter7aState = mapHandle st,
+            counter7aStream = mapHandle y
+          }
+    get st
+
 newtype B h es = MkB (forall e. h e (e :& es))
 
-unB :: e :> es => B h e -> h es es
+instance (e :> es) => OneWayCoercible (B Counter7a e) (B Counter7a es) where
+  oneWayCoercibleImpl = oneWayOfB
+
+unB :: (forall e'. Handle (h e'), e :> es) => B h e -> h es es
 -- Make this safe
-unB (MkB b) = unsafeCoerce b
+unB = getB . mapHandle
+
+getB :: Handle (h e) => B h e -> h e e
+getB (MkB b) = makeOpHandle b
+
+makeOpHandle :: Handle h => h (e :& e) -> h e
+-- Make this safe
+makeOpHandle = unsafeCoerce
 
 blahh ::
   forall h es es'.
@@ -838,51 +906,9 @@ newtype CC e es = MkC (Proxy e -> Proxy es)
 blog :: Dict (Coercible (B CC e) (B CC es))
 blog = Dict
 
-bliz :: e :> es => OneWayCoercion (B Counter7a e) (B Counter7a es)
+bliz :: (e :> es) => OneWayCoercion (B Counter7a e) (B Counter7a es)
 bliz = blahh
 
-instance e :> es => OneWayCoercible (B Counter7a e) (B Counter7a es) where
-  oneWayCoercibleImpl = oneWayOfB
-
-instance Handle (B Counter7a) where
-  handleImpl = handleOneWayCoercible
-
-incCounter7a ::
-  (e1 :> es, e2 :> es) => B Counter7a e1 -> Exception () e2 -> Eff es ()
-incCounter7a e ex = incCounter7aImpl (unB e) (mapHandle ex)
-
-useImplInB ::
-  e :> es =>
-  (forall e'. B h e' -> Eff (e' :& e) r) ->
-  (forall e'. h e' (e' :& es)) ->
-  Eff es r
-useImplInB k c = useImplIn k (MkB c)
-
-runCounter7a ::
-  (e1 :> es) =>
-  Stream String e1 ->
-  (forall e. B Counter7a e -> Eff (e :& es) r) ->
-  Eff es Int
-runCounter7a y k =
-  evalState 0 $ \st -> do
-    _ <-
-      useImplInB
-        k
-        MkCounter7a
-            { incCounter7aImpl = \ex -> do
-                count <- get st
-
-                when (even count) $
-                  yield y "Count was even"
-
-                when (count >= 10) $
-                  throw ex ()
-
-                put st (count + 1),
-              counter7aState = mapHandle st,
-              counter7aStream = mapHandle y
-            }
-    get st
 -- Or could do this
 {-
 instance (forall e. OneWayCoercible (h e es) (h e es')) =>
@@ -890,10 +916,11 @@ instance (forall e. OneWayCoercible (h e es) (h e es')) =>
   oneWayCoercibleImpl = MkOneWayCoercibleD blahh
 -}
 
-blag :: es :> es' => Dict (OneWayCoercible (B Counter7a es) (B Counter7a es'))
+blag :: (es :> es') => Dict (OneWayCoercible (B Counter7a es) (B Counter7a es'))
 blag = Dict
 
-blig :: es :> es' =>
+blig ::
+  (es :> es') =>
   Dict (OneWayCoercible (State Int e -> Eff es ()) (State Int e -> Eff es' ()))
 blig = Dict
 
