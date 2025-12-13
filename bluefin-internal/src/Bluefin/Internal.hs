@@ -1526,7 +1526,8 @@ runHandleReader h k = do
 
     useImplIn k h'
 
-instance (Handle h) => Handle (HandleReader h) where mapHandle = mapHandleReader
+instance (Handle h) => Handle (HandleReader h) where
+  mapHandle = mapHandleReader
 
 newtype ConstEffect r (e :: Effects) = MkConstEffect r
 
