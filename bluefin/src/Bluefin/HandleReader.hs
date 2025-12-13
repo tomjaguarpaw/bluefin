@@ -9,7 +9,9 @@
 -- [@interpose@](https://hackage.haskell.org/package/effectful-core/docs/Effectful-Dispatch-Dynamic.html#v:interpose)
 -- and @polysemy@'s
 -- [@intercept@](https://hackage.haskell.org/package/polysemy/docs/Polysemy.html#v:intercept),
--- that is, locally augmenting an effect with new behaviors.
+-- that is, locally augmenting an effect with new behaviors.  If you
+-- want to do the same in Bluefin you may want to start with
+-- @Bluefin.FunctorCoroutine.'Bluefin.FunctorCoroutine.interpose`@.
 
 module Bluefin.HandleReader
   ( -- * Handle

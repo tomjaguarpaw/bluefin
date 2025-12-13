@@ -77,6 +77,7 @@ library
       Bluefin.Examples.Contrib.Operators,
       Bluefin.Examples.DB,
       Bluefin.Examples.DslBuilder.Robots,
+      Bluefin.Examples.GadtEffect,
       Bluefin.Examples.HandleReader,
       Bluefin.Examples.Pipes,
       Bluefin.Examples.Pipes.Prelude,

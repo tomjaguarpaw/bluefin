@@ -31,6 +31,7 @@ library
       Bluefin.Eff,
       Bluefin.Exception,
       Bluefin.Exception.GeneralBracket,
+      Bluefin.GadtEffect,
       Bluefin.HandleReader,
       Bluefin.IO,
       Bluefin.Jump,

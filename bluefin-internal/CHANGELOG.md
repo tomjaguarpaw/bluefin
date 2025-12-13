@@ -1,3 +1,5 @@
+* Add `Bluefin.Internal.GadtEffect`
+
 * Add `Bluefin.Internal.asksHandle`
 
 * Restrict type parameter of `PrimStateEff` to `Effects`

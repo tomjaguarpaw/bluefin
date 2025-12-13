@@ -1,3 +1,5 @@
+* Add `Bluefin.Examples.GadtEffect`
+
 * Add `Bluefin.Examples.Contrib.Operators`
 
 * Add `Bluefin.Examples.Pipes` and `Bluefin.Examples.Pipes.Prelude`

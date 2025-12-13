@@ -540,7 +540,21 @@ oneWayCoercibleTrustMe !_ = unsafeOneWayCoercible
 -- { OneWayCoercibleHandle
 
 -- | 'OneWayCoercibleHandle' is used to derive 'Handle' instances
--- using @DerivingVia@
+-- using @DerivingVia@.  Make sure you import the constructor, for
+-- example using a wildcard import like this
+--
+-- @
+-- import Bluefin.Compound (OneWayCoercibleHandle (..))
+-- @
+--
+-- because if you /only/ import the type like this
+--
+-- @
+-- import Bluefin.Compound (OneWayCoercibleHandle)
+-- @
+--
+-- then @deriving via OneWayCoercibleHandle ...@ will not work. The
+-- constructor needs to be in scope.
 newtype OneWayCoercibleHandle a es = MkOneWayCoercibleHandle (a es)
   deriving stock (Generic)
 
