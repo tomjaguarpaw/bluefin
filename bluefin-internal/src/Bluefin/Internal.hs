@@ -370,16 +370,16 @@ type Consume a = Coroutine () a
 --
 -- @
 -- instance Handle Application where
---   handleImpl =
---     handleMapHandle $
+--   'handleImpl' =
+--     'handleMapHandle' $
 --       \\MkApplication
 --          { queryDatabase = q,
 --            applicationState = a,
 --            logger = l
 --          } ->
 --           MkApplication
---             { queryDatabase = \\s i -> useImplUnder (q s i),
---               applicationState = mapHandle a,
+--             { queryDatabase = \\s i -> 'useImplUnder' (q s i),
+--               applicationState = 'mapHandle' a,
 --               logger = mapHandle l
 --             }
 -- @
