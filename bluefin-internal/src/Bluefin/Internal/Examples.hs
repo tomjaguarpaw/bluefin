@@ -23,7 +23,6 @@ import Control.Monad (forever, replicateM_, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Coerce
 import Data.Foldable (for_)
-import Data.Kind (Type)
 import Data.Monoid qualified (Any (Any, getAny))
 import Data.Proxy (Proxy (Proxy))
 import GHC.Exts qualified
@@ -896,7 +895,7 @@ instance
 
 -- Counter7aD (to check we can recurse)
 
-data Counter7aD e es = MkCounter7aD (Counter7a e es)  (Counter7a e es)
+data Counter7aD e es = MkCounter7aD (Counter7a e es) (Counter7a e es)
   deriving (Generic)
   deriving (Handle) via FooP (Counter7aD e)
 
@@ -928,56 +927,16 @@ handleCounter7aMapHandle = handleMapHandle $ \c ->
 -- { FooP
 
 newtype FooP a es = MkFooP (a es)
-  deriving (Generic)
-
-class (forall e' es'. e' :> es' => OneWayCoercible (h e') (h es')) =>
- FooC h e es
-
-instance (forall e' es'. e' :> es' => OneWayCoercible (h e') (h es')) =>
- FooC h e es
-
-handleGenericCoercible ::
-  (forall e es. (e :> es) => FooC h e es) =>
-  HandleD (FooP h)
-handleGenericCoercible = handleOneWayCoercible
 
 instance
-  (forall e es. (e :> es) => FooC h e es) =>
+  forall h.
+  (forall e' es'. (e' :> es') => OneWayCoercible (h e') (h es')) =>
   Handle (FooP h)
   where
-  handleImpl = handleGenericCoercible
+  handleImpl = handleOneWayCoercion (foo_ oneWayCoercion)
 
-coerceNewtype ::
-  forall k (f :: k -> Type) (g :: k -> Type) (e :: k) (e' :: k).
-  OneWayCoercion (f e) (g e') ->
-  OneWayCoercion (FooP f e) (FooP g e')
-coerceNewtype = coerce
-
--- }
-
--- { Trying to derive OneWayCoercible
-
-{-
-instance
-  (OneWayCoercible (h e1) (h es)) =>
-  OneWayCoercible (FooP h e1) (FooP h es)
-  where
-  oneWayCoercibleImpl = fooOneWayCoercible
--}
-
-class
-  (forall e1 es. (e1 :> es) => OneWayCoercible (h e1) (h es)) =>
-  OneG h
-
-instance
-  (forall e1 es. (e1 :> es) => OneWayCoercible (h e1) (h es)) =>
-  OneG h
-
-instance
-  FooC h (es :: Effects) (es' :: Effects) =>
-  OneWayCoercible (FooP h es) (FooP h es')
-  where
-  oneWayCoercibleImpl = MkOneWayCoercibleD oneWayCoercion
+foo_ :: OneWayCoercion (h e) (h es) -> OneWayCoercion (FooP h e) (FooP h es)
+foo_ = coerce
 
 -- }
 
