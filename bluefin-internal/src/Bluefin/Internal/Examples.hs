@@ -954,17 +954,18 @@ data Application e = MkApplication
   }
 
 instance Handle Application where
-  mapHandle
-    MkApplication
-      { queryDatabase = q,
-        applicationState = a,
-        logger = l
-      } =
-      MkApplication
-        { queryDatabase = \s i -> useImplUnder (q s i),
-          applicationState = mapHandle a,
-          logger = mapHandle l
-        }
+  handleImpl =
+    handleMapHandle $
+      \MkApplication
+         { queryDatabase = q,
+           applicationState = a,
+           logger = l
+         } ->
+          MkApplication
+            { queryDatabase = \s i -> useImplUnder (q s i),
+              applicationState = mapHandle a,
+              logger = mapHandle l
+            }
 
 -- This example shows a case where we can use @bracket@ polymorphically
 -- in order to perform correct cleanup if @es@ is instantiated to a

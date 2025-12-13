@@ -370,22 +370,36 @@ type Consume a = Coroutine () a
 --
 -- @
 -- instance Handle Application where
---   mapHandle
---     MkApplication
---       { queryDatabase = q,
---         applicationState = a,
---         logger = l
---       } =
---       MkApplication
---         { queryDatabase = \\s i -> useImplUnder (q s i),
---           applicationState = mapHandle a,
---           logger = mapHandle l
---         }
+--   handleImpl =
+--     handleMapHandle $
+--       \\MkApplication
+--          { queryDatabase = q,
+--            applicationState = a,
+--            logger = l
+--          } ->
+--           MkApplication
+--             { queryDatabase = \\s i -> useImplUnder (q s i),
+--               applicationState = mapHandle a,
+--               logger = mapHandle l
+--             }
 -- @
 class Handle (h :: Effects -> Type) where
+  {-# MINIMAL handleImpl | mapHandle #-}
+  handleImpl :: HandleD h
+  handleImpl = MkHandleD mapHandle
+
   -- | Used to create compound effects, i.e. handles that contain
   -- other handles.
   mapHandle :: (e :> es) => h e -> h es
+  mapHandle = case handleImpl of MkHandleD f -> f
+
+newtype HandleD h = MkHandleD (forall e es. (e :> es) => h e -> h es)
+
+handleMapHandle ::
+  (forall e es. (e :> es) => h e -> h es) ->
+  -- | ͘
+  HandleD h
+handleMapHandle = MkHandleD
 
 instance Handle (State s) where
   mapHandle (UnsafeMkState s) = UnsafeMkState s
