@@ -657,7 +657,13 @@ module Bluefin.Compound
     -- @
 
     -- * Functions for making compound effects
-    Handle (mapHandle),
+
+    -- ** @Handle@
+    Handle (handleImpl, mapHandle),
+    HandleD,
+    handleMapHandle,
+
+    -- ** Other functions for compound effects
     makeOp,
     useImpl,
     useImplUnder,

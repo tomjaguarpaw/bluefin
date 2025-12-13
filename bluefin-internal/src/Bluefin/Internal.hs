@@ -384,16 +384,38 @@ type Consume a = Coroutine () a
 --             }
 -- @
 class Handle (h :: Effects -> Type) where
+  {-# MINIMAL handleImpl | mapHandle #-}
+  -- | Define @handleImpl@ using 'handleMapHandle'.
   handleImpl :: HandleD h
   handleImpl = MkHandleD mapHandle
 
   -- | Used to create compound effects, i.e. handles that contain
   -- other handles.
+  --
+  -- You should not define this method in your type classes. Instead
+  -- define @handleImpl@.  In a future version of Bluefin, @mapHandle@
+  -- will no longer be a method.  If you previously had a definition
+  -- of @mapHandle@, for example like this:
+  --
+  -- @
+  -- instance Handle MyHandle where
+  --   mapHandle h = \<definition\>
+  -- @
+  --
+  -- you should change it to
+  --
+  -- @
+  -- instance Handle MyHandle where
+  --   handleImpl = handleMapHandle $ \\h -> \<definition\>
+  -- @
   mapHandle :: (e :> es) => h e -> h es
   mapHandle = case handleImpl of MkHandleD f -> f
 
+-- | The type of the 'handleImpl' method of the 'Handle' class.
+-- Create a @HandleD@ using 'handleMapHandle'.
 newtype HandleD h = MkHandleD (forall e es. (e :> es) => h e -> h es)
 
+-- | For defining the 'handleImpl' method of the 'Handle' class.
 handleMapHandle ::
   (forall e es. (e :> es) => h e -> h es) ->
   -- | ͘
