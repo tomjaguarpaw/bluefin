@@ -91,7 +91,7 @@ runE ::
 runE io = interpret $ \case
   Op1 -> effIO io (putStrLn "op1")
   Op2 -> effIO io (putStrLn "op2")
-  Op3 -> error "Op3 not implemented"
+  Op3 -> effIO io (putStrLn "op3")
 
 augmentOp2Interpret ::
   (e1 :> es, e2 :> es) =>
@@ -114,12 +114,22 @@ augmentOp2Interpose io = interpose $ \fc -> \case
   op -> passthrough fc op
 
 -- ghci> example
+-- -- interpret:
 -- op1
 -- augmented op2
 -- op2
+-- op3
+-- -- interpose:
+-- op1
+-- augmented op2
+-- op2
+-- op3
 example :: IO ()
 example = runEff $ \io -> do
-  let action fc = send fc Op1 >> send fc Op2
+  let action fc = do
+        send fc Op1
+        send fc Op2
+        send fc Op3
 
   effIO io (putStrLn "-- interpret:")
   runE io $ \fc -> do
