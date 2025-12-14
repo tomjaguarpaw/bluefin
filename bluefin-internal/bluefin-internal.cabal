@@ -83,6 +83,7 @@ library
       monad-control < 1.1
     exposed-modules:
       Bluefin.Internal,
+      Bluefin.Internal.Cont,
       Bluefin.Internal.Examples,
       Bluefin.Internal.Exception.Scoped,
       Bluefin.Internal.Key,
