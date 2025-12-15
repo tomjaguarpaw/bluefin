@@ -40,11 +40,11 @@ infixr 9 :&
 
 type (:&) = Union
 
-type role Eff nominal representational
-
 newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: IO a}
   deriving stock (Functor)
   deriving newtype (Applicative, Monad)
+
+type role Eff nominal representational
 
 -- | Because doing 'IO' operations inside 'Eff' requires a value-level
 -- argument we can't give @IO@-related instances to @Eff@ directly.
