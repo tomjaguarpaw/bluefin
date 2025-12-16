@@ -663,15 +663,15 @@ exampleCounter4 = runPureEff $ yieldToList $ \y -> do
 -- Counter 5
 
 data Counter5 e = MkCounter5
-  { incCounter5Impl :: forall e'. Eff (e' :& e) (),
-    getCounter5Impl :: forall e'. String -> Eff (e' :& e) Int
+  { incCounter5Impl :: Eff e (),
+    getCounter5Impl :: String -> Eff e Int
   }
 
 instance Handle Counter5 where
   handleImpl = handleMapHandle $ \c ->
     MkCounter5
-      { incCounter5Impl = useImplUnder (incCounter5Impl c),
-        getCounter5Impl = \msg -> useImplUnder (getCounter5Impl c msg)
+      { incCounter5Impl = useImpl (incCounter5Impl c),
+        getCounter5Impl = \msg -> useImpl (getCounter5Impl c msg)
       }
 
 incCounter5 :: (e :> es) => Counter5 e -> Eff es ()
@@ -723,7 +723,7 @@ exampleCounter5 = runPureEff $ yieldToList $ \y -> do
 -- Counter 6
 
 data Counter6 e = MkCounter6
-  { incCounter6Impl :: forall e'. Eff (e' :& e) (),
+  { incCounter6Impl :: Eff e (),
     counter6State :: State Int e,
     counter6Stream :: Stream String e
   }
@@ -731,7 +731,7 @@ data Counter6 e = MkCounter6
 instance Handle Counter6 where
   handleImpl = handleMapHandle $ \c ->
     MkCounter6
-      { incCounter6Impl = useImplUnder (incCounter6Impl c),
+      { incCounter6Impl = useImpl (incCounter6Impl c),
         counter6State = mapHandle (counter6State c),
         counter6Stream = mapHandle (counter6Stream c)
       }
@@ -860,15 +860,15 @@ exampleCounter7B = runPureEff $ yieldToList $ \y -> do
 -- FileSystem
 
 data FileSystem es = MkFileSystem
-  { readFileImpl :: forall e. FilePath -> Eff (e :& es) String,
-    writeFileImpl :: forall e. FilePath -> String -> Eff (e :& es) ()
+  { readFileImpl :: FilePath -> Eff es String,
+    writeFileImpl :: FilePath -> String -> Eff es ()
   }
 
 instance Handle FileSystem where
   handleImpl = handleMapHandle $ \fs ->
     MkFileSystem
-      { readFileImpl = \fp -> useImplUnder (readFileImpl fs fp),
-        writeFileImpl = \fp s -> useImplUnder (writeFileImpl fs fp s)
+      { readFileImpl = \fp -> useImpl (readFileImpl fs fp),
+        writeFileImpl = \fp s -> useImpl (writeFileImpl fs fp s)
       }
 
 readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
@@ -948,7 +948,7 @@ exampleRunFileSystemIO = runEff_ $ \io -> try $ \ex ->
 -- instance Handle example
 
 data Application e = MkApplication
-  { queryDatabase :: forall e'. String -> Int -> Eff (e' :& e) [String],
+  { queryDatabase :: String -> Int -> Eff e [String],
     applicationState :: State (Int, Bool) e,
     logger :: Stream String e
   }
@@ -962,7 +962,7 @@ instance Handle Application where
            logger = l
          } ->
           MkApplication
-            { queryDatabase = \s i -> useImplUnder (q s i),
+            { queryDatabase = \s i -> useImpl (q s i),
               applicationState = mapHandle a,
               logger = mapHandle l
             }
@@ -1047,14 +1047,14 @@ rethrowIOExample = runEff_ $ \io -> do
     Right contents -> contents
 
 data DynamicReader r e = DynamicReader
-  { askLRImpl :: forall e'. Eff (e' :& e) r,
+  { askLRImpl :: Eff e r,
     localLRImpl :: forall e' a. (r -> r) -> Eff e' a -> Eff (e' :& e) a
   }
 
 instance Handle (DynamicReader r) where
   handleImpl = handleMapHandle $ \h ->
     DynamicReader
-      { askLRImpl = useImplUnder (askLRImpl h),
+      { askLRImpl = useImpl (askLRImpl h),
         localLRImpl = \f k -> useImplUnder (localLRImpl h f k)
       }
 

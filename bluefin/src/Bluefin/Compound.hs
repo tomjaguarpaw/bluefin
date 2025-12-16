@@ -255,15 +255,15 @@ module Bluefin.Compound
     --
     -- @
     -- data Counter5 e = MkCounter5
-    --   { incCounter5Impl :: forall e'. 'Bluefin.Eff.Eff' (e' :& e) (),
-    --     getCounter5Impl :: forall e'. String -> Eff (e' :& e) Int
+    --   { incCounter5Impl :: 'Bluefin.Eff.Eff' e (),
+    --     getCounter5Impl :: String -> Eff e Int
     --   }
     --
     -- instance 'Handle' Counter5 where
     --   handleImpl = handleMapHandle $ \\c ->
     --     MkCounter5
-    --       { incCounter5Impl = 'useImplUnder' (incCounter5Impl c),
-    --         getCounter5Impl = \\msg -> useImplUnder (getCounter5Impl c msg)
+    --       { incCounter5Impl = 'useImpl' (incCounter5Impl c),
+    --         getCounter5Impl = \\msg -> useImpl (getCounter5Impl c msg)
     --       }
     --
     -- incCounter5 :: (e :> es) => Counter5 e -> Eff es ()
@@ -328,7 +328,7 @@ module Bluefin.Compound
     --
     -- @
     -- data Counter6 e = MkCounter6
-    --   { incCounter6Impl :: forall e'. 'Bluefin.Eff.Eff' (e' :& e) (),
+    --   { incCounter6Impl :: 'Bluefin.Eff.Eff' e (),
     --     counter6State :: 'Bluefin.State.State' Int e,
     --     counter6Stream :: 'Bluefin.Stream.Stream' String e
     --   }
@@ -336,7 +336,7 @@ module Bluefin.Compound
     -- instance 'Handle' Counter6 where
     --   handleImpl = handleMapHandle $ \\c ->
     --     MkCounter6
-    --       { incCounter6Impl = 'useImplUnder' (incCounter6Impl c),
+    --       { incCounter6Impl = 'useImpl' (incCounter6Impl c),
     --         counter6State = 'mapHandle' (counter6State c),
     --         counter6Stream = mapHandle (counter6Stream c)
     --       }
@@ -494,14 +494,14 @@ module Bluefin.Compound
     --
     -- @
     -- data DynamicReader r e = DynamicReader
-    --   { askLRImpl :: forall e'. 'Bluefin.Eff.Eff' (e' :& e) r,
+    --   { askLRImpl :: 'Bluefin.Eff.Eff' e r,
     --     localLRImpl :: forall e' a. (r -> r) -> Eff e' a -> Eff (e' :& e) a
     --   }
     --
     -- instance 'Handle' (DynamicReader r) where
     --   mapHandle h =
     --     DynamicReader
-    --       { askLRImpl = 'useImplUnder' (askLRImpl h),
+    --       { askLRImpl = 'useImpl' (askLRImpl h),
     --         localLRImpl = \\f k -> useImplUnder (localLRImpl h f k)
     --       }
     --
@@ -543,15 +543,15 @@ module Bluefin.Compound
     --
     -- @
     -- data FileSystem es = MkFileSystem
-    --   { readFileImpl :: forall e. FilePath -> 'Bluefin.Eff.Eff' (e :& es) String,
-    --     writeFileImpl :: forall e. FilePath -> String -> Eff (e :& es) ()
+    --   { readFileImpl :: FilePath -> 'Bluefin.Eff.Eff' es String,
+    --     writeFileImpl :: FilePath -> String -> Eff es ()
     --   }
     --
     -- instance 'Handle' FileSystem where
     --   handleImpl = handleMapHandle $ \\fs ->
     --     MkFileSystem
-    --       { readFileImpl = \\fp -> 'useImplUnder' (readFileImpl fs fp),
-    --         writeFileImpl = \\fp s -> useImplUnder (writeFileImpl fs fp s)
+    --       { readFileImpl = \\fp -> 'useImpl' (readFileImpl fs fp),
+    --         writeFileImpl = \\fp s -> useImpl (writeFileImpl fs fp s)
     --       }
     --
     -- readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String

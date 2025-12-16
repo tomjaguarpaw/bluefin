@@ -358,7 +358,7 @@ type Consume a = Coroutine () a
 --
 -- @
 -- data Application e = MkApplication
---   { queryDatabase :: forall e'. String -> Int -> Eff (e' :& e) [String],
+--   { queryDatabase :: String -> Int -> Eff e [String],
 --     applicationState :: State (Int, Bool) e,
 --     logger :: Stream String e
 --   }
@@ -378,7 +378,7 @@ type Consume a = Coroutine () a
 --            logger = l
 --          } ->
 --           MkApplication
---             { queryDatabase = \\s i -> 'useImplUnder' (q s i),
+--             { queryDatabase = \\s i -> 'useImpl' (q s i),
 --               applicationState = 'mapHandle' a,
 --               logger = mapHandle l
 --             }
