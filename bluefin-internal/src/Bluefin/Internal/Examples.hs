@@ -675,10 +675,10 @@ instance Handle Counter5 where
       }
 
 incCounter5 :: (e :> es) => Counter5 e -> Eff es ()
-incCounter5 e = makeOp (incCounter5Impl (mapHandle e))
+incCounter5 e = incCounter5Impl (mapHandle e)
 
 getCounter5 :: (e :> es) => Counter5 e -> String -> Eff es Int
-getCounter5 e msg = makeOp (getCounter5Impl (mapHandle e) msg)
+getCounter5 e msg = getCounter5Impl (mapHandle e) msg
 
 runCounter5 ::
   (e1 :> es) =>
@@ -737,7 +737,7 @@ instance Handle Counter6 where
       }
 
 incCounter6 :: (e :> es) => Counter6 e -> Eff es ()
-incCounter6 e = makeOp (incCounter6Impl (mapHandle e))
+incCounter6 e = incCounter6Impl (mapHandle e)
 
 getCounter6 :: (e :> es) => Counter6 e -> String -> Eff es Int
 getCounter6 (MkCounter6 _ st y) msg = do
@@ -872,11 +872,11 @@ instance Handle FileSystem where
       }
 
 readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
-readFile fs filepath = makeOp (readFileImpl (mapHandle fs) filepath)
+readFile fs filepath = readFileImpl (mapHandle fs) filepath
 
 writeFile :: (e :> es) => FileSystem e -> FilePath -> String -> Eff es ()
 writeFile fs filepath contents =
-  makeOp (writeFileImpl (mapHandle fs) filepath contents)
+  writeFileImpl (mapHandle fs) filepath contents
 
 runFileSystemPure ::
   (e1 :> es) =>
@@ -1062,7 +1062,7 @@ askLR ::
   (e :> es) =>
   DynamicReader r e ->
   Eff es r
-askLR c = makeOp (askLRImpl (mapHandle c))
+askLR c = askLRImpl (mapHandle c)
 
 localLR ::
   (e :> es) =>
@@ -1082,7 +1082,7 @@ runDynamicReader r k =
       k
       DynamicReader
         { askLRImpl = ask h,
-          localLRImpl = \f k' -> makeOp (local h f (useImpl k'))
+          localLRImpl = \f k' -> local h f (useImpl k')
         }
 
 -- Fails to compile unless '(e :> es) => e :> (x :& es)' is incoherent
