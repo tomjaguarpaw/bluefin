@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
@@ -672,13 +673,7 @@ data Counter5 e = MkCounter5
     getCounter5Impl :: String -> Eff e Int
   }
   deriving (Generic)
-
-instance Handle Counter5 where
-  handleImpl = handleMapHandle $ \c ->
-    MkCounter5
-      { incCounter5Impl = useImpl (incCounter5Impl c),
-        getCounter5Impl = \msg -> useImpl (getCounter5Impl c msg)
-      }
+  deriving (Handle) via OneWayCoercibleHandle Counter5
 
 instance (e :> es) => OneWayCoercible (Counter5 e) (Counter5 es) where
   oneWayCoercibleImpl = gOneWayCoercible
@@ -737,14 +732,7 @@ data Counter6 e = MkCounter6
     counter6Stream :: Stream String e
   }
   deriving (Generic)
-
-instance Handle Counter6 where
-  handleImpl = handleMapHandle $ \c ->
-    MkCounter6
-      { incCounter6Impl = useImpl (incCounter6Impl c),
-        counter6State = mapHandle (counter6State c),
-        counter6Stream = mapHandle (counter6Stream c)
-      }
+  deriving (Handle) via OneWayCoercibleHandle Counter6
 
 instance (e :> es) => OneWayCoercible (Counter6 e) (Counter6 es) where
   oneWayCoercibleImpl = gOneWayCoercible
@@ -877,13 +865,7 @@ data FileSystem es = MkFileSystem
     writeFileImpl :: FilePath -> String -> Eff es ()
   }
   deriving (Generic)
-
-instance Handle FileSystem where
-  handleImpl = handleMapHandle $ \fs ->
-    MkFileSystem
-      { readFileImpl = \fp -> useImpl (readFileImpl fs fp),
-        writeFileImpl = \fp s -> useImpl (writeFileImpl fs fp s)
-      }
+  deriving (Handle) via OneWayCoercibleHandle FileSystem
 
 instance (e :> es) => OneWayCoercible (FileSystem e) (FileSystem es) where
   oneWayCoercibleImpl = gOneWayCoercible
@@ -970,20 +952,7 @@ data Application e = MkApplication
     logger :: Stream String e
   }
   deriving (Generic)
-
-instance Handle Application where
-  handleImpl =
-    handleMapHandle $
-      \MkApplication
-         { queryDatabase = q,
-           applicationState = a,
-           logger = l
-         } ->
-          MkApplication
-            { queryDatabase = \s i -> useImpl (q s i),
-              applicationState = mapHandle a,
-              logger = mapHandle l
-            }
+  deriving (Handle) via OneWayCoercibleHandle Application
 
 instance (e :> es) => OneWayCoercible (Application e) (Application es) where
   oneWayCoercibleImpl = gOneWayCoercible

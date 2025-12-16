@@ -258,13 +258,11 @@ module Bluefin.Compound
     --   { incCounter5Impl :: 'Bluefin.Eff.Eff' e (),
     --     getCounter5Impl :: String -> Eff e Int
     --   }
+    --   deriving (Generic)
+    --   deriving (Handle) via 'OneWayCoercibleHandle' Counter5
     --
-    -- instance 'Handle' Counter5 where
-    --   handleImpl = handleMapHandle $ \\c ->
-    --     MkCounter5
-    --       { incCounter5Impl = 'useImpl' (incCounter5Impl c),
-    --         getCounter5Impl = \\msg -> useImpl (getCounter5Impl c msg)
-    --       }
+    -- instance (e :> es) => 'OneWayCoercible.OneWayCoercible' (Counter5 e) (Counter5 es) where
+    --   oneWayCoercibleImpl = 'OneWayCoercible.gOneWayCoercible'
     --
     -- incCounter5 :: (e :> es) => Counter5 e -> Eff es ()
     -- incCounter5 e = incCounter5Impl ('mapHandle' e)
@@ -332,14 +330,11 @@ module Bluefin.Compound
     --     counter6State :: 'Bluefin.State.State' Int e,
     --     counter6Stream :: 'Bluefin.Stream.Stream' String e
     --   }
+    --   deriving (Generic)
+    --   deriving (Handle) via 'OneWayCoercibleHandle' Counter6
     --
-    -- instance 'Handle' Counter6 where
-    --   handleImpl = handleMapHandle $ \\c ->
-    --     MkCounter6
-    --       { incCounter6Impl = 'useImpl' (incCounter6Impl c),
-    --         counter6State = 'mapHandle' (counter6State c),
-    --         counter6Stream = mapHandle (counter6Stream c)
-    --       }
+    -- instance (e :> es) => 'OneWayCoercible.OneWayCoercible' (Counter6 e) (Counter6 es) where
+    --   oneWayCoercibleImpl = 'OneWayCoercible.gOneWayCoercible'
     --
     -- incCounter6 :: (e :> es) => Counter6 e -> Eff es ()
     -- incCounter6 e = incCounter6Impl (mapHandle e)
@@ -546,13 +541,11 @@ module Bluefin.Compound
     --   { readFileImpl :: FilePath -> 'Bluefin.Eff.Eff' es String,
     --     writeFileImpl :: FilePath -> String -> Eff es ()
     --   }
+    --   deriving (Generic)
+    --   deriving (Handle) via 'OneWayCoercibleHandle' FileSystem
     --
-    -- instance 'Handle' FileSystem where
-    --   handleImpl = handleMapHandle $ \\fs ->
-    --     MkFileSystem
-    --       { readFileImpl = \\fp -> 'useImpl' (readFileImpl fs fp),
-    --         writeFileImpl = \\fp s -> useImpl (writeFileImpl fs fp s)
-    --       }
+    -- instance (e :> es) => 'OneWayCoercible.OneWayCoercible' (FileSystem e) (FileSystem es) where
+    --   oneWayCoercibleImpl = 'OneWayCoercible.gOneWayCoercible'
     --
     -- readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
     -- readFile fs filepath = readFileImpl ('mapHandle' fs) filepath
@@ -664,6 +657,15 @@ module Bluefin.Compound
     HandleD,
     handleMapHandle,
 
+    -- ** @OneWayCoercible@
+
+    -- | The documentation for 'Handle' shows how to use
+    -- @OneWayCoercible@ to define @Handle@ instances.
+    OneWayCoercible.OneWayCoercible,
+    OneWayCoercibleHandle,
+    OneWayCoercible.gOneWayCoercible,
+    OneWayCoercible.Generic,
+
     -- ** Other functions for compound effects
     makeOp,
     useImpl,
@@ -681,3 +683,4 @@ module Bluefin.Compound
 where
 
 import Bluefin.Internal
+import qualified Bluefin.Internal.OneWayCoercible as OneWayCoercible

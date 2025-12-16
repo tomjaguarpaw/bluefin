@@ -392,26 +392,11 @@ type Consume a = Coroutine () a
 --     applicationState :: State (Int, Bool) e,
 --     logger :: Stream String e
 --   }
--- @
+--   deriving (Generic)
+--   deriving (Handle) via 'OneWayCoercibleHandle' Application
 --
--- To define @mapHandle@ for @Application@ you should apply
--- @mapHandle@ to all the fields that are themeselves handles and
--- apply 'useImplUnder' to all the fields that are dynamic effects:
---
--- @
--- instance Handle Application where
---   'handleImpl' =
---     'handleMapHandle' $
---       \\MkApplication
---          { queryDatabase = q,
---            applicationState = a,
---            logger = l
---          } ->
---           MkApplication
---             { queryDatabase = \\s i -> 'useImpl' (q s i),
---               applicationState = 'mapHandle' a,
---               logger = mapHandle l
---             }
+-- instance (e :> es) => 'OneWayCoercible' (Application e) (Application es) where
+--   oneWayCoercibleImpl = 'gOneWayCoercible'
 -- @
 class Handle (h :: Effects -> Type) where
   {-# MINIMAL handleImpl | mapHandle #-}
@@ -433,6 +418,22 @@ class Handle (h :: Effects -> Type) where
   -- @
   --
   -- you should change it to
+  --
+  -- @
+  -- data MyHandle e = ...
+  --   deriving (Generic)
+  --   deriving (Handle) via OneWayCoercibleHandle MyHandle
+  --
+  -- instance (e :> es) => OneWayCoercible (MyHandle e) (MyHandle es) where
+  --   oneWayCoercibleImpl = gOneWayCoercible
+  -- @
+  --
+  -- If that doesn't work for any reason you can always reuse your old
+  -- definition of @mapHandle@ as follows.  However,
+  -- 'handleMapHandle' will be removed at some point in the future, so
+  -- you can [open a new issue on
+  -- Bluefin](https://github.com/tomjaguarpaw/bluefin/issues/new) to
+  -- ask for advice.
   --
   -- @
   -- instance Handle MyHandle where
@@ -466,6 +467,8 @@ handleOneWayCoercion owc = MkHandleD (oneWayCoerceWith owc)
 
 -- { OneWayCoercibleHandle
 
+-- | 'OneWayCoercibleHandle' is used to derive 'Handle' instances
+-- using @DerivingVia@
 newtype OneWayCoercibleHandle a es = MkOneWayCoercibleHandle (a es)
   deriving stock (Generic)
 

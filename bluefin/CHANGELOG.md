@@ -1,3 +1,6 @@
+* `Bluefin.Compound`: add `OneWayCoercible`, `OneWayCoercibleHandle`,
+  `gOneWayCoercible` and re-export `Generic`
+
 ## 0.2.1.0
 
 * `Bluefin.Compound`: Add `handleImpl`, `HandleD` and
