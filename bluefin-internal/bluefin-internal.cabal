@@ -86,6 +86,7 @@ library
       Bluefin.Internal.Examples,
       Bluefin.Internal.Exception.Scoped,
       Bluefin.Internal.Key,
+      Bluefin.Internal.OneWayCoercible,
       Bluefin.Internal.Pipes,
       Bluefin.Internal.System.IO
 

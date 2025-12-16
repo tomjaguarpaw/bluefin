@@ -1,3 +1,5 @@
+* Add `Bluefin.Internal.OneWayCoercible` module
+
 ## 0.2.1.0
 
 * Add `handleImpl`, `HandleD` and `handleMapHandle`
