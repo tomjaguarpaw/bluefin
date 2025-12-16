@@ -1,4 +1,4 @@
-* Add `Bluefin.Internal.OneWayCoercible` module
+* Add `Bluefin.Internal.OneWayCoercible` module and related instances
 
 ## 0.2.1.0
 

@@ -11,6 +11,11 @@
 module Bluefin.Internal where
 
 import qualified Bluefin.Internal.Exception.Scoped as ScopedException
+import Bluefin.Internal.OneWayCoercible
+  ( OneWayCoercible (oneWayCoercibleImpl),
+    oneWayCoercible,
+    unsafeOneWayCoercible,
+  )
 import qualified Control.Concurrent.Async as Async
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 import qualified Control.Exception
@@ -45,6 +50,12 @@ newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: IO a}
   deriving newtype (Applicative, Monad)
 
 type role Eff nominal representational
+
+instance (e :> es) => OneWayCoercible (Eff e) (Eff es) where
+  oneWayCoercibleImpl = oneWayCoercible
+
+instance (e :> es) => OneWayCoercible (Eff e r) (Eff es r) where
+  oneWayCoercibleImpl = oneWayCoercible
 
 -- | Because doing 'IO' operations inside 'Eff' requires a value-level
 -- argument we can't give @IO@-related instances to @Eff@ directly.
@@ -334,6 +345,9 @@ instance Handle (Exception exn) where
 
 type role Exception representational nominal
 
+instance (e :> es) => OneWayCoercible (Exception ex e) (Exception ex es) where
+  oneWayCoercibleImpl = oneWayCoercible
+
 -- | A handle to a strict mutable state of type @s@
 newtype State s (e :: Effects) = UnsafeMkState (IORef s)
 
@@ -342,6 +356,9 @@ instance Handle (State s) where
 
 type role State representational nominal
 
+instance (e :> es) => OneWayCoercible (State s e) (State s es) where
+  oneWayCoercibleImpl = oneWayCoercible
+
 -- | A handle to a coroutine that yields values of type @a@ and then
 -- expects values of type @b@.
 newtype Coroutine a b (e :: Effects) = MkCoroutine (a -> Eff e b)
@@ -349,6 +366,9 @@ newtype Coroutine a b (e :: Effects) = MkCoroutine (a -> Eff e b)
 instance Handle (Coroutine a b) where
   handleImpl = handleMapHandle $ \(MkCoroutine f) ->
     MkCoroutine (fmap useImpl f)
+
+instance (e :> es) => OneWayCoercible (Coroutine a b e) (Coroutine a b es) where
+  oneWayCoercibleImpl = oneWayCoercible
 
 -- | A handle to a stream that yields values of type @a@.  It is
 -- implemented as a handle to a coroutine that yields values of type
@@ -1286,6 +1306,9 @@ instance Handle IOE where
 
 type role IOE nominal
 
+instance (e :> es) => OneWayCoercible (IOE e) (IOE es) where
+  oneWayCoercibleImpl = unsafeOneWayCoercible
+
 -- | Run an 'IO' operation in 'Eff'
 --
 -- @
@@ -1374,6 +1397,9 @@ newtype Writer w e = Writer (Stream w e)
 instance Handle (Writer w) where
   handleImpl = handleMapHandle $ \(Writer wr) -> Writer (mapHandle wr)
 
+instance (e :> es) => OneWayCoercible (Writer w e) (Writer w es) where
+  oneWayCoercibleImpl = oneWayCoercible
+
 -- |
 -- @
 -- >>> 'Data.Monoid.getAny' $ snd $ runPureEff $ runWriter $ \\w -> do
@@ -1428,6 +1454,9 @@ tell (Writer y) = yield y
 
 newtype Reader r e = MkReader (State r e)
   deriving newtype (Handle)
+
+instance (e :> es) => OneWayCoercible (Reader r e) (Reader r es) where
+  oneWayCoercibleImpl = oneWayCoercible
 
 runReader ::
   -- | Initial value for @Reader@.
@@ -1554,6 +1583,9 @@ newtype ConstEffect r (e :: Effects) = MkConstEffect r
 
 instance Handle (ConstEffect r) where
   handleImpl = handleMapHandle coerce
+
+instance (e :> es) => OneWayCoercible (ConstEffect r e) (ConstEffect r es) where
+  oneWayCoercibleImpl = oneWayCoercible
 
 runConstEffect ::
   r ->
