@@ -2,9 +2,11 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UnliftedNewtypes #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
@@ -13,6 +15,10 @@ module Bluefin.Internal where
 import qualified Bluefin.Internal.Exception.Scoped as ScopedException
 import Bluefin.Internal.OneWayCoercible
   ( OneWayCoercible (oneWayCoercibleImpl),
+    OneWayCoercion,
+    gOneWayCoercible,
+    oneWayCoerce,
+    oneWayCoerceWith,
     oneWayCoercible,
     unsafeOneWayCoercible,
   )
@@ -32,6 +38,7 @@ import Data.Kind (Type)
 import Data.Proxy (Proxy (Proxy))
 import Data.Type.Coercion (Coercion (Coercion))
 import GHC.Exts (Proxy#, proxy#)
+import GHC.Generics (Generic)
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
@@ -338,10 +345,7 @@ type role StateSource nominal
 -- | Handle to an exception of type @exn@
 newtype Exception exn (e :: Effects)
   = MkException (forall a. exn -> Eff e a)
-
-instance Handle (Exception exn) where
-  handleImpl = handleMapHandle $ \(MkException s) ->
-    MkException (weakenEff has . s)
+  deriving (Handle) via OneWayCoercibleHandle (Exception exn)
 
 type role Exception representational nominal
 
@@ -350,9 +354,7 @@ instance (e :> es) => OneWayCoercible (Exception ex e) (Exception ex es) where
 
 -- | A handle to a strict mutable state of type @s@
 newtype State s (e :: Effects) = UnsafeMkState (IORef s)
-
-instance Handle (State s) where
-  handleImpl = handleMapHandle $ \(UnsafeMkState s) -> UnsafeMkState s
+  deriving (Handle) via OneWayCoercibleHandle (State s)
 
 type role State representational nominal
 
@@ -362,10 +364,7 @@ instance (e :> es) => OneWayCoercible (State s e) (State s es) where
 -- | A handle to a coroutine that yields values of type @a@ and then
 -- expects values of type @b@.
 newtype Coroutine a b (e :: Effects) = MkCoroutine (a -> Eff e b)
-
-instance Handle (Coroutine a b) where
-  handleImpl = handleMapHandle $ \(MkCoroutine f) ->
-    MkCoroutine (fmap useImpl f)
+  deriving (Handle) via OneWayCoercibleHandle (Coroutine a b)
 
 instance (e :> es) => OneWayCoercible (Coroutine a b e) (Coroutine a b es) where
   oneWayCoercibleImpl = oneWayCoercible
@@ -452,6 +451,38 @@ handleMapHandle ::
   -- | ͘
   HandleD h
 handleMapHandle = MkHandleD
+
+handleOneWayCoercible ::
+  (forall e es. (e :> es) => OneWayCoercible (h e) (h es)) =>
+  -- | ͘
+  HandleD h
+handleOneWayCoercible = MkHandleD oneWayCoerce
+
+handleOneWayCoercion ::
+  (forall e es. (e :> es) => OneWayCoercion (h e) (h es)) ->
+  -- | ͘
+  HandleD h
+handleOneWayCoercion owc = MkHandleD (oneWayCoerceWith owc)
+
+-- { OneWayCoercibleHandle
+
+newtype OneWayCoercibleHandle a es = MkOneWayCoercibleHandle (a es)
+  deriving stock (Generic)
+
+instance
+  forall h.
+  (forall e' es'. (e' :> es') => OneWayCoercible (OneWayCoercibleHandle h e') (OneWayCoercibleHandle h es')) =>
+  Handle (OneWayCoercibleHandle h)
+  where
+  handleImpl = handleOneWayCoercible
+
+instance
+  (OneWayCoercible (h e) (h es)) =>
+  OneWayCoercible (OneWayCoercibleHandle h e) (OneWayCoercibleHandle h es)
+  where
+  oneWayCoercibleImpl = gOneWayCoercible
+
+-- }
 
 -- | A convenience type whose only purpose is to avoid writing @(# #)@
 -- as an argument to functions which are only function because
@@ -1300,9 +1331,7 @@ unwrap j = \case
 
 -- | Handle that allows you to run 'IO' operations
 data IOE (e :: Effects) = MkIOE
-
-instance Handle IOE where
-  handleImpl = handleMapHandle $ \MkIOE -> MkIOE
+  deriving (Handle) via OneWayCoercibleHandle IOE
 
 type role IOE nominal
 
@@ -1393,9 +1422,7 @@ head' c = do
     Left (l, _) -> Left l
 
 newtype Writer w e = Writer (Stream w e)
-
-instance Handle (Writer w) where
-  handleImpl = handleMapHandle $ \(Writer wr) -> Writer (mapHandle wr)
+  deriving (Handle) via OneWayCoercibleHandle (Writer w)
 
 instance (e :> es) => OneWayCoercible (Writer w e) (Writer w es) where
   oneWayCoercibleImpl = oneWayCoercible
@@ -1577,12 +1604,13 @@ runHandleReader h k = do
     useImplIn k h'
 
 instance (Handle h) => Handle (HandleReader h) where
+  -- This handleImpl is now a special case that doesn't use
+  -- OneWayCoercion. We can only fix that when we store a
+  -- OneWayCoercion inside `Handle`.
   handleImpl = handleMapHandle mapHandleReader
 
 newtype ConstEffect r (e :: Effects) = MkConstEffect r
-
-instance Handle (ConstEffect r) where
-  handleImpl = handleMapHandle coerce
+  deriving (Handle) via OneWayCoercibleHandle (ConstEffect r)
 
 instance (e :> es) => OneWayCoercible (ConstEffect r e) (ConstEffect r es) where
   oneWayCoercibleImpl = oneWayCoercible
