@@ -328,16 +328,27 @@ type role StateSource nominal
 newtype Exception exn (e :: Effects)
   = MkException (forall a. exn -> Eff e a)
 
+instance Handle (Exception s) where
+  handleImpl = handleMapHandle $ \(MkException s) ->
+    MkException (weakenEff has . s)
+
 type role Exception representational nominal
 
 -- | A handle to a strict mutable state of type @s@
 newtype State s (e :: Effects) = UnsafeMkState (IORef s)
+
+instance Handle (State s) where
+  handleImpl = handleMapHandle $ \(UnsafeMkState s) -> UnsafeMkState s
 
 type role State representational nominal
 
 -- | A handle to a coroutine that yields values of type @a@ and then
 -- expects values of type @b@.
 newtype Coroutine a b (e :: Effects) = MkCoroutine (a -> Eff e b)
+
+instance Handle (Coroutine a b) where
+  handleImpl = handleMapHandle $ \(MkCoroutine f) ->
+    MkCoroutine (fmap useImpl f)
 
 -- | A handle to a stream that yields values of type @a@.  It is
 -- implemented as a handle to a coroutine that yields values of type
@@ -421,23 +432,6 @@ handleMapHandle ::
   -- | ͘
   HandleD h
 handleMapHandle = MkHandleD
-
-instance Handle (State s) where
-  handleImpl = handleMapHandle $ \(UnsafeMkState s) -> UnsafeMkState s
-
-instance Handle (Exception s) where
-  handleImpl = handleMapHandle $ \(MkException s) ->
-    MkException (weakenEff has . s)
-
-instance Handle (Coroutine a b) where
-  handleImpl = handleMapHandle $ \(MkCoroutine f) ->
-    MkCoroutine (fmap useImpl f)
-
-instance Handle (Writer w) where
-  handleImpl = handleMapHandle $ \(Writer wr) -> Writer (mapHandle wr)
-
-instance Handle IOE where
-  handleImpl = handleMapHandle $ \MkIOE -> MkIOE
 
 -- | A convenience type whose only purpose is to avoid writing @(# #)@
 -- as an argument to functions which are only function because
@@ -1287,6 +1281,9 @@ unwrap j = \case
 -- | Handle that allows you to run 'IO' operations
 data IOE (e :: Effects) = MkIOE
 
+instance Handle IOE where
+  handleImpl = handleMapHandle $ \MkIOE -> MkIOE
+
 type role IOE nominal
 
 -- | Run an 'IO' operation in 'Eff'
@@ -1373,6 +1370,9 @@ head' c = do
     Left (l, _) -> Left l
 
 newtype Writer w e = Writer (Stream w e)
+
+instance Handle (Writer w) where
+  handleImpl = handleMapHandle $ \(Writer wr) -> Writer (mapHandle wr)
 
 -- |
 -- @
@@ -1552,12 +1552,12 @@ instance (Handle h) => Handle (HandleReader h) where
 
 newtype ConstEffect r (e :: Effects) = MkConstEffect r
 
+instance Handle (ConstEffect r) where
+  handleImpl = handleMapHandle coerce
+
 runConstEffect ::
   r ->
   (forall e. ConstEffect r e -> Eff (e :& es) a) ->
   -- | ͘
   Eff es a
 runConstEffect r k = useImplIn k (MkConstEffect r)
-
-instance Handle (ConstEffect r) where
-  handleImpl = handleMapHandle coerce
