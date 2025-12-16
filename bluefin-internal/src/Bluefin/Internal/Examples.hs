@@ -4,6 +4,10 @@
 module Bluefin.Internal.Examples where
 
 import Bluefin.Internal hiding (b, w)
+import Bluefin.Internal.OneWayCoercible
+  ( OneWayCoercible (oneWayCoercibleImpl),
+    gOneWayCoercible,
+  )
 import Bluefin.Internal.Pipes
   ( Producer,
     runEffect,
@@ -20,6 +24,7 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
 import Data.Monoid (Any (Any, getAny))
 import Data.Proxy (Proxy (Proxy))
+import GHC.Generics (Generic)
 import Text.Read (readMaybe)
 import Prelude hiding
   ( break,
@@ -666,6 +671,7 @@ data Counter5 e = MkCounter5
   { incCounter5Impl :: Eff e (),
     getCounter5Impl :: String -> Eff e Int
   }
+  deriving (Generic)
 
 instance Handle Counter5 where
   handleImpl = handleMapHandle $ \c ->
@@ -673,6 +679,9 @@ instance Handle Counter5 where
       { incCounter5Impl = useImpl (incCounter5Impl c),
         getCounter5Impl = \msg -> useImpl (getCounter5Impl c msg)
       }
+
+instance (e :> es) => OneWayCoercible (Counter5 e) (Counter5 es) where
+  oneWayCoercibleImpl = gOneWayCoercible
 
 incCounter5 :: (e :> es) => Counter5 e -> Eff es ()
 incCounter5 e = incCounter5Impl (mapHandle e)
@@ -727,6 +736,7 @@ data Counter6 e = MkCounter6
     counter6State :: State Int e,
     counter6Stream :: Stream String e
   }
+  deriving (Generic)
 
 instance Handle Counter6 where
   handleImpl = handleMapHandle $ \c ->
@@ -735,6 +745,9 @@ instance Handle Counter6 where
         counter6State = mapHandle (counter6State c),
         counter6Stream = mapHandle (counter6Stream c)
       }
+
+instance (e :> es) => OneWayCoercible (Counter6 e) (Counter6 es) where
+  oneWayCoercibleImpl = gOneWayCoercible
 
 incCounter6 :: (e :> es) => Counter6 e -> Eff es ()
 incCounter6 e = incCounter6Impl (mapHandle e)
@@ -863,6 +876,7 @@ data FileSystem es = MkFileSystem
   { readFileImpl :: FilePath -> Eff es String,
     writeFileImpl :: FilePath -> String -> Eff es ()
   }
+  deriving (Generic)
 
 instance Handle FileSystem where
   handleImpl = handleMapHandle $ \fs ->
@@ -870,6 +884,9 @@ instance Handle FileSystem where
       { readFileImpl = \fp -> useImpl (readFileImpl fs fp),
         writeFileImpl = \fp s -> useImpl (writeFileImpl fs fp s)
       }
+
+instance (e :> es) => OneWayCoercible (FileSystem e) (FileSystem es) where
+  oneWayCoercibleImpl = gOneWayCoercible
 
 readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
 readFile fs filepath = readFileImpl (mapHandle fs) filepath
@@ -952,6 +969,7 @@ data Application e = MkApplication
     applicationState :: State (Int, Bool) e,
     logger :: Stream String e
   }
+  deriving (Generic)
 
 instance Handle Application where
   handleImpl =
@@ -966,6 +984,9 @@ instance Handle Application where
               applicationState = mapHandle a,
               logger = mapHandle l
             }
+
+instance (e :> es) => OneWayCoercible (Application e) (Application es) where
+  oneWayCoercibleImpl = gOneWayCoercible
 
 -- This example shows a case where we can use @bracket@ polymorphically
 -- in order to perform correct cleanup if @es@ is instantiated to a
