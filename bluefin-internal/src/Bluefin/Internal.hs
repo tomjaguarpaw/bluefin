@@ -328,7 +328,7 @@ type role StateSource nominal
 newtype Exception exn (e :: Effects)
   = MkException (forall a. exn -> Eff e a)
 
-instance Handle (Exception s) where
+instance Handle (Exception exn) where
   handleImpl = handleMapHandle $ \(MkException s) ->
     MkException (weakenEff has . s)
 
