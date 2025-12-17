@@ -260,7 +260,7 @@ module Bluefin.Compound
     --   }
     --
     -- instance 'Handle' Counter5 where
-    --   mapHandle c =
+    --   handleImpl = handleMapHandle $ \\c ->
     --     MkCounter5
     --       { incCounter5Impl = 'useImplUnder' (incCounter5Impl c),
     --         getCounter5Impl = \\msg -> useImplUnder (getCounter5Impl c msg)
@@ -334,7 +334,7 @@ module Bluefin.Compound
     --   }
     --
     -- instance 'Handle' Counter6 where
-    --   mapHandle c =
+    --   handleImpl = handleMapHandle $ \\c ->
     --     MkCounter6
     --       { incCounter6Impl = 'useImplUnder' (incCounter6Impl c),
     --         counter6State = 'mapHandle' (counter6State c),
@@ -409,7 +409,7 @@ module Bluefin.Compound
     --   }
     --
     -- instance 'Handle' Counter7 where
-    --   mapHandle c =
+    --   handleImpl = handleMapHandle $ \\c ->
     --     MkCounter7
     --       { incCounter7Impl = \\ex -> 'useImplUnder' (incCounter7Impl c ex),
     --         counter7State = 'mapHandle' (counter7State c),
@@ -548,7 +548,7 @@ module Bluefin.Compound
     --   }
     --
     -- instance 'Handle' FileSystem where
-    --   mapHandle fs =
+    --   handleImpl = handleMapHandle $ \\fs ->
     --     MkFileSystem
     --       { readFileImpl = \\fp -> 'useImplUnder' (readFileImpl fs fp),
     --         writeFileImpl = \\fp s -> useImplUnder (writeFileImpl fs fp s)
