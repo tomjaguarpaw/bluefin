@@ -1,3 +1,5 @@
+## 0.2.2.0
+
 * `Bluefin.Compound`: add `OneWayCoercible`, `OneWayCoercibleHandle`,
   `gOneWayCoercible` and re-export `Generic`
 
