@@ -51,17 +51,12 @@ assertEqual y n c1 c2 =
     ( n,
       if c1 == c2
         then Nothing
-        else Just $ withSpecInfo $ \y2 -> do
+        else Just $ dslBuilder $ \y2 -> do
           yield y2 ("Expected: " ++ show c1)
           yield y2 ("But got: " ++ show c2)
     )
 
 type SpecInfo r = DslBuilder (Stream String) r
-
-withSpecInfo ::
-  (forall e. Stream String e -> Eff e r) ->
-  SpecInfo r
-withSpecInfo = dslBuilder
 
 runTests ::
   forall es e3.
