@@ -61,7 +61,7 @@ type SpecInfo r = DslBuilder (Stream String) r
 withSpecInfo ::
   (forall e. Stream String e -> Eff e r) ->
   SpecInfo r
-withSpecInfo x = dslBuilder x
+withSpecInfo = dslBuilder
 
 runTests ::
   forall es e3.
