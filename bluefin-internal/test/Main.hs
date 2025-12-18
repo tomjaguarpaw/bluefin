@@ -4,6 +4,7 @@
 module Main (main) where
 
 import Bluefin.Internal
+import Bluefin.Internal.DslBuilder
 import Control.Monad (when)
 import Data.Foldable (for_)
 import Data.Monoid (All (All))
@@ -55,21 +56,12 @@ assertEqual y n c1 c2 =
           yield y2 ("But got: " ++ show c2)
     )
 
-type SpecInfo r = Forall (Stream String :~> WrapEff r)
+type SpecInfo r = DslBuilder (Stream String) r
 
 withSpecInfo ::
   (forall e. Stream String e -> Eff e r) ->
   SpecInfo r
-withSpecInfo x = Forall (Nest (\s -> MkWrapEff (x (mapHandle s))))
-
-newtype (h :~> t) es = Nest {unNest :: forall e. h e -> t (e :& es)}
-
-newtype Forall t = Forall {unForall :: forall es. t es}
-
-newtype WrapEff r es = MkWrapEff {unWrapEff :: Eff es r}
-
-instance Handle (WrapEff r) where
-  mapHandle (MkWrapEff e) = MkWrapEff (useImpl e)
+withSpecInfo x = dslBuilder x
 
 runTests ::
   forall es e3.
@@ -94,7 +86,7 @@ runTests f y = do
         Nothing -> pure ()
         Just n -> do
           yield y "" :: Eff (e2 :& es) ()
-          _ <- forEach (unWrapEff . unNest (unForall n)) $ \entry -> do
+          _ <- forEach (useImpl . flip runDslBuilder n) $ \entry -> do
             yield y ("    " ++ entry)
           yield y ""
 
