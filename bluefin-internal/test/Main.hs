@@ -58,9 +58,9 @@ assertEqual y n c1 c2 =
 type SpecInfo r = Forall (Stream String :~> WrapEff r)
 
 withSpecInfo ::
-  (forall e es. (e :> es) => Stream String e -> Eff es r) ->
+  (forall e. Stream String e -> Eff e r) ->
   SpecInfo r
-withSpecInfo x = Forall (Nest (\s -> MkWrapEff (x s)))
+withSpecInfo x = Forall (Nest (\s -> MkWrapEff (x (mapHandle s))))
 
 newtype (h :~> t) es = Nest {unNest :: forall e. h e -> t (e :& es)}
 
