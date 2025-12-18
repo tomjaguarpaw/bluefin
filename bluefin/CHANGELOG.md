@@ -1,3 +1,7 @@
+# 0.2.1.0
+
+* Add `Bluefin.DslBuilder`
+
 ## 0.2.2.0
 
 * `Bluefin.Compound`: add `OneWayCoercible`, `OneWayCoercibleHandle`,

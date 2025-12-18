@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               bluefin
-version:            0.2.2.0
+version:            0.2.3.0
 license:            MIT
 license-file:       LICENSE
 author:             Tom Ellis
@@ -24,6 +24,7 @@ library
       Bluefin.Compound,
       Bluefin.Consume,
       Bluefin.Coroutine,
+      Bluefin.DslBuilder,
       Bluefin.EarlyReturn,
       Bluefin.Eff,
       Bluefin.Exception,
@@ -39,6 +40,6 @@ library
       Bluefin.System.IO,
       Bluefin.Writer,
     build-depends:
-      bluefin-internal >= 0.3.0.0 && < 0.4
+      bluefin-internal >= 0.3.1.0 && < 0.4
     hs-source-dirs:   src
     default-language: Haskell2010

@@ -1,0 +1,342 @@
+module Bluefin.DslBuilder
+  ( -- | Haksell is great for writing domain specific languages (DSLs)
+    -- and @Bluefin.DslBuilder@ provides an easy way to write DSLs
+    -- using Bluefin.
+
+    -- * Robot arena example
+
+    -- ** Data types for the robot arena
+
+    -- | Here's an example of the use of @Bluefin.DslBuilder@. Suppose
+    -- we have a data type that represents the location of robots and
+    -- obstacles in a two-dimensional square arena:
+    --
+    -- @
+    -- data Arena = MkArena
+    --  { arenaRobots :: [RobotEntry],
+    --    arenaObstacles :: [ObstacleEntry]
+    --  }
+    -- @
+    --
+    -- Each @RobotEntry@ stores the robot's name, coordinates on the
+    -- 2d grid, facing direction, and instructions for robot to carry
+    -- out
+    --
+    -- @
+    -- type RobotEntry = (String, (Int, Int), Direction, [Instruction])
+    -- @
+    --
+    -- The instructions that a robot can perform are to wait for a
+    -- given number of time units, move forward, turn left and turn
+    -- right.
+    --
+    -- @
+    -- data Instruction = Wait Int | Forward | TurnLeft | TurnRight
+    -- data Direction = N | E | S | W
+    -- @
+    --
+    -- The @ObstacleEntry@s store the type of each obstacle and its
+    -- coordinates on the 2d grid.
+    --
+    -- @
+    -- type ObstacleEntry = (Obstacle, (Int, Int))
+    --
+    -- data Obstacle = Sand | Rock | Iron
+    -- @
+
+    -- ** Defining an @Arena@ by hand
+
+    -- | Suppose we want an @Arena@ with a red robot which moves
+    -- towards a sand obstacle, and a blue robot that is stuck behind
+    -- iron obstacles and can only turn around on the spot. Here's an
+    -- ASCII diagram of the initial position we want, where @r@ is the
+    -- red robot, @S@ is a sand obstacle, @b@ is the blue robot and
+    -- @I@ is an iron obstacle:
+    --
+    -- @
+    -- 5|
+    -- 4|  III
+    -- 3|  IbI
+    -- 2|  III
+    -- 1|
+    -- 0|r    S
+    --  +------
+    --   012345
+    -- @
+    --
+    -- We can define such an @Arena@ by hand like this:
+    --
+    -- @
+    -- myArena :: Arena
+    -- myArena =
+    --   MkArena
+    --     { arenaRobots =
+    --         [ ("red", (0, 0), E, [Wait 100, Forward, Forward, Forward, Forward]),
+    --           ("blue", (3, 3), N, [TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight, TurnRight])
+    --         ],
+    --       arenaObstacles = [(Sand, (5, 0)), (Iron, (2, 2)), (Iron, (2, 3)), (Iron, (2, 4)), (Iron, (3, 2)), (Iron, (3, 4)), (Iron, (4, 2)), (Iron, (4, 3)), (Iron, (4, 4))]
+    --     }
+    -- @
+    --
+    -- That's messy and contains a lot of repetition!  We can use
+    -- Haskell constructs to do a bit better:
+    --
+    -- @
+    -- myArena2 :: Arena
+    -- myArena2 =
+    --   MkArena
+    --     { arenaRobots =
+    --         [ ("red", (0, 0), E, Wait 100 : replicate 4 Forward),
+    --           ("blue", (3, 3), N, replicate 20 TurnRight)
+    --         ],
+    --       arenaObstacles =
+    --         (Sand, (5, 0))
+    --           : [ (Iron, (x, y))
+    --               | x <- [2 .. 4],
+    --                 y <- [2 .. 4],
+    --                 (x, y) /= (3, 3)
+    --             ]
+    --     }
+    -- @
+    --
+    -- That's more compressed but it doesn't describe our intent
+    -- clearly.
+
+    -- ** Defining an @Arena@ with a DSL
+
+    -- | Let's use @Bluefin.DslBuilder@ to write a DSL that allows us
+    -- to express our intent more clearly.  Before we define the DSL,
+    -- let's look at what it will allow us to write.  In @myDslArena@
+    -- below I can define the red robot and its obstacles separately
+    -- from the blue robot and its obstacles, and I can use `for_`
+    -- loops to conveniently define the blue robot's iron cage.
+    --
+    -- @
+    -- myDslArena :: Arena
+    -- myDslArena = buildArena $ do
+    --   -- 5|
+    --   -- 4|
+    --   -- 3|
+    --   -- 2|
+    --   -- 1|
+    --   -- 0|R    S
+    --   --  +------
+    --   --   012345
+    --   robot "red" (0, 0) E $ do
+    --     wait 100
+    --     forward 4
+    --
+    --   obstacle Sand (5, 0)
+    --
+    --   -- 5|
+    --   -- 4|  III
+    --   -- 3|  IBI
+    --   -- 2|  III
+    --   -- 1|
+    --   -- 0|
+    --   --  +------
+    --   --   012345
+    --   robot "blue" (3, 3) N $ do
+    --     replicateM_ 10 aboutFace
+    --
+    --   for_ [2 .. 4] $ \\x -> do
+    --     for_ [2 .. 4] $ \\y -> do
+    --       unless ((x, y) == (3, 3)) $ do
+    --         obstacle Iron (x, y)
+    -- @
+
+    -- ** Arena DSL definitions
+
+    -- | So what are the definitions of the components that go into
+    -- building an @Arena@?
+
+    -- *** @buildArena@ and @ArenaBuilder@
+
+    -- | Firstly, what does @buildArena@ do?  It's going to have this
+    -- type:
+    --
+    -- @
+    -- buildArena :: ArenaBuilder -> Arena
+    -- @
+    --
+    -- @ArenaBuilder@ is the type of the @do@ block which contains the
+    -- @robot@ and @obstacle@ entries, and is a convenience type
+    -- synonym:
+    --
+    -- @
+    -- type ArenaBuilder = ArenaBuilder_ ()
+    -- @
+    --
+    -- @ArenaBuilder_@ is a @Monad@ and is the first component
+    -- we are going to build using @Bluefin.DslBuilder@:
+    --
+    -- @
+    -- newtype ArenaBuilder_ r
+    --   = MkArenaBuilder ('DslBuilder' ArenaH r)
+    --   deriving (Functor, Applicative, Monad)
+    -- @
+    --
+    -- @DslBuilder ArenaH@ is a @Monad@ that allows us access to the
+    -- effects inside the handle @ArenaH@ (and no others).  So what is
+    -- @ArenaH@? It is defined like this:
+    --
+    -- @
+    -- data ArenaH e = MkArenaH ('Bluefin.Stream.Stream' RobotEntry e) (Stream ObstacleEntry e)
+    --   deriving t'Bluefin.Compound.Generic'
+    --   deriving t'Bluefin.Compound.Handle' via t'Bluefin.Compound.OneWayCoercibleHandle' ArenaH
+    --
+    -- instance (e :> es) => 'Bluefin.Compound.OneWayCoercible' (ArenaH e) (ArenaH es) where
+    --   'Bluefin.Compound.oneWayCoercibleImpl' = 'Bluefin.Compound.gOneWayCoercible'
+    -- @
+    --
+    -- What does that mean? Well, @ArenaH@ is defined according to one
+    -- of the recipes from "Bluefin.Compound", and gives the ability
+    -- to yield to a @Stream@ of @RobotEntry@s and a stream of
+    -- @ObstacleEntry@s, i.e. the components that make up an @Arena@.
+    -- The only things we can do with the @ArenaH@ then are to give it
+    -- @RobotEntry@s or @ObstacleEntry@s.  How do we get them?
+
+    -- *** @obstacle@
+
+    -- | To get an @ObstacleEntry@ we use the @obstacle@ command.
+    -- It has type
+    --
+    -- @
+    -- obstacle :: Strength -> (Int, Int) -> ArenaBuilder
+    -- @
+    --
+    -- When calling @obstacle@ we specify the strength of the obstacle
+    -- and its coordinates in the arena.  In fact, having those gives
+    -- us exactly what we need to yield an @ObstacleEntry@ to the
+    -- @Stream ObstacleEntry@ inside the @ArenaBuilder@:
+    --
+    -- @
+    -- obstacle o coord =
+    --   MkArenaBuilder $ 'dslBuilder' $ \(MkArenaH _ yobstacle) -> do
+    --     'Bluefin.Stream.yield' yobstacle (o, coord)
+    -- @
+
+    -- *** @robot@ and @InstructionsBuilder@
+
+    -- | To get a @RobotEntry@ we use the @robot@ component. It has
+    -- type
+    --
+    -- @
+    -- robot ::
+    --   String -> (Int, Int) -> Direction -> InstructionsBuilder -> ArenaBuilder
+    -- @
+    --
+    -- When calling @robot@ we specify the name, coordinates, and
+    -- facing direction for our robot.  We also specify the
+    -- instructions for the robot by providing an
+    -- @InstructionsBuilder@? What's that?  It's /another/ @Monad@
+    -- defined in terms of @DslBuilder@:
+    --
+    -- @
+    -- type InstructionsBuilder = InstructionsBuilder_ ()
+    --
+    -- newtype InstructionsBuilder_ r
+    --   = MkInstructionsBuilder ('DslBuilder' InstructionsH r)
+    --   deriving (Functor, Applicative, Monad)
+    -- @
+    --
+    -- Like with @ArenaBuilder@, to define the @Monad@ we define a
+    -- handle, this time @InstructionsH@:
+    --
+    -- @
+    -- data InstructionsH e = MkInstructionsH ('Bluefin.Stream.Stream' Instruction e)
+    --   deriving t'Bluefin.Compound.Generic'
+    --   deriving t'Bluefin.Compound.Handle' via t'Bluefin.Compound.OneWayCoercibleHandle' InstructionsH
+    --
+    -- instance (e :> es) => t'Bluefin.Compound.OneWayCoercible' (InstructionsH e) (InstructionsH es) where
+    --   oneWayCoercibleImpl = 'Bluefin.Compound.gOneWayCoercible'
+    -- @
+    --
+    -- @InstructionsH@ allows us to yield to a sequence of
+    -- @Instruction@s, i.e. the type of robot instructions defined
+    -- above and used in @Arena@ via @RobotEntry@.  In fact, the job
+    -- of @robot@ is exactly to allow us to define a @RobotEntry@ and
+    -- yield it to the @Stream RobotEntry@ of @Arena@:
+    --
+    -- @
+    -- robot name coords dir (MkInstructionsBuilder ibuilder) =
+    --   MkArenaBuilder $ 'dslBuilder' $ \\(MkArenaH yrobot _) -> do
+    --     (insns, ()) \<- 'Bluefin.Stream.yieldToList' $ \\yinsns -> do
+    --       'runDslBuilder' (MkInstructionsH ('Bluefin.Compound.mapHandle' yinsns)) ibuilder
+    --
+    --     'Bluefin.Stream.yield' yrobot (name, coords, dir, insns)
+    -- @
+
+    -- *** Creating @InstructionsBuilder@s
+
+    -- | In a @do@ block of type @InstructionsBuilder@ we want to be
+    -- able to write things like @wait 100@, @forward 4@ and
+    -- @aboutFace@.  What are they?  To define commands of type
+    -- @InstructionsBuilder@ we use this convenience function:
+    --
+    -- @
+    -- instructionsBuilder :: Instruction -> InstructionsBuilder
+    -- instructionsBuilder insn =
+    --   MkInstructionsBuilder $ dslBuilder $ \\(MkInstructionsH yinsn) -> do
+    --     yield yinsn insn
+    -- @
+    --
+    -- which we can use as follows to define commands as follows:
+    --
+    -- @
+    -- wait :: Int -> InstructionsBuilder
+    -- wait n = instructionsBuilder (Wait n)
+    --
+    -- turnLeft :: InstructionsBuilder
+    -- turnLeft = instructionsBuilder TurnLeft
+    --
+    -- turnRight :: InstructionsBuilder
+    -- turnRight = instructionsBuilder TurnRight
+    --
+    -- aboutFace :: InstructionsBuilder
+    -- aboutFace = do
+    --   turnRight
+    --   turnRight
+    --
+    -- forward :: Int -> InstructionsBuilder
+    -- forward n = replicateM_ n (instructionsBuilder Forward)
+    -- @
+
+    -- *** Implementing @buildArena@
+
+    -- | We're now ready to implement @buildArena@. We create a
+    -- @Stream RobotEntry@ and a @Stream ObstacleEntry@ to pass to the
+    -- @MkArenaH@ constructor, and use @runDslBuilder@ to run the
+    -- @ArenaBuilder@ provided.  (This is a lot like some of the approaches
+    -- in "Bluefin.Compound".)
+    --
+    -- @
+    -- buildArena :: ArenaBuilder -> Arena
+    -- buildArena (MkArenaBuilder arenaBuilder) = runPureEff $ do
+    --   (robots, obstacles) \<- 'Bluefin.Stream.yieldToList' $ \\yrobots -> do
+    --     (obstacles, ()) \<- yieldToList $ \\yobstacles -> do
+    --       'runDslBuilder'
+    --         (MkArenaH ('Bluefin.Compound.mapHandle' yrobots) (mapHandle yobstacles))
+    --         arenaBuilder
+    --
+    --     pure obstacles
+    --
+    --   pure
+    --     MkArena
+    --       { arenaRobots = robots,
+    --         arenaObstacles = obstacles
+    --       }
+    -- @
+    --
+    -- And that's all we need to support the implementation of
+    -- @myDslArena :: Arena@ given above!
+
+    -- * @DslBuilder@
+
+    DslBuilder,
+    dslBuilder,
+    runDslBuilder,
+  )
+where
+
+import Bluefin.Internal.DslBuilder
