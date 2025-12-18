@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               bluefin-internal
-version:            0.3.0.0
+version:            0.3.1.0
 license:            MIT
 license-file:       LICENSE
 author:             Tom Ellis
@@ -83,6 +83,8 @@ library
       monad-control < 1.1
     exposed-modules:
       Bluefin.Internal,
+      Bluefin.Internal.DslBuilder,
+      Bluefin.Internal.DslBuilderEffects,
       Bluefin.Internal.Examples,
       Bluefin.Internal.Exception.Scoped,
       Bluefin.Internal.Key,
