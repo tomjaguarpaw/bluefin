@@ -661,8 +661,8 @@ module Bluefin.Compound
 
     -- | The documentation for 'Handle' shows how to use
     -- @OneWayCoercible@ to define @Handle@ instances.
-    OneWayCoercible.OneWayCoercible,
-    OneWayCoercibleHandle,
+    OneWayCoercible.OneWayCoercible(OneWayCoercible.oneWayCoercibleImpl),
+    OneWayCoercibleHandle(MkOneWayCoercibleHandle),
     OneWayCoercible.gOneWayCoercible,
     OneWayCoercible.Generic,
 
