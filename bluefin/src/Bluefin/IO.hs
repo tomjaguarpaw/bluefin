@@ -12,6 +12,7 @@ module Bluefin.IO
     -- * IO type classes
     withMonadIO,
     withEffToIO_,
+    withEffToIOCloneHandle,
     -- ** @EffReader@
     EffReader,
     effReader,
@@ -22,3 +23,4 @@ module Bluefin.IO
 where
 
 import Bluefin.Internal
+import Bluefin.Internal.CloneableHandle
