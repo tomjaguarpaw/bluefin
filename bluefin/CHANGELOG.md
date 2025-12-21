@@ -1,3 +1,5 @@
+# 0.2.4.0
+
 * Add `Bluefin.CloneHandle` and `Bluefin.IO.withEffToIOCloneHandle`
 
 # 0.2.3.0
