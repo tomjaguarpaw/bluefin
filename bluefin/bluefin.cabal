@@ -24,6 +24,7 @@ library
       Bluefin.Compound,
       Bluefin.Consume,
       Bluefin.Coroutine,
+      Bluefin.CloneableHandle,
       Bluefin.DslBuilder,
       Bluefin.EarlyReturn,
       Bluefin.Eff,

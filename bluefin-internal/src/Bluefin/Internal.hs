@@ -38,7 +38,7 @@ import Data.Kind (Type)
 import Data.Proxy (Proxy (Proxy))
 import Data.Type.Coercion (Coercion (Coercion))
 import GHC.Exts (Proxy#, proxy#)
-import GHC.Generics (Generic)
+import GHC.Generics (Generic, M1 (M1), Rec1 (Rec1), (:*:) ((:*:)))
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
@@ -464,6 +464,15 @@ handleOneWayCoercion ::
   -- | ͘
   HandleD h
 handleOneWayCoercion owc = MkHandleD (oneWayCoerceWith owc)
+
+instance (Handle h) => Handle (Rec1 h) where
+  handleImpl = handleMapHandle $ \(Rec1 h) -> Rec1 (mapHandle h)
+
+instance (Handle h) => Handle (M1 i t h) where
+  handleImpl = handleMapHandle $ \(M1 h) -> M1 (mapHandle h)
+
+instance (Handle h1, Handle h2) => Handle (h1 :*: h2) where
+  handleImpl = handleMapHandle $ \(h1 :*: h2) -> mapHandle h1 :*: mapHandle h2
 
 -- { OneWayCoercibleHandle
 

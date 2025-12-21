@@ -73,6 +73,7 @@ common warnings
 library
     import:           warnings
     exposed-modules:
+      Bluefin.Examples.CloneableHandle,
       Bluefin.Examples.DB,
       Bluefin.Examples.DslBuilder.Robots,
       Bluefin.Examples.HandleReader,
@@ -81,6 +82,7 @@ library
       Bluefin.Examples.Stream.Many,
       Bluefin.Examples.Terminal
     build-depends:
+      async,
       base,
       bytestring,
       random >= 1.3 && < 2,

@@ -1,3 +1,5 @@
+* Add `Bluefin.Internal.CloneHandle`
+
 # 0.3.1.0
 
 * Add `Bluefin.Internal.DslBuilder`

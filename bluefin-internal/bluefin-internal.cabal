@@ -83,6 +83,7 @@ library
       monad-control < 1.1
     exposed-modules:
       Bluefin.Internal,
+      Bluefin.Internal.CloneableHandle,
       Bluefin.Internal.DslBuilder,
       Bluefin.Internal.DslBuilderEffects,
       Bluefin.Internal.Examples,
