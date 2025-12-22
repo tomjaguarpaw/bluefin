@@ -91,6 +91,15 @@ instance
     Coercion -> case unsafeCoercionOfOneWayCoercible @b1 @b2 of
       Coercion -> oneWayCoercible
 
+instance
+  (OneWayCoercible a1 a2, OneWayCoercible b1 b2, OneWayCoercible c1 c2) =>
+  OneWayCoercible (a1, b1, c1) (a2, b2, c2)
+  where
+  oneWayCoercibleImpl = case unsafeCoercionOfOneWayCoercible @a1 @a2 of
+    Coercion -> case unsafeCoercionOfOneWayCoercible @b1 @b2 of
+      Coercion -> case unsafeCoercionOfOneWayCoercible @c1 @c2 of
+        Coercion -> oneWayCoercible
+
 trans :: OneWayCoercion a b -> OneWayCoercion b c -> OneWayCoercion a c
 trans c1 c2 = case unsafeCoercionOfOneWayCoercion c1 of
   Coercion -> case unsafeCoercionOfOneWayCoercion c2 of

@@ -683,6 +683,93 @@ catch ::
   Eff es a
 catch f h = handle h f
 
+data Handler a es r where
+  MkHandler ::
+    (a -> ex -> Eff es r) -> ScopedException.Exception ex -> Handler a es r
+
+newtype Catcher a es r b = MkCatcher (IO ([Handler a es r], b))
+  deriving (Functor)
+
+instance Applicative (Catcher a es r) where
+  pure x = MkCatcher (pure ([], x))
+  MkCatcher fio <*> MkCatcher xio = MkCatcher $ do
+    (h1, f) <- fio
+    (h2, x) <- xio
+    pure (h1 ++ h2, f x)
+
+catcher :: (a -> ex -> Eff es r) -> Catcher a es r (Exception ex e)
+catcher f = MkCatcher $ do
+  scopedEx <- ScopedException.newException
+  let ex = MkException (UnsafeMkEff . ScopedException.throw scopedEx)
+  pure ([MkHandler f scopedEx], ex)
+
+catches ::
+  Eff es a ->
+  (forall e. h e -> Eff (e :& es) r) ->
+  (forall e. Catcher a es r (h e)) ->
+  Eff es r
+catches acquire body catchers = do
+  a <- acquire
+
+  unsafeProvideIO $ \io -> do
+    withEffToIO_ io $ \effToIO -> do
+      let MkCatcher ioCatchers = catchers
+      (handlers, exceptions) <- ioCatchers
+
+      Control.Exception.catch
+        (effToIO (body exceptions))
+        ( \e -> do
+            let f (MkHandler handler scopedEx) rest = do
+                  case ScopedException.checkException scopedEx e of
+                    Nothing -> rest
+                    Just ex -> unsafeUnEff (handler a ex)
+
+            foldr f (Control.Exception.throwIO e) handlers
+        )
+
+newtype MyExHandle e
+  = MkMyExHandle (Exception String e, Exception Bool e, Exception Int e)
+  deriving (Generic)
+  deriving (Handle) via OneWayCoercibleHandle MyExHandle
+
+instance (e :> es) => OneWayCoercible (MyExHandle e) (MyExHandle es) where
+  oneWayCoercibleImpl = gOneWayCoercible
+
+myExCatcher :: (Show a, e1 :> es) => IOE e1 -> Catcher a es () (MyExHandle e)
+myExCatcher io =
+  MkMyExHandle
+    <$> ( (,,)
+            <$> catcher (\a s -> p ("String handler. Resource " <> show a <> ", string " <> s))
+            <*> catcher (\a bb -> p ("Bool handler. Resource " <> show a <> ", bool " <> show bb))
+            <*> catcher (\a i -> p ("Int handler. Resource " <> show a <> ", int " <> show i))
+        )
+  where
+    p = effIO io . putStrLn
+
+-- ghci> catchesExample
+-- Acquiring ...
+-- String handler. Resource 'R', string A string
+-- Acquiring ...
+-- Bool handler. Resource 'R', bool True
+-- Acquiring ...
+-- Int handler. Resource 'R', int 42
+catchesExample :: IO ()
+catchesExample = runEff_ $ \io -> do
+  catches
+    (do effIO io (putStrLn "Acquiring ..."); pure 'R')
+    (\(MkMyExHandle (exs, _exb, _exi)) -> throw exs "A string")
+    (myExCatcher io)
+
+  catches
+    (do effIO io (putStrLn "Acquiring ..."); pure 'R')
+    (\(MkMyExHandle (_exs, exb, _exi)) -> throw exb True)
+    (myExCatcher io)
+
+  catches
+    (do effIO io (putStrLn "Acquiring ..."); pure 'R')
+    (\(MkMyExHandle (_exs, _exb, exi)) -> throw exi 42)
+    (myExCatcher io)
+
 -- We really do need to have an IOE argument here because, it is not
 -- determined which of Ex1 or Ex2 is produced in the following code,
 -- due to pure exceptions being imprecise.
