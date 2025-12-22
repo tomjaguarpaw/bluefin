@@ -8,6 +8,10 @@ module Bluefin.Exception
     -- * Effectful operations
     throw,
     rethrowIO,
+    -- * Resource management
+    generalBracket,
+    GeneralRelease(..),
+    ExceptionRelease(..),
   )
 where
 

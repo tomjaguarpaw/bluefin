@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PatternSynonyms #-}
@@ -759,13 +760,70 @@ bracket ::
   -- | Run the body
   (a -> Eff es b) ->
   Eff es b
-bracket before after body =
-  unsafeProvideIO $ \io -> do
-    withEffToIO_ io $ \effToIO -> do
-      Control.Exception.bracket
-        (effToIO (useImpl before))
-        (effToIO . useImpl . after)
-        (effToIO . useImpl . body)
+bracket before after body = fst <$> generalBracket before (GeneralRelease after [] after) body
+
+-- Implementation inspired by github:ekmett/exceptions/src/Control/Monad/Catch.hs@70805bde3330bb7d2dd99b54cd13e2ee0a6f9cc8
+-- See LICENSE.exceptions in the package root for copyright information
+-- | A generalization of 'bracket' that allows @release@ to discriminate
+-- between normal and exceptional exit from @body@ and return a value in
+-- the former case (see t'GeneralRelease').
+generalBracket ::
+  -- | Acquire the resource.
+  Eff es a ->
+  -- | Release the resource.
+  GeneralRelease es a c ->
+  -- | Run the body.
+  (a -> Eff es b) ->
+  Eff es (b, c)
+generalBracket acquire release body = unsafeProvideIO $ \io -> withEffToIO_ io $ \effToIO -> Control.Exception.mask $ \unmasked -> do
+    a <- effToIO $ useImpl acquire
+    b_ <- unmasked (effToIO . useImpl $ body a) `catchNoPropagate` \e -> do
+      let
+        exceptionRelease = case fromException e of
+          Nothing -> unknownExceptionRelease release
+          Just inflight -> findExceptionRelease inflight (knownExceptionReleases release)
+      effToIO . useImpl $ exceptionRelease a
+      rethrowIO_ e
+    c <- effToIO . useImpl $ normalRelease release a
+    pure (b_, c)
+  where
+    findExceptionRelease _ [] = unknownExceptionRelease release
+    findExceptionRelease inflight ((ExceptionRelease (MkException (ScopedException.MkException k)) knownExceptionRelease) : _)
+      | Just ex <- ScopedException.check k inflight = knownExceptionRelease ex
+    findExceptionRelease inflight (_ : tl) = findExceptionRelease inflight tl
+
+#if MIN_VERSION_base(4,21,0)
+    catchNoPropagate = Control.Exception.catchNoPropagate
+    rethrowIO_ = Control.Exception.rethrowIO
+    fromException (Control.Exception.ExceptionWithContext _ e) = Control.Exception.fromException e
+#else
+    catchNoPropagate = Control.Exception.catch
+    rethrowIO_ = Control.Exception.throwIO
+    fromException = Control.Exception.fromException
+#endif
+
+-- | Specification for releasing an @a@ depending on how execution using it
+-- has ended, returning a @c@ upon normal exit.
+data GeneralRelease es a c = GeneralRelease
+  { -- | Release @a@ after normal exit.
+    normalRelease :: !(a -> Eff es c)
+
+  , -- | Release @a@ after exceptional exit due to one of several known
+    -- exceptions.
+    knownExceptionReleases :: ![ ExceptionRelease es a ]
+  , -- | Release @a@ after exceptional exit due to an unknown exception.
+    unknownExceptionRelease :: !(a -> Eff es ())
+  }
+
+-- | Specification for releasing an @a@ after exceptional exit
+-- due to a known exception.
+data ExceptionRelease es a where
+  ExceptionRelease :: forall es a e ex. e :> es =>
+    { -- | The capability to throw an @ex@ in 'Eff' @es@
+      exnCap :: !(Exception ex e)
+    , -- | Release @a@
+      knownExceptionRelease :: !(ex -> a -> Eff es ())
+    } -> ExceptionRelease es a
 
 withStateInIO ::
   (e1 :> es, e2 :> es) =>

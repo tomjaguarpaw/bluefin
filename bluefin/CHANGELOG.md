@@ -1,3 +1,7 @@
+# 0.2.5.0
+
+* Add `Bluefin.Exception.generalBracket`
+
 # 0.2.4.0
 
 * Add `Bluefin.CloneHandle` and `Bluefin.IO.withEffToIOCloneHandle`
