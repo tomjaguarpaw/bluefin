@@ -344,10 +344,10 @@ type role StateSource nominal
 
 -- | Handle to an exception of type @exn@
 newtype Exception exn (e :: Effects)
-  = MkException (forall a. exn -> Eff e a)
+  = MkException (ScopedException.Exception exn)
   deriving (Handle) via OneWayCoercibleHandle (Exception exn)
 
-type role Exception representational nominal
+type role Exception nominal nominal
 
 instance (e :> es) => OneWayCoercible (Exception ex e) (Exception ex es) where
   oneWayCoercibleImpl = oneWayCoercible
@@ -615,12 +615,15 @@ handleTag _ = pure Proxy
 -- Right "No exception thrown"
 -- @
 throw ::
-  (e :> es) =>
+  forall e es ex a. (e :> es) =>
   Exception ex e ->
   -- | Value to throw
   ex ->
   Eff es a
-throw h = case mapHandle h of MkException throw_ -> throw_
+throw h e = case mapHandle @_ @_ @es h of
+  MkException ex ->
+    unsafeProvideIO $ \io -> do
+      effIO io $ ScopedException.throw ex e
 
 has :: forall a b. (a :> b) => a `In` b
 -- This is safe because, as shown by instanceProof1/2/3, the only way
@@ -652,8 +655,8 @@ try ::
 try f =
   unsafeProvideIO $ \io -> do
     withEffToIO_ io $ \effToIO -> do
-      withScopedException_ $ \throw_ -> do
-        effToIO (f (MkException (effIO io . throw_)))
+      ScopedException.try $ \ex -> do
+        effToIO (f (MkException ex))
 
 -- | 'handle', but with the argument order swapped
 --
@@ -818,10 +821,6 @@ modify ::
 modify state f = do
   s <- get state
   put state (f s)
-
-withScopedException_ :: ((forall a. e -> IO a) -> IO r) -> IO (Either e r)
-withScopedException_ f =
-  ScopedException.try (\ex -> f (ScopedException.throw ex))
 
 -- |
 -- @
