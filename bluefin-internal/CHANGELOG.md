@@ -1,3 +1,8 @@
+# 0.3.3.0
+
+* Export `Bluefin.Internal.Exception.Scoped.Exception` constructors
+* Export `Bluefin.Internal.Exception.Scoped.check`
+
 # 0.3.2.0
 
 * Add `Bluefin.Internal.CloneHandle`

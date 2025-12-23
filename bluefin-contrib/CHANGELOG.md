@@ -1,3 +1,7 @@
+## 0.2.1.0
+
+* Add `Bluefin.Contrib.Exception.generalBracket`, thanks to Shea Levy
+
 ## 0.2.0.0
 
 * Transitive version bump because of choice of different incoherent
