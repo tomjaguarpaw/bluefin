@@ -78,6 +78,7 @@ library
       Bluefin.Examples.DslBuilder.Robots,
       Bluefin.Examples.HandleReader,
       Bluefin.Examples.Random,
+      Bluefin.Examples.Server,
       Bluefin.Examples.Stream.InsideAndOut,
       Bluefin.Examples.Stream.Many,
       Bluefin.Examples.Terminal
@@ -85,6 +86,7 @@ library
       async,
       base,
       bytestring,
+      containers,
       random >= 1.3 && < 2,
       bluefin >= 0.2.2.0 && < 0.3,
       bluefin-random >= 0.2.0.0 && < 0.3
