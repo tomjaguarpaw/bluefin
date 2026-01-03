@@ -753,7 +753,7 @@ bracket ::
   Eff es a ->
   -- | Release the resource
   (a -> Eff es ()) ->
-  -- | Run the body
+  -- | Run the body with resource
   (a -> Eff es b) ->
   Eff es b
 bracket before after body =
@@ -764,9 +764,13 @@ bracket before after body =
         (effToIO . useImpl . after)
         (effToIO . useImpl . body)
 
+-- | A simpler variant of 'bracket` for use when you don't need to
+-- acquire a resource.
 finally ::
-  -- | Run the body
+  -- | Body
   Eff es b ->
+  -- | Final action to run after the body, regardless of whether the
+  -- body terminated normally or via exception
   Eff es () ->
   Eff es b
 finally body after =
