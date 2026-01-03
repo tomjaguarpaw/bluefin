@@ -764,6 +764,18 @@ bracket before after body =
         (effToIO . useImpl . after)
         (effToIO . useImpl . body)
 
+finally ::
+  -- | Run the body
+  Eff es b ->
+  Eff es () ->
+  Eff es b
+finally body after =
+  unsafeProvideIO $ \io -> do
+    withEffToIO_ io $ \effToIO -> do
+      Control.Exception.finally
+        (effToIO (useImpl body))
+        (effToIO (useImpl after))
+
 withStateInIO ::
   (e1 :> es, e2 :> es) =>
   IOE e1 ->

@@ -1,3 +1,5 @@
+* Add `finally`
+
 # 0.3.2.0
 
 * Add `Bluefin.Internal.CloneHandle`
