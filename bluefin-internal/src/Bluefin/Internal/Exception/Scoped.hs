@@ -1,7 +1,10 @@
 module Bluefin.Internal.Exception.Scoped
   ( Exception,
+    InFlight,
     try,
     throw,
+    newException,
+    checkException,
   )
 where
 

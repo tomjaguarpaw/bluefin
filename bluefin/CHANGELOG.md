@@ -1,3 +1,5 @@
+* Add `Bluefin.Exception.GeneralBracket`, thanks to Shea Levy
+
 # 0.2.5.0
 
 * Add `finally`

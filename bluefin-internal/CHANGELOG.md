@@ -1,3 +1,9 @@
+* Add `Bluefin.Internal.Exception` and tests, thanks to Shea Levy
+
+* Export `Bluefin.Internal.Exception.Scoped.Exception` constructors
+
+* Export `Bluefin.Internal.Exception.Scoped.check`
+
 # 0.3.3.0
 
 * Add `finally`

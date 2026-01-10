@@ -87,6 +87,7 @@ library
       Bluefin.Internal.DslBuilder,
       Bluefin.Internal.DslBuilderEffects,
       Bluefin.Internal.Examples,
+      Bluefin.Internal.Exception,
       Bluefin.Internal.Exception.Scoped,
       Bluefin.Internal.Key,
       Bluefin.Internal.OneWayCoercible,
@@ -99,7 +100,8 @@ test-suite bluefin-test
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs
-    other-modules:    Test.SpecH
+    other-modules:    Test.GeneralBracket,
+                      Test.SpecH
     build-depends:
         base,
         bluefin-internal
