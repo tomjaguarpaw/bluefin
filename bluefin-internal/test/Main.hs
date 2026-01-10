@@ -7,6 +7,7 @@ import Bluefin.Internal
 import Bluefin.Internal.DslBuilder
 import Control.Monad (when)
 import Data.Foldable (for_)
+import Test.GeneralBracket (test_generalBracket)
 import Test.SpecH (SpecH, assertEqual, runSpecH)
 import Prelude hiding (break, read)
 
@@ -36,6 +37,7 @@ main = runEff_ $ \io -> do
       ([20, 30, 40], "Hello")
 
     test_localInHandler y
+    test_generalBracket io y
 
 (!?) :: [a] -> Int -> Maybe a
 xs !? i = runPureEff $
