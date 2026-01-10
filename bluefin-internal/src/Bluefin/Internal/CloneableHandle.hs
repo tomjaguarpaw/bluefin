@@ -150,13 +150,18 @@ instance
   -- FIXME: These instances for higher rank types are annoying
   oneWayCoercibleImpl = unsafeOneWayCoercible
 
-abstract :: (Handle h2) => (forall e. h1 e -> h2 (e :& es)) -> (h1 :~> h2) es
+abstract ::
+  (Handle h2) =>
+  (forall e. h1 e -> h2 (e :& es)) ->
+  -- | ͘
+  (h1 :~> h2) es
 abstract k = MkArrow (mapHandle . k)
 
 app ::
   (Handle h2) =>
   (h1 :~> h2) e ->
   h1 e ->
+  -- | ͘
   h2 e
 app (MkArrow f) h1 = makeOpHandle (f h1)
   where
