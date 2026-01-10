@@ -13,13 +13,16 @@ import Data.Kind (Type)
 
 try :: (Exception e -> IO a) -> IO (Either e a)
 try k = do
-  key <- newKey
+  ex <- newException
   tryJust
-    (check key)
-    (k (MkException key))
+    (checkException ex)
+    (k ex)
 
 throw :: Exception e -> e -> IO a
 throw ex e = throwIO (MkInFlight ex e)
+
+newException :: IO (Exception e)
+newException = fmap MkException newKey
 
 -- Corresponds to what Bluefin calls an "Exception", i.e. "a handle to
 -- an exception" or "the capability to throw an exception".
@@ -37,3 +40,6 @@ instance Control.Exception.Exception InFlight
 -- Like unlock from vault
 check :: Key a -> InFlight -> Maybe a
 check k1 (MkInFlight (MkException k2) e) = fmap (\HRefl -> e) (k1 `eqKey` k2)
+
+checkException :: Exception e -> InFlight -> Maybe e
+checkException (MkException key) = check key
