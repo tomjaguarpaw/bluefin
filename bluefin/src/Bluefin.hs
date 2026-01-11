@@ -113,11 +113,12 @@ module Bluefin
     -- systems](https://www.youtube.com/watch?v=RsTuy1jXQ6Y)" by Tom
     -- Ellis (recorded at Zurihac 2025).
     --
-    -- The short answer is: 'Control.Monad.Monad's.  @Monad@ is a
+    -- The short answer is: t'Control.Monad.Monad's.  @Monad@ is a
     -- general interface that permits ordering of operations.
     -- Instances of @Monad@ from early in the development of Haskell
-    -- include 'Prelude.IO', 'Control.Monad.Trans.State.State',
-    -- 'Prelude.Either' and 'Control.Monad.Trans.State.Writer', all of
+    -- include t'Prelude.IO',
+    -- t'Control.Monad.Trans.State.Strict.State', t'Prelude.Either'
+    -- and t'Control.Monad.Trans.Writer.CPS.Writer', all of
     -- which are still in use today.  For example, to manipulate
     -- mutable state we can't use @let@ bindings in the following way:
     --
@@ -148,7 +149,7 @@ module Bluefin
     -- in "Final value: " ++ v
     -- @
     --
-    -- Moreover, we can define a 'Control.Monad.Trans.State.State'
+    -- Moreover, we can define a t'Control.Monad.Trans.State.Strict.State'
     -- monad which casts the ad hoc state passing pattern as a general
     -- pattern known as "monad":
     --
@@ -186,10 +187,10 @@ module Bluefin
     -- [@transformers@](https://hackage.haskell.org/package/transformers)
     -- and [@mtl@](https://hackage.haskell.org/package/mtl) libraries.
     -- The transformer extensions of @State@ and @Either@ are
-    -- 'Control.Monad.Trans.State.StateT' and
-    -- 'Control.Monad.Trans.State.ExceptT', and the @Mt@ extensions
-    -- are 'Control.Monad.State.MonadState' and
-    -- 'Control.Monad.Error.MonadError'.  We won't go into more detail
+    -- t'Control.Monad.Trans.State.Strict.StateT' and
+    -- t'Control.Monad.Trans..ExceptT', and the @Mt@ extensions
+    -- are t'Control.Monad.State.Strict.MonadState' and
+    -- t'Control.Monad.Except.MonadError'.  We won't go into more detail
     -- here because this documentation isn't a transformers or MTL
     -- tutorial, but here is an example of an MTL-style function that
     -- uses those two effects, and no others:
@@ -419,7 +420,7 @@ module Bluefin
     -- If we get the best of both worlds with analytic effect systems,
     -- is there a downside?  Yes, the downside is that analytic effect
     -- systems do not support multishot continuations, like
-    -- 'Control.Monad.Logic.LogicT' implements.  Here's an example of
+    -- t'Control.Monad.Logic.LogicT' implements.  Here's an example of
     -- using multishot continuations to calculate all sums of paths
     -- from root to leaf in a tree.  In the @Branch@ alternative,
     -- @allSums t@ is a "multishot" continuation because it is run
@@ -867,7 +868,7 @@ module Bluefin
     -- type parameters which track which effects can be used in an
     -- operation. Bluefin uses them to ensure that effects cannot
     -- escape the scope of their handler, in the same way that the
-    -- type parameter to the 'Control.Monad.ST.ST' monad ensures that
+    -- type parameter to the t'Control.Monad.ST.ST' monad ensures that
     -- mutable state references cannot escape
     -- 'Control.Monad.ST.runST'.  When the type system indicates that
     -- there are no unhandled effects it is safe to run the underlying
