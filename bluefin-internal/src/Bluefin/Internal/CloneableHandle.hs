@@ -142,7 +142,7 @@ instance (Handle h1, Handle h2) => Handle (h1 :~> h2) where
   handleImpl = handleOneWayCoercible
 
 instance
-  (Handle h1, Handle h2) =>
+  (Handle h1, Handle h2, e :> es) =>
   OneWayCoercible
     ((h1 :~> h2) e)
     ((h1 :~> h2) es)
