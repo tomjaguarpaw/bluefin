@@ -6,8 +6,8 @@ module Bluefin.Examples.DB where
 import Bluefin.Compound
   ( Handle (mapHandle),
     makeOp,
+    useImpl,
     useImplIn,
-    useImplUnder,
   )
 import Bluefin.Eff (Eff, (:&), (:>))
 import Bluefin.Eff qualified as BF
@@ -23,13 +23,13 @@ newtype UserId = UserId String deriving (Show, Eq)
 newtype User = User String deriving (Show)
 
 data DbEff es = MkDbEff
-  { queryImpl :: forall e. DbHandle -> UserId -> Eff (e :& es) User
+  { queryImpl :: DbHandle -> UserId -> Eff es User
   }
 
 instance Handle DbEff where
   mapHandle db =
     MkDbEff
-      { queryImpl = \dbh uid -> useImplUnder (queryImpl db dbh uid)
+      { queryImpl = \dbh uid -> useImpl (queryImpl db dbh uid)
       }
 
 query :: (e :> es) => DbEff e -> DbHandle -> UserId -> Eff es User
