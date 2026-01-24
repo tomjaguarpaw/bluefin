@@ -1,3 +1,5 @@
+# 0.2.7.0
+
 * Add `Bluefin.Compound.handleOneWayCoercible`
 
 * Add `Bluefin.Compound.oneWayCoercibleTrustMe`
