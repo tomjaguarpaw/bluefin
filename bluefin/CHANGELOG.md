@@ -1,3 +1,5 @@
+* Add `Bluefin.Compound.oneWayCoercibleTrustMe`
+
 * Add `OneWayCoercible` instances for Generic types
 
 # 0.2.6.0
