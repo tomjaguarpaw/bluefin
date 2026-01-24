@@ -22,7 +22,8 @@ import System.IO qualified
 data Handle e = UnsafeMkHandle System.IO.Handle (IOE e)
 
 instance Bluefin.Internal.Handle Handle where
-  mapHandle (UnsafeMkHandle h io) = UnsafeMkHandle h (mapHandle io)
+  mapHandle (UnsafeMkHandle h io) =
+    UnsafeMkHandle h (mapHandle io)
 
 withFile ::
   (e1 :> es) =>
