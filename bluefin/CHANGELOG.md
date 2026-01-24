@@ -1,3 +1,5 @@
+* Add `OneWayCoercible` instances for Generic types
+
 # 0.2.6.0
 
 * Add `Bluefin.Exception.GeneralBracket`, thanks to Shea Levy

@@ -120,3 +120,20 @@ instance
     MkOneWayCoercion Coercion -> case oneWayCoercion @b @b' of
       MkOneWayCoercion Coercion ->
         MkOneWayCoercibleD (MkOneWayCoercion Coercion)
+
+instance
+  OneWayCoercible (h e) (h es) =>
+  OneWayCoercible (Rec1 h e) (Rec1 h es)
+  where
+  oneWayCoercibleImpl = gOneWayCoercible
+
+instance
+  OneWayCoercible (h e) (h es) =>
+  OneWayCoercible (M1 i t h e) (M1 i t h es)
+  where
+  oneWayCoercibleImpl = gOneWayCoercible
+
+instance
+  (OneWayCoercible (h1 e) (h1 es), OneWayCoercible (h2 e) (h2 es)) =>
+  OneWayCoercible ((h1 :*: h2) e) ((h1 :*: h2) es)
+  where oneWayCoercibleImpl = gOneWayCoercible
