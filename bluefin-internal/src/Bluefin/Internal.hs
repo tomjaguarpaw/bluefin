@@ -423,10 +423,10 @@ class Handle (h :: Effects -> Type) where
   -- @
   -- data MyHandle e = ...
   --   deriving (Generic)
-  --   deriving (Handle) via OneWayCoercibleHandle MyHandle
+  --   deriving (Handle) via 'OneWayCoercibleHandle' MyHandle
   --
-  -- instance (e :> es) => OneWayCoercible (MyHandle e) (MyHandle es) where
-  --   oneWayCoercibleImpl = gOneWayCoercible
+  -- instance (e :> es) => 'OneWayCoercible' (MyHandle e) (MyHandle es) where
+  --   'oneWayCoercibleImpl' = 'gOneWayCoercible'
   -- @
   --
   -- If that doesn't work for any reason you can always reuse your old
