@@ -1,3 +1,5 @@
+# 0.4.0.0
+
 * Move `mapHandle` out of class `Handle` and remove `handleMapHandle`.
   See `Bluefin.Compound` for instructions about migrating.
 
