@@ -455,6 +455,7 @@ handleMapHandle ::
 handleMapHandle = MkHandleD
 
 handleOneWayCoercible ::
+  forall h.
   (forall e es. (e :> es) => OneWayCoercible (h e) (h es)) =>
   -- | ͘
   HandleD h
