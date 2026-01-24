@@ -4,8 +4,9 @@
 module Bluefin.Examples.DB where
 
 import Bluefin.Compound
-  ( Handle (mapHandle),
+  ( Handle,
     makeOp,
+    mapHandle,
     useImpl,
     useImplIn,
   )

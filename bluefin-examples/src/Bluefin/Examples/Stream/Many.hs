@@ -4,8 +4,8 @@
 module Bluefin.Examples.Stream.Many where
 
 import Bluefin.Compound
-  ( Handle (mapHandle),
-    makeOp,
+  ( makeOp,
+    mapHandle,
     useImplIn,
     useImplUnder,
     useImplWithin,

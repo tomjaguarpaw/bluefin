@@ -10,10 +10,11 @@ import Bluefin.CloneableHandle
   )
 import Bluefin.Compound
   ( Generic,
-    Handle (mapHandle),
+    Handle,
     OneWayCoercible (..),
     OneWayCoercibleHandle (..),
     gOneWayCoercible,
+    mapHandle,
   )
 import Bluefin.Eff (Eff, runEff_, (:>))
 import Bluefin.Exception (Exception, throw, try)
