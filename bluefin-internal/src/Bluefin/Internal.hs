@@ -416,7 +416,7 @@ class Handle (h :: Effects -> Type) where
   --
   -- @
   -- instance Handle MyHandle where
-  --   mapHandle h = \<definition\>
+  --   mapHandle h = \<mapHandle definition\>
   -- @
   --
   -- you should change it to
@@ -439,7 +439,7 @@ class Handle (h :: Effects -> Type) where
   --
   -- @
   -- instance Handle MyHandle where
-  --   handleImpl = handleMapHandle $ \\h -> \<definition\>
+  --   handleImpl = handleMapHandle $ \\h -> \<mapHandle definition\>
   -- @
   mapHandle :: (e :> es) => h e -> h es
   mapHandle = case handleImpl of MkHandleD f -> f
