@@ -663,6 +663,7 @@ module Bluefin.Compound
     -- @OneWayCoercible@ to define @Handle@ instances.
     OneWayCoercible.OneWayCoercible (OneWayCoercible.oneWayCoercibleImpl),
     OneWayCoercibleHandle (MkOneWayCoercibleHandle),
+    handleOneWayCoercible,
     OneWayCoercible.gOneWayCoercible,
     oneWayCoercibleTrustMe,
     -- | Bluefin re-exports @Generic@ for convenience.
