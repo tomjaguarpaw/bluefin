@@ -8,11 +8,11 @@ import Bluefin.Compound
   ( Generic,
     Handle,
     OneWayCoercible,
+    OneWayCoercibleHandle (..),
     gOneWayCoercible,
     makeOp,
     mapHandle,
     oneWayCoercibleImpl,
-    useImpl,
     useImplIn,
   )
 import Bluefin.Eff (Eff, (:&), (:>))
@@ -32,12 +32,7 @@ data DbEff es = MkDbEff
   { queryImpl :: DbHandle -> UserId -> Eff es User
   }
   deriving (Generic)
-
-instance Handle DbEff where
-  mapHandle db =
-    MkDbEff
-      { queryImpl = \dbh uid -> useImpl (queryImpl db dbh uid)
-      }
+  deriving (Handle) via OneWayCoercibleHandle DbEff
 
 instance (e :> es) => OneWayCoercible (DbEff e) (DbEff es) where
   oneWayCoercibleImpl = gOneWayCoercible
