@@ -665,6 +665,7 @@ module Bluefin.Compound
     OneWayCoercibleHandle(MkOneWayCoercibleHandle),
     OneWayCoercible.gOneWayCoercible,
     oneWayCoercibleTrustMe,
+    -- | Bluefin re-exports @Generic@ for convenience.
     OneWayCoercible.Generic,
 
     -- ** Other functions for compound effects
