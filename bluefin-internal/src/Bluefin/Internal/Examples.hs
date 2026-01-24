@@ -6,9 +6,6 @@ module Bluefin.Internal.Examples where
 
 import Bluefin.Internal hiding (b, w)
 import Bluefin.Internal.OneWayCoercible
-  ( OneWayCoercible (oneWayCoercibleImpl),
-    gOneWayCoercible,
-  )
 import Bluefin.Internal.Pipes
   ( Producer,
     runEffect,
@@ -25,7 +22,6 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
 import Data.Monoid (Any (Any, getAny))
 import Data.Proxy (Proxy (Proxy))
-import GHC.Generics (Generic)
 import Text.Read (readMaybe)
 import Prelude hiding
   ( break,
@@ -791,9 +787,13 @@ data Counter7 e = MkCounter7
     counter7State :: State Int e,
     counter7Stream :: Stream String e
   }
+  deriving (Handle) via OneWayCoercibleHandle Counter7
 
-instance Handle Counter7 where
-  handleImpl = handleMapHandle $ \c ->
+-- | The "forall" in the type of @incCounter7@ means that we can't
+-- derive the @OneWayCoercible@ instance with 'gOneWayCoercible' so
+-- instead we use @oneWayCoercibleTrustMe@.
+instance (e :> es) => OneWayCoercible (Counter7 e) (Counter7 es) where
+  oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \c ->
     MkCounter7
       { incCounter7Impl = \ex -> useImplUnder (incCounter7Impl c ex),
         counter7State = mapHandle (counter7State c),
@@ -1036,13 +1036,20 @@ rethrowIOExample = runEff_ $ \io -> do
     Left e -> "Caught IOException:\n" ++ show e
     Right contents -> contents
 
+-- | The "forall" in the type of @localRImpl@ means that we can't
+-- derive the @OneWayCoercible@ instance with 'gOneWayCoercible' so
+-- instead we use @oneWayCoercibleTrustMe@.
 data DynamicReader r e = DynamicReader
   { askLRImpl :: Eff e r,
     localLRImpl :: forall e' a. (r -> r) -> Eff e' a -> Eff (e' :& e) a
   }
+  deriving (Handle) via OneWayCoercibleHandle (DynamicReader r)
 
-instance Handle (DynamicReader r) where
-  handleImpl = handleMapHandle $ \h ->
+instance
+  (e :> es) =>
+  OneWayCoercible (DynamicReader r e) (DynamicReader r es)
+  where
+  oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \h ->
     DynamicReader
       { askLRImpl = useImpl (askLRImpl h),
         localLRImpl = \f k -> useImplUnder (localLRImpl h f k)

@@ -16,10 +16,8 @@ import Bluefin.Internal.Exception.Scoped qualified as ScopedException
 import Bluefin.Internal.OneWayCoercible
   ( OneWayCoercible (oneWayCoercibleImpl),
     OneWayCoercibleD,
-    OneWayCoercion,
     gOneWayCoercible,
     oneWayCoerce,
-    oneWayCoerceWith,
     oneWayCoercible,
     unsafeOneWayCoercible,
   )
@@ -38,8 +36,8 @@ import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
 import Data.Proxy (Proxy (Proxy))
 import Data.Type.Coercion (Coercion (Coercion))
-import GHC.Exts (Proxy#, proxy#)
-import GHC.Generics (Generic, M1 (M1), Rec1 (Rec1), (:*:) ((:*:)))
+import GHC.Exts (Any, Proxy#, proxy#)
+import GHC.Generics (Generic, M1, Rec1, (:*:))
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
@@ -399,85 +397,136 @@ type Consume a = Coroutine () a
 -- instance (e :> es) => 'OneWayCoercible' (Application e) (Application es) where
 --   oneWayCoercibleImpl = 'gOneWayCoercible'
 -- @
+--
+-- In occasional cases, @gOneWayCoercible@ won't work, in which can
+-- you can instead use
+--
+-- @
+-- instance (e :> es) => OneWayCoercible (MyHandle e) (MyHandle es) where
+--   oneWayCoercibleImpl = 'oneWayCoercibleTrustMe' $ \\h -> \<mapHandle definition\>
+-- @
 class Handle (h :: Effects -> Type) where
-  {-# MINIMAL handleImpl | mapHandle #-}
-
-  -- | Define @handleImpl@ using 'handleMapHandle'.
   handleImpl :: HandleD h
-  handleImpl = MkHandleD mapHandle
 
-  -- | Used to create compound effects, i.e. handles that contain
-  -- other handles.
-  --
-  -- You should not define this method in your type classes. Instead
-  -- define @handleImpl@.  In a future version of Bluefin, @mapHandle@
-  -- will no longer be a method.  If you previously had a definition
-  -- of @mapHandle@, for example like this:
-  --
-  -- @
-  -- instance Handle MyHandle where
-  --   mapHandle h = \<mapHandle definition\>
-  -- @
-  --
-  -- you should change it to
-  --
-  -- @
-  -- data MyHandle e = ...
-  --   deriving (Generic)
-  --   deriving (Handle) via 'OneWayCoercibleHandle' MyHandle
-  --
-  -- instance (e :> es) => 'OneWayCoercible' (MyHandle e) (MyHandle es) where
-  --   'oneWayCoercibleImpl' = 'gOneWayCoercible'
-  -- @
-  --
-  -- If that doesn't work for any reason you can always reuse your old
-  -- definition of @mapHandle@ as follows.  However,
-  -- 'handleMapHandle' will be removed at some point in the future, so
-  -- you can [open a new issue on
-  -- Bluefin](https://github.com/tomjaguarpaw/bluefin/issues/new) to
-  -- ask for advice.
-  --
-  -- @
-  -- instance Handle MyHandle where
-  --   handleImpl = handleMapHandle $ \\h -> \<mapHandle definition\>
-  -- @
-  mapHandle :: (e :> es) => h e -> h es
-  mapHandle = case handleImpl of MkHandleD f -> f
+-- | This was previously a method of class 'Handle' using which you
+-- could define @Handle@ instances. Now, you should define
+-- @handleImpl@ instead.  If you previously had a definition of
+-- @mapHandle@, for example like this:
+--
+-- @
+-- instance Handle MyHandle where
+--   mapHandle h = \<mapHandle definition\>
+-- @
+--
+-- you should change it to
+--
+-- @
+-- data MyHandle e = ...
+--   deriving (Generic)
+--   deriving (Handle) via 'OneWayCoercibleHandle' MyHandle
+--
+-- instance (e :> es) => 'OneWayCoercible' (MyHandle e) (MyHandle es) where
+--   'oneWayCoercibleImpl' = 'gOneWayCoercible'
+-- @
+--
+-- In occasional cases, @gOneWayCoercible@ won't work, in which can
+-- you can instead use
+--
+-- @
+-- instance (e :> es) => OneWayCoercible (MyHandle e) (MyHandle es) where
+--   oneWayCoercibleImpl = 'oneWayCoercibleTrustMe' $ \\h -> \<mapHandle definition\>
+-- @
+mapHandle :: forall h e es. (Handle h, e :> es) => h e -> h es
+mapHandle = case handleDictImpl @h of MkHandleDict -> oneWayCoerce
+
+withHandle ::
+  forall h r.
+  (Handle h) =>
+  ((forall e es. (e :> es) => OneWayCoercible (h e) (h es)) => r) ->
+  r
+withHandle r = case handleDictImpl @h of MkHandleDict -> r
+
+type HandleDict :: (Effects -> Type) -> Type
+data HandleDict h where
+  MkHandleDict ::
+    (forall e es. (e :> es) => OneWayCoercible (h e) (h es)) =>
+    HandleDict h
+
+type role HandleDict nominal
+
+-- The essential properties of HandleD h are
+--
+-- (defining Handle' h =
+--    forall e es. (e :> es) => OneWayCoercible (h e) (h es))
+--
+-- 1. It can be created by having Handle' h in scope
+--
+-- 2. Having it can put Handle' h into scope
+--
+-- 3. There is an instance
+--
+--      Coercible h1 h2 => Coercible (Handle' h1) (Handle' h2)
+--
+-- 1 is used by handleOneWayCoercible
+--
+-- 2 is used by withHandle
+--
+-- 3 is used by deriving via of OneWayCoercibleHandle
+--
+-- The only way I have worked out how to satisfy all three properties
+-- is to have `HandleD h` not depend on `h`, instead have `Any` in
+-- place of where we would use `h`.  That way we can get property 3
+-- (which requires cooperation with GHC) and achieve properties 1 and
+-- 2 by unsafeCoerce.
 
 -- | The type of the 'handleImpl' method of the 'Handle' class.
--- Create a @HandleD@ using 'handleMapHandle'.
+-- Create a @HandleD@ using deriving via of 'OneWayCoercibleHandle'.
 type HandleD :: (Effects -> Type) -> Type
-newtype HandleD h = MkHandleD (forall e es. (e :> es) => h e -> h es)
+newtype HandleD h = MkHandleD (HandleDict Any)
 
--- | For defining the 'handleImpl' method of the 'Handle' class.
-handleMapHandle ::
-  (forall e es. (e :> es) => h e -> h es) ->
-  -- | ͘
-  HandleD h
-handleMapHandle = MkHandleD
+handleDictOfHandleD :: HandleD h -> HandleDict h
+-- SPJ suggests this might be safe on ghc-devs
+--
+--https://mailman.haskell.org/archives/list/ghc-devs@haskell.org/thread/A4AJPPA3WSORHKCMFWAFX26XNQQVYT5R/
+handleDictOfHandleD (MkHandleD f) = unsafeCoerce f
+
+handleDictImpl :: (Handle h) => HandleDict h
+handleDictImpl = handleDictOfHandleD handleImpl
+
+type role HandleD representational
 
 handleOneWayCoercible ::
   forall h.
   (forall e es. (e :> es) => OneWayCoercible (h e) (h es)) =>
   -- | ͘
   HandleD h
-handleOneWayCoercible = MkHandleD oneWayCoerce
-
-handleOneWayCoercion ::
-  (forall e es. (e :> es) => OneWayCoercion (h e) (h es)) ->
-  -- | ͘
-  HandleD h
-handleOneWayCoercion owc = MkHandleD (oneWayCoerceWith owc)
+-- SPJ suggests this might be safe on ghc-devs
+--
+--https://mailman.haskell.org/archives/list/ghc-devs@haskell.org/thread/A4AJPPA3WSORHKCMFWAFX26XNQQVYT5R/
+handleOneWayCoercible = MkHandleD (unsafeCoerce (MkHandleDict @h))
 
 instance (Handle h) => Handle (Rec1 h) where
-  handleImpl = handleMapHandle $ \(Rec1 h) -> Rec1 (mapHandle h)
+  handleImpl = withHandle @h handleOneWayCoercible
 
 instance (Handle h) => Handle (M1 i t h) where
-  handleImpl = handleMapHandle $ \(M1 h) -> M1 (mapHandle h)
+  handleImpl = withHandle @h handleOneWayCoercible
 
 instance (Handle h1, Handle h2) => Handle (h1 :*: h2) where
-  handleImpl = handleMapHandle $ \(h1 :*: h2) -> mapHandle h1 :*: mapHandle h2
+  handleImpl = withHandle @h1 (withHandle @h2 handleOneWayCoercible)
 
+-- | It is not always possible to derive an instance of
+-- 'OneWayCoercible'.  In such cases write a definition of
+-- 'oneWayCoercibleImpl' using @oneWayCoercibleTrustMe@.  Its argument
+-- must be a total function mapping the effect parameter of @h@.
+-- Normally you'll write the function by mapping the constitients of
+-- @h@ using the functions in this module like 'mapHandle', 'useImpl'
+-- and 'useImplUnder'.
+--
+-- If this function is not total then it's possible you are violating
+-- the type system, which could lead to segfaults or worse.  It's not
+-- easy to supply a partial function by accident, but be careful!
+-- (N.B. it must not be literally @mapHandle@ otherwise you'll have a
+-- circular definition!)
 oneWayCoercibleTrustMe ::
   (e :> es) =>
   (forall e' es'. (e' :> es') => h e' -> h es') ->
@@ -1582,6 +1631,7 @@ local (MkReader st) f k = do
     (\() -> k)
 
 newtype HandleReader h e = UnsafeMkHandleReader (State (h e) e)
+  deriving (Handle) via OneWayCoercibleHandle (HandleReader h)
 
 -- In general this is really tremendously unsafe because we could take
 -- an `HandleReader h e`, map it to `HandleReader h es`, write an `h
@@ -1644,11 +1694,8 @@ runHandleReader h k = do
 
     useImplIn k h'
 
-instance (Handle h) => Handle (HandleReader h) where
-  -- This handleImpl is now a special case that doesn't use
-  -- OneWayCoercion. We can only fix that when we store a
-  -- OneWayCoercion inside `Handle`.
-  handleImpl = handleMapHandle mapHandleReader
+instance (e :> es) => OneWayCoercible (HandleReader h e) (HandleReader h es) where
+  oneWayCoercibleImpl = unsafeOneWayCoercible
 
 newtype ConstEffect r (e :: Effects) = MkConstEffect r
   deriving (Handle) via OneWayCoercibleHandle (ConstEffect r)
