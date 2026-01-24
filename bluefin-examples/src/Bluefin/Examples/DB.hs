@@ -1,12 +1,17 @@
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Bluefin.Examples.DB where
 
 import Bluefin.Compound
-  ( Handle,
+  ( Generic,
+    Handle,
+    OneWayCoercible,
+    gOneWayCoercible,
     makeOp,
     mapHandle,
+    oneWayCoercibleImpl,
     useImpl,
     useImplIn,
   )
@@ -26,12 +31,16 @@ newtype User = User String deriving (Show)
 data DbEff es = MkDbEff
   { queryImpl :: DbHandle -> UserId -> Eff es User
   }
+  deriving (Generic)
 
 instance Handle DbEff where
   mapHandle db =
     MkDbEff
       { queryImpl = \dbh uid -> useImpl (queryImpl db dbh uid)
       }
+
+instance (e :> es) => OneWayCoercible (DbEff e) (DbEff es) where
+  oneWayCoercibleImpl = gOneWayCoercible
 
 query :: (e :> es) => DbEff e -> DbHandle -> UserId -> Eff es User
 query db dbHandle userId = makeOp $ queryImpl (mapHandle db) dbHandle userId
