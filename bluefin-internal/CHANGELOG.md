@@ -1,3 +1,11 @@
+* Move `mapHandle` out of class `Handle`
+
+* Remove `Bluefin.Internal.handleOneWayCoercion`
+
+* Remove `Bluefin.Internal.handleMapHandle`
+
+* Add a variety of `Handle` functionality
+
 # 0.3.5.0
 
 * Add `Bluefin.Internal.oneWayCoercibleTrustMe`
