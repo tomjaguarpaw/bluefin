@@ -1,6 +1,6 @@
 module Bluefin.Examples.HandleReader where
 
-import Bluefin.Compound (Handle (mapHandle), useImpl)
+import Bluefin.Compound (Handle, mapHandle, useImpl)
 import Bluefin.Eff (Eff, runEff, (:&), (:>))
 import Bluefin.HandleReader
   ( HandleReader,
