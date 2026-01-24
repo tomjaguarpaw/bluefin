@@ -1,3 +1,5 @@
+# 0.4.0.0
+
 * Move `mapHandle` out of class `Handle`
 
 * Remove `Bluefin.Internal.handleOneWayCoercion`
