@@ -402,9 +402,14 @@ module Bluefin.Compound
     --     counter7State :: 'Bluefin.State.State' Int e,
     --     counter7Stream :: 'Bluefin.Stream.Stream' String e
     --   }
+    --   deriving (Handle) via OneWayCoercibleHandle Counter7
     --
-    -- instance 'Handle' Counter7 where
-    --   handleImpl = handleMapHandle $ \\c ->
+    -- -- | The "forall" in the type of @incCounter7@ means that we
+    -- -- can't derive the @OneWayCoercible@ instance with
+    -- -- 'OneWayCoercible.gOneWayCoercible' so instead we use 'oneWayCoercibleTrustMe'.
+    --
+    -- instance (e :> es) => 'OneWayCoercible' (Counter7 e) (Counter7 es) where
+    --   oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \\c ->
     --     MkCounter7
     --       { incCounter7Impl = \\ex -> 'useImplUnder' (incCounter7Impl c ex),
     --         counter7State = 'mapHandle' (counter7State c),
@@ -492,9 +497,17 @@ module Bluefin.Compound
     --   { askLRImpl :: 'Bluefin.Eff.Eff' e r,
     --     localLRImpl :: forall e' a. (r -> r) -> Eff e' a -> Eff (e' :& e) a
     --   }
+    --   deriving (Handle) via OneWayCoercibleHandle (DynamicReader r)
     --
-    -- instance 'Handle' (DynamicReader r) where
-    --   mapHandle h =
+    -- -- | The "forall" in the type of @localRImpl@ means that we
+    -- -- can't derive the @OneWayCoercible@ instance with
+    -- -- 'OneWayCoercible.gOneWayCoercible' instead we use 'oneWayCoercibleTrustMe'.
+    --
+    -- instance
+    --   (e :> es) =>
+    --   OneWayCoercible (DynamicReader r e) (DynamicReader r es)
+    --   where
+    --   oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \\h ->
     --     DynamicReader
     --       { askLRImpl = 'useImpl' (askLRImpl h),
     --         localLRImpl = \\f k -> useImplUnder (localLRImpl h f k)
@@ -653,9 +666,9 @@ module Bluefin.Compound
     -- * Functions for making compound effects
 
     -- ** @Handle@
-    Handle (handleImpl, mapHandle),
+    Handle (handleImpl),
     HandleD,
-    handleMapHandle,
+    mapHandle,
 
     -- ** @OneWayCoercible@
 
@@ -664,6 +677,7 @@ module Bluefin.Compound
     OneWayCoercible.OneWayCoercible (OneWayCoercible.oneWayCoercibleImpl),
     OneWayCoercibleHandle (MkOneWayCoercibleHandle),
     handleOneWayCoercible,
+    withHandle,
     OneWayCoercible.gOneWayCoercible,
     oneWayCoercibleTrustMe,
     -- | Bluefin re-exports @Generic@ for convenience.

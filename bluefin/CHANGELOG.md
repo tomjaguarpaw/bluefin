@@ -1,3 +1,6 @@
+* Move `mapHandle` out of class `Handle` and remove `handleMapHandle`.
+  See `Bluefin.Compound` for instructions about migrating.
+
 # 0.2.7.0
 
 * Add `Bluefin.Compound.handleOneWayCoercible`
