@@ -445,6 +445,7 @@ class Handle (h :: Effects -> Type) where
 
 -- | The type of the 'handleImpl' method of the 'Handle' class.
 -- Create a @HandleD@ using 'handleMapHandle'.
+type HandleD :: (Effects -> Type) -> Type
 newtype HandleD h = MkHandleD (forall e es. (e :> es) => h e -> h es)
 
 -- | For defining the 'handleImpl' method of the 'Handle' class.
