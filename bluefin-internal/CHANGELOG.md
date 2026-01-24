@@ -1,3 +1,5 @@
+* Add `OneWayCoercible` instances for Generic types
+
 # 0.3.4.0
 
 * Add `Bluefin.Internal.Exception` and tests, thanks to Shea Levy
