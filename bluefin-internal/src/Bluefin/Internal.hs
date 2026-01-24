@@ -15,6 +15,7 @@ module Bluefin.Internal where
 import Bluefin.Internal.Exception.Scoped qualified as ScopedException
 import Bluefin.Internal.OneWayCoercible
   ( OneWayCoercible (oneWayCoercibleImpl),
+    OneWayCoercibleD,
     OneWayCoercion,
     gOneWayCoercible,
     oneWayCoerce,
@@ -476,6 +477,15 @@ instance (Handle h) => Handle (M1 i t h) where
 
 instance (Handle h1, Handle h2) => Handle (h1 :*: h2) where
   handleImpl = handleMapHandle $ \(h1 :*: h2) -> mapHandle h1 :*: mapHandle h2
+
+oneWayCoercibleTrustMe ::
+  (e :> es) =>
+  (forall e' es'. (e' :> es') => h e' -> h es') ->
+  -- | ͘
+  OneWayCoercibleD (h e) (h es)
+-- Forcing the argument doesn't do much of a check, but it is
+-- something
+oneWayCoercibleTrustMe !_ = unsafeOneWayCoercible
 
 -- { OneWayCoercibleHandle
 
