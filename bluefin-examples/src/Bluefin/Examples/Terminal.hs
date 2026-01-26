@@ -3,7 +3,7 @@
 
 module Bluefin.Examples.Terminal where
 
-import Bluefin.Compound (Handle (mapHandle), useImplIn)
+import Bluefin.Compound (mapHandle, useImplIn)
 import Bluefin.Eff (Eff, type (:&), type (:>))
 import Bluefin.IO (IOE, effIO)
 

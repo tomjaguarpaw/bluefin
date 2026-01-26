@@ -5,7 +5,6 @@
 -- and Tag from prim-uniq:
 --
 -- https://hackage.haskell.org/package/prim-uniq-0.2/docs/Data-Unique-Tag.html
-
 {-# LANGUAGE RoleAnnotations #-}
 
 module Bluefin.Internal.Key

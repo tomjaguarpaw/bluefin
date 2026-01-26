@@ -5,15 +5,16 @@ module Bluefin.Examples.CloneableHandle where
 import Bluefin.CloneableHandle
   ( CloneableHandle,
     Generic1,
-    GenericCloneableHandle(..),
+    GenericCloneableHandle (..),
     withEffToIOCloneHandle,
   )
 import Bluefin.Compound
   ( Generic,
-    Handle (mapHandle),
+    Handle,
     OneWayCoercible (..),
     OneWayCoercibleHandle (..),
     gOneWayCoercible,
+    mapHandle,
   )
 import Bluefin.Eff (Eff, runEff_, (:>))
 import Bluefin.Exception (Exception, throw, try)

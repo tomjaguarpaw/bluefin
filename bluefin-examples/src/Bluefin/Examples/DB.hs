@@ -1,20 +1,26 @@
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Bluefin.Examples.DB where
 
 import Bluefin.Compound
-  ( Handle (mapHandle),
+  ( Generic,
+    Handle,
+    OneWayCoercible,
+    OneWayCoercibleHandle (..),
+    gOneWayCoercible,
     makeOp,
+    mapHandle,
+    oneWayCoercibleImpl,
     useImplIn,
-    useImplUnder,
   )
 import Bluefin.Eff (Eff, (:&), (:>))
-import qualified Bluefin.Eff as BF
+import Bluefin.Eff qualified as BF
 import Bluefin.Exception (Exception)
-import qualified Bluefin.Exception as BF
+import Bluefin.Exception qualified as BF
 import Bluefin.IO (IOE)
-import qualified Bluefin.IO as BF
+import Bluefin.IO qualified as BF
 
 newtype DbHandle = DbHandle String deriving (Show)
 
@@ -23,14 +29,13 @@ newtype UserId = UserId String deriving (Show, Eq)
 newtype User = User String deriving (Show)
 
 data DbEff es = MkDbEff
-  { queryImpl :: forall e. DbHandle -> UserId -> Eff (e :& es) User
+  { queryImpl :: DbHandle -> UserId -> Eff es User
   }
+  deriving (Generic)
+  deriving (Handle) via OneWayCoercibleHandle DbEff
 
-instance Handle DbEff where
-  mapHandle db =
-    MkDbEff
-      { queryImpl = \dbh uid -> useImplUnder (queryImpl db dbh uid)
-      }
+instance (e :> es) => OneWayCoercible (DbEff e) (DbEff es) where
+  oneWayCoercibleImpl = gOneWayCoercible
 
 query :: (e :> es) => DbEff e -> DbHandle -> UserId -> Eff es User
 query db dbHandle userId = makeOp $ queryImpl (mapHandle db) dbHandle userId

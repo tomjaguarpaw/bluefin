@@ -1,12 +1,12 @@
 module Bluefin.Internal.Pipes where
 
-import Bluefin.Internal hiding (yield, await)
-import qualified Bluefin.Internal
+import Bluefin.Internal hiding (await, yield)
+import Bluefin.Internal qualified
 import Control.Monad (forever)
 import Data.Foldable (for_)
 import Data.Void (Void, absurd)
 import Prelude hiding (break, print, takeWhile)
-import qualified Prelude
+import Prelude qualified
 
 data Proxy a' a b' b e = MkProxy (Coroutine a' a e) (Coroutine b b' e)
 

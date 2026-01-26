@@ -1,3 +1,5 @@
+{-# LANGUAGE DerivingVia #-}
+
 module Bluefin.Internal.System.IO
   ( module Bluefin.Internal.System.IO,
     System.IO.IOMode (..),
@@ -10,19 +12,25 @@ import Bluefin.Internal
     bracket,
     effIO,
     mapHandle,
+    oneWayCoercibleTrustMe,
     useImplIn,
     (:&),
     (:>),
   )
-import qualified Bluefin.Internal
-import qualified System.IO
+import Bluefin.Internal qualified
+import Bluefin.Internal.OneWayCoercible (OneWayCoercible (oneWayCoercibleImpl))
+import System.IO qualified
 
 -- We can probably get away without the IOE and just use
 -- unsafeProvideIO on all Handle functions
 data Handle e = UnsafeMkHandle System.IO.Handle (IOE e)
+  deriving
+    (Bluefin.Internal.Handle)
+    via Bluefin.Internal.OneWayCoercibleHandle Handle
 
-instance Bluefin.Internal.Handle Handle where
-  mapHandle (UnsafeMkHandle h io) = UnsafeMkHandle h (mapHandle io)
+instance (e :> es) => OneWayCoercible (Handle e) (Handle es) where
+  oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \(UnsafeMkHandle h io) ->
+    UnsafeMkHandle h (mapHandle io)
 
 withFile ::
   (e1 :> es) =>

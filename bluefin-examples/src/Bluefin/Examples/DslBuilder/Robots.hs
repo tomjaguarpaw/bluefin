@@ -4,10 +4,11 @@ module Bluefin.Examples.DslBuilder.Robots where
 
 import Bluefin.Compound
   ( Generic,
-    Handle (mapHandle),
-    OneWayCoercible(oneWayCoercibleImpl),
+    Handle,
+    OneWayCoercible (oneWayCoercibleImpl),
     OneWayCoercibleHandle (..),
     gOneWayCoercible,
+    mapHandle,
   )
 import Bluefin.DslBuilder (DslBuilder, dslBuilder, runDslBuilder)
 import Bluefin.Eff (runPureEff, (:>))

@@ -1,3 +1,19 @@
+# 0.4.0.0
+
+* Move `mapHandle` out of class `Handle`
+
+* Remove `Bluefin.Internal.handleOneWayCoercion`
+
+* Remove `Bluefin.Internal.handleMapHandle`
+
+* Add a variety of `Handle` functionality
+
+# 0.3.5.0
+
+* Add `Bluefin.Internal.oneWayCoercibleTrustMe`
+
+* Add `OneWayCoercible` instances for Generic types
+
 # 0.3.4.0
 
 * Add `Bluefin.Internal.Exception` and tests, thanks to Shea Levy

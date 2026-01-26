@@ -4,8 +4,8 @@
 module Bluefin.Examples.Stream.Many where
 
 import Bluefin.Compound
-  ( Handle (mapHandle),
-    makeOp,
+  ( makeOp,
+    mapHandle,
     useImplIn,
     useImplUnder,
     useImplWithin,
@@ -31,7 +31,7 @@ import Prelude hiding
     take,
     writeFile,
   )
-import qualified Prelude
+import Prelude qualified
 
 -- An example form elaforge at
 --

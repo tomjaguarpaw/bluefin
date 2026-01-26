@@ -1,3 +1,16 @@
+# 0.4.0.0
+
+* Move `mapHandle` out of class `Handle` and remove `handleMapHandle`.
+  See `Bluefin.Compound` for instructions about migrating.
+
+# 0.2.7.0
+
+* Add `Bluefin.Compound.handleOneWayCoercible`
+
+* Add `Bluefin.Compound.oneWayCoercibleTrustMe`
+
+* Add `OneWayCoercible` instances for Generic types
+
 # 0.2.6.0
 
 * Add `Bluefin.Exception.GeneralBracket`, thanks to Shea Levy

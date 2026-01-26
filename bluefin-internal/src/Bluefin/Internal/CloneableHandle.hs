@@ -142,7 +142,7 @@ instance (Handle h1, Handle h2) => Handle (h1 :~> h2) where
   handleImpl = handleOneWayCoercible
 
 instance
-  (Handle h1, Handle h2) =>
+  (Handle h1, Handle h2, e :> es) =>
   OneWayCoercible
     ((h1 :~> h2) e)
     ((h1 :~> h2) es)
@@ -216,9 +216,13 @@ infixl 9 `apHC`
 -- a 'CloneableHandle' instance for your type, as long as it is a
 -- product type of @CloneableHandle@s.
 newtype GenericCloneableHandle h e = MkGenericCloneableHandle (h e)
+  deriving newtype (Handle)
 
-instance (Handle h) => Handle (GenericCloneableHandle h) where
-  handleImpl = handleMapHandle $ \(MkGenericCloneableHandle h) ->
+instance
+  (Handle h, e :> es) =>
+  OneWayCoercible (GenericCloneableHandle h e) (GenericCloneableHandle h es)
+  where
+  oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \(MkGenericCloneableHandle h) ->
     MkGenericCloneableHandle (mapHandle h)
 
 instance
