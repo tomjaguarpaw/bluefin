@@ -92,6 +92,7 @@ library
       Bluefin.Internal.Key,
       Bluefin.Internal.OneWayCoercible,
       Bluefin.Internal.Pipes,
+      Bluefin.Internal.ST,
       Bluefin.Internal.System.IO
 
 test-suite bluefin-test
