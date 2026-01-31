@@ -248,7 +248,7 @@ module Bluefin
     -- @
 
     -- ** \"Synthetic\" effect systems provide fine-grained effects and encapsulation
-    --
+
     -- | The approach of building effects from smaller pieces by
     -- combining algebraic data types, and then interpreting those
     -- pieces to "handle" some of the effects can be called the
@@ -265,7 +265,7 @@ module Bluefin
     -- possible effects by handling an effect.
 
     -- *** The downside of synthetic effects
-    --
+
     -- | Unfortunately, synthetic effects have two notable downsides:
     -- firstly they have unpredictable performance, and secondly they
     -- make it hard to achieve resource safety.  The first point –
@@ -305,7 +305,7 @@ module Bluefin
     -- Brackets](https://academy.fpblock.com/blog/2017/06/tale-of-two-brackets/)".
 
     -- ** @IO@-wrapper effect systems
-    --
+
     -- |
     --
     -- An alternative to synthetic effects that does allows
