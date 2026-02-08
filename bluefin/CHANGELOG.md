@@ -1,3 +1,7 @@
+# 0.4.0.1
+
+* Documentation only
+
 # 0.4.0.0
 
 * Move `mapHandle` out of class `Handle` and remove `handleMapHandle`.
