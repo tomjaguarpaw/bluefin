@@ -5,6 +5,9 @@ module Bluefin.Stream
     -- handle each element as soon as it is yielded (for example
     -- 'forEach') or gather all yielded elements int o a list (for
     -- example 'yieldToList').
+    --
+    -- For information about prompt finalization/resource safety when
+    -- using Bluefin @Stream@s, see "Bluefin.Coroutine".
 
     -- * Handle
     Stream,
