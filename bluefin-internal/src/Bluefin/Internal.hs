@@ -26,6 +26,7 @@ import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 import Control.Exception qualified
 import Control.Monad (forever)
 import Control.Monad.Base (MonadBase (liftBase))
+import Control.Monad.Fix (MonadFix)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
 import Control.Monad.Trans.Control (MonadBaseControl, StM, liftBaseWith, restoreM)
@@ -53,7 +54,7 @@ type (:&) = Union
 
 newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: IO a}
   deriving stock (Functor)
-  deriving newtype (Applicative, Monad)
+  deriving newtype (Applicative, Monad, MonadFix)
 
 type role Eff nominal representational
 
