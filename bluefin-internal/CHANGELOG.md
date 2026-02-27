@@ -1,3 +1,7 @@
+# 0.4.1.0
+
+* Add `MonadFix` instance for `Eff`, thanks to Adriaan Leijnse
+
 # 0.4.0.0
 
 * Move `mapHandle` out of class `Handle`

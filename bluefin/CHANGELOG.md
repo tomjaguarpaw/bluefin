@@ -1,3 +1,8 @@
+# 0.4.1.0
+
+* Depend on `bluefin-internal >= 0.4.1.0` to pick up `MonadFix`
+  instance for `Eff`
+
 # 0.4.0.1
 
 * Documentation only
