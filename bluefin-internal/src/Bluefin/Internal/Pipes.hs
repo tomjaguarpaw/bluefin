@@ -1,6 +1,24 @@
 module Bluefin.Internal.Pipes where
 
-import Bluefin.Internal hiding (await, yield)
+import Bluefin.Internal
+  ( Coroutine,
+    Eff,
+    IOE,
+    effIO,
+    evalState,
+    forEach,
+    get,
+    mapHandle,
+    put,
+    receiveStream,
+    returnEarly,
+    useImpl,
+    useImplIn,
+    withEarlyReturn,
+    yieldCoroutine,
+    (:&),
+    (:>),
+  )
 import Bluefin.Internal qualified
 import Control.Monad (forever)
 import Data.Foldable (for_)
