@@ -1,13 +1,7 @@
--- | Reimplementation of the @pipes@ (@Pipes@) ecosystem in Bluefin.
---
--- You should not use this module.  It will be deprecated and removed
--- in future versions.
---
--- This module is just an example of what you can do with Bluefin and
--- as such it should be obtained from
--- [@bluefin-examples@](https://github.com/tomjaguarpaw/bluefin/tree/master/bluefin-examples)
--- if you want it.  Instead of using it directly you are recommended
--- to use
+-- | Reimplementation of the @pipes@ prelude (@Pipes.Prelude@) in
+-- Bluefin.  It primarily serves as an example of what you can do with
+-- Bluefin and you probably won't want to use it directly.  Instead
+-- you are recommended to use
 --
 -- * 'Bluefin.Stream', 'Bluefin.Stream.yield'
 -- * 'Bluefin.Consume', 'Bluefin.Consume.await'
@@ -28,7 +22,7 @@
 -- quit
 -- "quit"
 -- @
-module Bluefin.Pipes.Prelude
+module Bluefin.Examples.Pipes.Prelude
   ( -- * Producers
     stdinLn,
     repeatM,
@@ -48,4 +42,6 @@ module Bluefin.Pipes.Prelude
   )
 where
 
-import Bluefin.Internal.Pipes
+import Prelude ()
+-- Eventually we'll copy the actual implementation here
+import Bluefin.Pipes.Prelude

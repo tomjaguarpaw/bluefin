@@ -1,13 +1,7 @@
 -- | Reimplementation of the @pipes@ (@Pipes@) ecosystem in Bluefin.
---
--- You should not use this module.  It will be deprecated and removed
--- in future versions.
---
--- This module is just an example of what you can do with Bluefin and
--- as such it should be obtained from
--- [@bluefin-examples@](https://github.com/tomjaguarpaw/bluefin/tree/master/bluefin-examples)
--- if you want it.  Instead of using it directly you are recommended
--- to use
+-- It primarily serves as an example of what you can do with Bluefin
+-- but you probably won't want to use an API like this directly.
+-- Instead you are recommended to use
 --
 -- * 'Bluefin.Stream', 'Bluefin.Stream.yield'
 -- * 'Bluefin.Consume', 'Bluefin.Consume.await'
@@ -17,7 +11,7 @@
 --   'Bluefin.Coroutine.connectCoroutines'
 --
 -- See also "Bluefin.Pipes.Prelude".
-module Bluefin.Pipes
+module Bluefin.Examples.Pipes
   ( -- * The Proxy handle
     Proxy,
     Effect,
@@ -48,4 +42,5 @@ module Bluefin.Pipes
   )
 where
 
-import Bluefin.Internal.Pipes
+-- Eventually we'll copy the actual implementation here
+import Bluefin.Pipes

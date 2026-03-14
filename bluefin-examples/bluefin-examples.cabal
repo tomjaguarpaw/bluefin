@@ -77,6 +77,8 @@ library
       Bluefin.Examples.DB,
       Bluefin.Examples.DslBuilder.Robots,
       Bluefin.Examples.HandleReader,
+      Bluefin.Examples.Pipes,
+      Bluefin.Examples.Pipes.Prelude,
       Bluefin.Examples.Random,
       Bluefin.Examples.Stream.InsideAndOut,
       Bluefin.Examples.Stream.Many,
