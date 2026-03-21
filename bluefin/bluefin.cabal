@@ -26,6 +26,7 @@ library
       Bluefin.Coroutine,
       Bluefin.CloneableHandle,
       Bluefin.DslBuilder,
+      Bluefin.DslBuilderEff,
       Bluefin.EarlyReturn,
       Bluefin.Eff,
       Bluefin.Exception,

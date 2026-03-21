@@ -1,3 +1,5 @@
+* Add `Bluefin.DslBuilderEff`
+
 # 0.4.1.0
 
 * Depend on `bluefin-internal >= 0.4.1.0` to pick up `MonadFix`

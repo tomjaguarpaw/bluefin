@@ -1,3 +1,6 @@
+-- This will probably be superseded by DslBuilderEff because the
+-- latter has a better name
+
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 

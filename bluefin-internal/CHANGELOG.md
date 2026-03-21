@@ -1,3 +1,5 @@
+* Add `Bluefin.Internal.DslBuilderEff`
+
 # 0.4.1.0
 
 * Add `MonadFix` instance for `Eff`, thanks to Adriaan Leijnse
