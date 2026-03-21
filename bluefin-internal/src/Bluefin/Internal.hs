@@ -1340,9 +1340,9 @@ catMaybes s y = mapMaybe id s y
 -- ([1,2,3,1,2,3],())
 -- @
 cycleToStream ::
-  (Foldable f, ea :> es) =>
+  (Foldable f, e1 :> es) =>
   f a ->
-  Stream a ea ->
+  Stream a e1 ->
   -- | ͘
   Eff es ()
 cycleToStream f y = do
