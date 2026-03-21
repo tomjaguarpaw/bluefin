@@ -1357,10 +1357,10 @@ cycleToStream f y = do
 -- ([1,2,3,4],())
 -- @
 takeConsume ::
-  (ea :> es, eb :> es) =>
+  (e1 :> es, e2 :> es) =>
   Int ->
-  Consume a ea ->
-  Stream a eb ->
+  Consume a e1 ->
+  Stream a e2->
   -- | ͘
   Eff es ()
 takeConsume count source sink = loop count
