@@ -12,7 +12,7 @@ import Unsafe.Coerce (unsafeCoerce)
 
 -- I suppose morally this is
 --
---   (State# (PrimStateEff e -> (# State# (PrimStateEff e), a #))
+--   (State# (PrimStateEff e) -> (# State# (PrimStateEff e), a #))
 --
 -- but since there can only be one valid implementation it doesn't
 -- seem worth doing it like that.
