@@ -1,3 +1,5 @@
+# 0.4.2.0
+
 * Add `Bluefin.DslBuilderEff`
 
 * Add `Bluefin.Prim`
