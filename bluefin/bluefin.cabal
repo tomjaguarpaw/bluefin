@@ -36,6 +36,7 @@ library
       Bluefin.Jump,
       Bluefin.Pipes,
       Bluefin.Pipes.Prelude,
+      Bluefin.Prim,
       Bluefin.Reader,
       Bluefin.State,
       Bluefin.StateSource,
