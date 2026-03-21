@@ -8,13 +8,14 @@ import Bluefin.Internal.OneWayCoercible
   ( OneWayCoercible,
     oneWayCoercible,
     oneWayCoercibleImpl,
+    oneWayCoerce,
   )
 
 newtype DslBuilderEffects h es r
   = MkDslBuilderEffects {unMkDslBuilderEffects :: forall e. h e -> Eff (e :& es) r}
 
 useImplDslBuilderEffects :: (e :> es) => DslBuilderEffects h e r -> DslBuilderEffects h es r
-useImplDslBuilderEffects (MkDslBuilderEffects f) = MkDslBuilderEffects (useImplUnder . f)
+useImplDslBuilderEffects = oneWayCoerce
 
 runDslBuilderEffects :: h es -> DslBuilderEffects h es r -> Eff es r
 runDslBuilderEffects h f = makeOp (unMkDslBuilderEffects f h)
