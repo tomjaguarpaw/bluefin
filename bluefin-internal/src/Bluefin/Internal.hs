@@ -638,7 +638,7 @@ instanceProof2 :: e `In` es -> e `In` (x :& es)
 instanceProof2 = drop
 
 -- Do we want this?
--- instance {-# incoherent #-} (e :> es) => (e' :& e) :> (e' :> es)
+-- instance {-# incoherent #-} (e :> es) => (e' :& e) :> (e' :& es)
 
 -- This seems a bit wobbly
 
