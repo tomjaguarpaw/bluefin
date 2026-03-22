@@ -1,3 +1,5 @@
+## 0.2.1.0
+
 Add `Bluefin.Contrib.Operators` and `Bluefin.Contrib.Operators.Clashing`
 
 ## 0.2.0.0
