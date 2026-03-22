@@ -1,3 +1,5 @@
+Add `Bluefin.Contrib.Operators` and `Bluefin.Contrib.Operators.Clashing`
+
 ## 0.2.0.0
 
 * Transitive version bump because of choice of different incoherent

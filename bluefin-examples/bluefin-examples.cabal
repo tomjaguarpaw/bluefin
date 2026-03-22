@@ -74,6 +74,7 @@ library
     import:           warnings
     exposed-modules:
       Bluefin.Examples.CloneableHandle,
+      Bluefin.Examples.Contrib.Operators,
       Bluefin.Examples.DB,
       Bluefin.Examples.DslBuilder.Robots,
       Bluefin.Examples.HandleReader,
