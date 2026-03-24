@@ -19,7 +19,7 @@ import Unsafe.Coerce (unsafeCoerce)
 data Prim (e :: Effects) = UnsafeMkPrim
   deriving Handle via OneWayCoercibleHandle Prim
 
-data PrimStateEff es
+data PrimStateEff (es :: Effects)
 
 instance (e :> es) => OneWayCoercible (Prim e) (Prim es) where
   oneWayCoercibleImpl = unsafeOneWayCoercible
