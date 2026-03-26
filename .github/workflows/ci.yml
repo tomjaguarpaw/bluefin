@@ -29,9 +29,9 @@ jobs:
           - "9.14.1"
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
-    - uses: haskell-actions/setup@v2.7
+    - uses: haskell-actions/setup@v2.10
       id: setup-haskell-cabal
       name: Setup Haskell
       with:
@@ -47,7 +47,7 @@ jobs:
         cabal freeze
 
 
-    - uses: actions/cache@v3
+    - uses: actions/cache@v5
       name: Cache ~/.cabal/3tore
       with:
         path: ~/.cabal/store
