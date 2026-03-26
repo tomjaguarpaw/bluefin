@@ -1,3 +1,5 @@
+# 0.4.3.0
+
 * Add `Bluefin.Internal.GadtEffect`
 
 * Add `Bluefin.Internal.asksHandle`
