@@ -4,7 +4,6 @@
 module Main (main) where
 
 import Bluefin.Internal
-import Bluefin.Internal.DslBuilder
 import Control.Monad (when)
 import Data.Foldable (for_)
 import Test.GeneralBracket (test_generalBracket)
