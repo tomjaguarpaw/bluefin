@@ -1,3 +1,7 @@
+# 0.6.0.0
+
+* Changed type of `runEff` to match `runEff_`
+
 # 0.5.100.0
 
 * Covert to "capability" nomenclature

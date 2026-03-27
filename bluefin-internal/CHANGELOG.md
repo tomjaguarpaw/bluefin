@@ -1,3 +1,7 @@
+# 0.6.0.0
+
+* Changed type of `runEff` to match `runEff_`
+
 # 0.5.100.0
 
 * Add exports for change to "capability" nomenclature
@@ -5,6 +9,10 @@
 # 0.5.1.0
 
 * Add `<:` type synonym for `:>`
+
+# 0.6.0.0
+
+* Changed type of `runEff` to match `runEff_`
 
 # 0.5.0.0
 
