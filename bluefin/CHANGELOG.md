@@ -1,3 +1,5 @@
+# 0.5.0.0
+
 * Fix dodgy `Bluefin.Primitive.primitive` implementation
 
 # 0.4.3.0
