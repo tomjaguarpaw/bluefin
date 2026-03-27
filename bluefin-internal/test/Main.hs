@@ -11,7 +11,7 @@ import Test.SpecH (SpecH, assertEqual, runSpecH)
 import Prelude hiding (break, read)
 
 main :: IO ()
-main = runEff_ $ \io -> do
+main = runEff $ \io -> do
   runSpecH io $ \y -> do
     let assertEqual' = assertEqual y
 

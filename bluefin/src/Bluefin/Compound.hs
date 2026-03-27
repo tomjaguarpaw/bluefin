@@ -141,7 +141,7 @@ module Bluefin.Compound
     -- though: we can leave an effect unhandled to be handled by a
     -- different handler at a higher level.  This must /always/ be the
     -- case for 'Bluefin.IO.IOE', which can only be handled at the top
-    -- level by 'Bluefin.Eff.runEff_'.  Let's see what it looks like to
+    -- level by 'Bluefin.Eff.runEff'.  Let's see what it looks like to
     -- wrap @IOE@ and provide an API which allows a subset of @IO@
     -- operations.
     --
@@ -162,7 +162,7 @@ module Bluefin.Compound
     --
     -- @
     -- exampleCounter3B :: IO ()
-    -- exampleCounter3B = 'Bluefin.Eff.runEff_' $ \\io -> runCounter3B io $ \\c -> do
+    -- exampleCounter3B = 'Bluefin.Eff.runEff' $ \\io -> runCounter3B io $ \\c -> do
     --   incCounter3B c
     --   incCounter3B c
     --   incCounter3B c
@@ -652,7 +652,7 @@ module Bluefin.Compound
     --
     -- @
     -- exampleRunFileSystemIO :: IO (Either String String)
-    -- exampleRunFileSystemIO = 'Bluefin.Eff.runEff_' $ \\io -> try $ \\ex ->
+    -- exampleRunFileSystemIO = 'Bluefin.Eff.runEff' $ \\io -> try $ \\ex ->
     --   runFileSystemIO ex io action
     -- @
     --
