@@ -1465,14 +1465,11 @@ effIO MkIOE = UnsafeMkEff
 --       effIO io (putStrLn "Hello world!")
 -- Hello, world!
 -- @
---
--- We suggest you use 'runEff_' instead, as it probably has better
--- type inference properties.
 runEff ::
-  (forall e es. IOE e -> Eff (e :& es) a) ->
+  (forall e. IOE e -> Eff e a) ->
   -- | ͘
   IO a
-runEff eff = runEff_ (makeOp . eff)
+runEff eff = runEff_ eff
 
 -- | Run an 'Eff' whose only unhandled effect is 'IO'.
 --
@@ -1482,8 +1479,8 @@ runEff eff = runEff_ (makeOp . eff)
 -- Hello, world!
 -- @
 --
--- This probably has better type inference properties than 'runEff'
--- and so will probably replace it in a later version.
+-- Use 'runEff' instead.  @runEff_@ will be deprecated in a future
+-- version.
 runEff_ ::
   (forall e. IOE e -> Eff e a) ->
   -- | ͘

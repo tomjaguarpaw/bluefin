@@ -1,3 +1,7 @@
+# 0.6.0.0
+
+* Changed type of `runEff` to match `runEff_`
+
 # 0.5.0.0
 
 * Fix dodgy `Bluefin.Primitive.primitive` implementation
