@@ -18,10 +18,16 @@ data PrimStateEff (es :: Effects)
 instance (e :> es) => OneWayCoercible (Prim e) (Prim es) where
   oneWayCoercibleImpl = unsafeOneWayCoercible
 
+runPrim ::
+  (forall e. Prim e -> Eff (e :& es) r) ->
+  -- | ͘
+  Eff es r
+runPrim k = makeOp (k UnsafeMkPrim)
+
 primitive ::
-  (e1 :> es, e2 :> es) =>
+  (e1 :> es) =>
   Prim e1 ->
-  (State# (PrimStateEff e2) -> (# State# (PrimStateEff e2), a #)) ->
+  (State# (PrimStateEff e1) -> (# State# (PrimStateEff e1), a #)) ->
   -- | ͘
   Eff es a
 primitive UnsafeMkPrim = unsafeCoerce (P.primitive @IO)

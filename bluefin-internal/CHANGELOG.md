@@ -1,3 +1,5 @@
+* Fix dodgy `Bluefin.Primitive.Internal.primitive` implementation
+
 # 0.4.3.0
 
 * Add `Bluefin.Internal.GadtEffect`
