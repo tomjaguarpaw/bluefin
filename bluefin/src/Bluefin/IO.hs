@@ -5,7 +5,6 @@ module Bluefin.IO
     IOE,
 
     -- * Handlers
-    runEff_,
     runEff,
 
     -- * Effectful operations
@@ -24,6 +23,7 @@ module Bluefin.IO
 
     -- ** Deprecated versions
     withEffToIO,
+    runEff_,
   )
 where
 

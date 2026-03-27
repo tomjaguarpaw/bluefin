@@ -16,7 +16,7 @@ import Bluefin.Compound
     gOneWayCoercible,
     mapHandle,
   )
-import Bluefin.Eff (Eff, runEff_, (:>))
+import Bluefin.Eff (Eff, runEff, (:>))
 import Bluefin.Exception (Exception, throw, try)
 import Bluefin.IO (IOE, effIO)
 import Bluefin.State (State, evalState, get, modify)
@@ -39,7 +39,7 @@ instance (e :> es) => OneWayCoercible (MyHandle e) (MyHandle es) where
 -- Left "Aborting from branch 1"
 -- State started at 0 and was cloned. Now: 0
 example :: IO ()
-example = runEff_ $ \io -> evalState 0 $ \st -> do
+example = runEff $ \io -> evalState 0 $ \st -> do
   r <- try $ \ex -> do
     bluefinRace
       io

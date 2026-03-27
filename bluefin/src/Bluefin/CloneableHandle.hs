@@ -39,7 +39,7 @@ module Bluefin.CloneableHandle
     --
     -- @
     -- example :: IO ()
-    -- example = 'Bluefin.Eff.runEff_' $ \\io -> 'Bluefin.State.evalState' 0 $ \\st -> do
+    -- example = 'Bluefin.Eff.runEff' $ \\io -> 'Bluefin.State.evalState' 0 $ \\st -> do
     --   r \<- 'Bluefin.Exception.try' $ \\ex -> do
     --     bluefinRace
     --       io

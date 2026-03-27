@@ -235,7 +235,7 @@ hoistReader f = Reader.ReaderT . (\m -> f . Reader.runReaderT m)
 -- | Run `MonadIO` operations in 'Eff'.
 --
 -- @
--- >>> runEff_ $ \\io -> withMonadIO io $ liftIO $ do
+-- >>> runEff $ \\io -> withMonadIO io $ liftIO $ do
 --       putStrLn "Hello world!"
 -- Hello, world!
 -- @
@@ -274,7 +274,7 @@ withMonadFail f m = unEffReader m f
 
 -- | Run an 'Eff' that doesn't contain any unhandled effects.
 runPureEff :: (forall es. Eff es a) -> a
-runPureEff e = unsafePerformIO (runEff_ (\_ -> e))
+runPureEff e = unsafePerformIO (runEff (\_ -> e))
 
 unsafeCoerceEff :: Eff t r -> Eff t' r
 unsafeCoerceEff = coerce
@@ -764,7 +764,7 @@ catch f h = handle h f
 -- due to pure exceptions being imprecise.
 --
 -- f :: IO (Either Ex1 (Either Ex2 a))
--- f = runEff_ $ \io -> do
+-- f = runEff $ \io -> do
 --   try $ \e1 -> do
 --     try $ \e2 -> do
 --       rethrowIO io e1 $ do
@@ -1446,7 +1446,7 @@ instance (e :> es) => OneWayCoercible (IOE e) (IOE es) where
 -- | Run an 'IO' operation in 'Eff'
 --
 -- @
--- >>> runEff_ $ \\io -> do
+-- >>> runEff $ \\io -> do
 --       effIO io (putStrLn "Hello world!")
 -- Hello, world!
 -- @
@@ -1461,7 +1461,7 @@ effIO MkIOE = UnsafeMkEff
 -- | Run an 'Eff' whose only unhandled effect is 'IO'.
 --
 -- @
--- >>> runEff_ $ \\io -> do
+-- >>> runEff $ \\io -> do
 --       effIO io (putStrLn "Hello world!")
 -- Hello, world!
 -- @

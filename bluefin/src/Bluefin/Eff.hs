@@ -4,7 +4,6 @@ module Bluefin.Eff
 
     -- * Run an 'Eff'
     runPureEff,
-    runEff_,
     runEff,
 
     -- * Resource management
@@ -23,6 +22,9 @@ module Bluefin.Eff
     Effects,
     (:>),
     (:&),
+
+    -- * Deprecated
+    runEff_,
   )
 where
 

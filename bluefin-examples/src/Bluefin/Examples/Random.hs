@@ -1,7 +1,7 @@
 module Bluefin.Examples.Random where
 
 import Bluefin.Eff (Eff, (:>))
-import Bluefin.IO (effIO, runEff_)
+import Bluefin.IO (effIO, runEff)
 import Bluefin.Random (Random, withInitStdGen)
 import Data.ByteString (ByteString)
 import Data.ByteString.Short (ShortByteString)
@@ -9,7 +9,7 @@ import System.Random.Stateful (RandomGen, Uniform, UniformRange, randomRM)
 import System.Random.Stateful qualified as RS
 
 exampleRandomUsage :: IO ()
-exampleRandomUsage = runEff_ $ \io -> do
+exampleRandomUsage = runEff $ \io -> do
   withInitStdGen io $ \r -> do
     n <- randomRM @Int (1, 5) r
     m <- randomRM @Int (1, 5) r
