@@ -146,8 +146,8 @@ race x y io = do
     Right a -> a
 
 -- | Connect two coroutines.  Their execution is interleaved by
--- exchanging @a@s and @b@s. When the first yields its first @a@ it
--- starts the second (which is awaiting an @a@).
+-- exchanging @a@s and @b@s. When the former yields its first @a@ it
+-- starts the latter (which is awaiting an @a@).
 connectCoroutines ::
   forall es a b r.
   (forall e. Coroutine a b e -> Eff (e :& es) r) ->
