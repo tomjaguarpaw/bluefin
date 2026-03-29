@@ -30,6 +30,7 @@ import Control.Monad.Fix (MonadFix)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
 import Control.Monad.Trans.Control (MonadBaseControl, StM, liftBaseWith, restoreM)
+import Control.Monad.Trans.Reader (ReaderT)
 import Control.Monad.Trans.Reader qualified as Reader
 import Data.Coerce (coerce)
 import Data.Foldable (for_)
@@ -52,14 +53,14 @@ infixr 9 :&
 
 type (:&) = Union
 
-newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: IO a}
+newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: () -> IO a}
   deriving stock (Functor)
-  deriving newtype (Applicative, Monad, MonadFix)
+  deriving (Applicative, Monad, MonadFix) via ReaderT () IO
 
 type role Eff nominal representational
 
 instance (e :> es) => OneWayCoercible (Eff e) (Eff es) where
-  oneWayCoercibleImpl = oneWayCoercible
+  oneWayCoercibleImpl = unsafeOneWayCoercible
 
 instance (e :> es) => OneWayCoercible (Eff e r) (Eff es r) where
   oneWayCoercibleImpl = oneWayCoercible
@@ -86,7 +87,7 @@ withEffToIO ::
   ((forall r. (forall e1. IOE e1 -> Eff (e1 :& es) r) -> IO r) -> IO a) ->
   IOE e2 ->
   Eff es a
-withEffToIO k io = effIO io (k (\f -> unsafeUnEff (f io)))
+withEffToIO k io = UnsafeMkEff (\env -> k (\f -> unsafeUnEff (f io) env))
 
 withEffToIO' ::
   (e2 :> es) =>
@@ -1456,7 +1457,7 @@ effIO ::
   IO a ->
   -- | ͘
   Eff es a
-effIO MkIOE = UnsafeMkEff
+effIO MkIOE = UnsafeMkEff . const
 
 -- | Run an 'Eff' whose only unhandled effect is 'IO'.
 --
@@ -1488,7 +1489,9 @@ runEff_ ::
   (forall e. IOE e -> Eff e a) ->
   -- | ͘
   IO a
-runEff_ eff = unsafeUnEff (eff MkIOE)
+runEff_ eff = unsafeUnEff (eff MkIOE) emptyEnv
+  where
+    emptyEnv = ()
 
 unsafeProvideIO ::
   (forall e. IOE e -> Eff (e :& es) a) ->

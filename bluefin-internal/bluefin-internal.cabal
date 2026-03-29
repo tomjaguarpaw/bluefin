@@ -81,7 +81,8 @@ library
       primitive >= 0.9,
       transformers < 0.7,
       transformers-base < 0.5,
-      monad-control < 1.1
+      monad-control < 1.1,
+      vault >= 0.3
     exposed-modules:
       Bluefin.Internal,
       Bluefin.Internal.CloneableHandle,
