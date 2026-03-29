@@ -6,6 +6,7 @@ module Bluefin.Internal.Prim where
 
 import Bluefin.Internal
 import Bluefin.Internal.OneWayCoercible
+import Control.Monad.Primitive (RealWorld)
 import Control.Monad.Primitive qualified as P
 import GHC.Exts (State#)
 import Unsafe.Coerce (unsafeCoerce)
@@ -24,10 +25,23 @@ runPrim ::
   Eff es r
 runPrim k = makeOp (k UnsafeMkPrim)
 
+type StateM s a = (State# s -> (# State# s, a #))
+
+type StateMToIO s a = StateM s a -> IO a
+
 primitive ::
+  forall es e1 a.
   (e1 :> es) =>
   Prim e1 ->
   (State# (PrimStateEff e1) -> (# State# (PrimStateEff e1), a #)) ->
   -- | ͘
   Eff es a
-primitive UnsafeMkPrim = unsafeCoerce (P.primitive @IO)
+primitive UnsafeMkPrim k = unsafeProvideIO $ \io ->
+  effIO
+    io
+    ( unsafeCoerce
+        @(StateMToIO RealWorld a)
+        @(StateMToIO (PrimStateEff e1) a)
+        (P.primitive @IO)
+        k
+    )
