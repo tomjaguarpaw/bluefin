@@ -4,7 +4,7 @@
 module Main (main) where
 
 import Bluefin.Internal
-import Control.Monad (when)
+import Control.Monad (forever, when)
 import Data.Foldable (for_)
 import Test.GeneralBracket (test_generalBracket)
 import Test.SpecH (SpecH, assertEqual, runSpecH)
@@ -37,6 +37,7 @@ main = runEff_ $ \io -> do
 
     test_localInHandler y
     test_generalBracket io y
+    test_streamConsumeReader y
 
 (!?) :: [a] -> Int -> Maybe a
 xs !? i = runPureEff $
@@ -87,3 +88,43 @@ test_localInHandler y = runReader "global" $ \re ->
   forEach
     (\y2 -> local re (const "local") (yield y2 ()))
     (\() -> assertEqual y "Reader local" "local" =<< ask re)
+
+test_streamConsumeReader :: (e :> es) => SpecH e -> Eff es ()
+test_streamConsumeReader spech = do
+  runReader @Int 0 $ \r -> do
+    streamConsume
+      ( \y -> do
+          let s = yield y ()
+          let check i = assertEqual spech "Reader local" i =<< ask r
+          check 0
+          s
+          check 0
+          s
+          check 0
+          local r (+ 1) $ do
+            check 1
+            s
+            check 1
+            local r (+ 1) $ do
+              check 2
+              s
+              check 2
+            check 1
+            s
+            check 1
+          check 0
+          s
+          check 0
+      )
+      ( \a -> do
+          let p = await a
+          p
+          local r (subtract 100) $ do
+            p
+            local r (subtract 100) $ do
+              p
+              local r (subtract 100) $ do
+                p
+                local r (subtract 100) $ do
+                  forever p
+      )
