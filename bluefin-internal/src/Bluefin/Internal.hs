@@ -24,7 +24,7 @@ import Bluefin.Internal.OneWayCoercible
 import Control.Concurrent.Async qualified as Async
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 import Control.Exception qualified
-import Control.Monad (forever)
+import Control.Monad (foldM, forever)
 import Control.Monad.Base (MonadBase (liftBase))
 import Control.Monad.Fix (MonadFix)
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -55,7 +55,10 @@ infixr 9 :&
 
 type (:&) = Union
 
-type Env = (Vault, ())
+data KeyIORef where
+  MkKeyIORef :: Key (IORef a) -> KeyIORef
+
+type Env = (Vault, [KeyIORef])
 
 newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: Env -> IO a}
   deriving stock (Functor)
@@ -149,6 +152,23 @@ race x y io = do
   pure $ case r of
     Left a -> a
     Right a -> a
+
+withClonedEnv :: Eff es r -> Eff es r
+withClonedEnv m = UnsafeMkEff $ \(vault, keys) -> do
+  vault' <-
+    foldM
+      ( \v (MkKeyIORef k) -> do
+          let mRef = Vault.lookup k vault
+          ref <- case mRef of
+            Nothing -> error "FIXME: make a good error message"
+            Just ref -> pure ref
+          orig <- readIORef ref
+          ref' <- newIORef orig
+          pure $! Vault.insert k ref' v
+      )
+      vault
+      keys
+  case m of UnsafeMkEff m' -> m' (vault', keys)
 
 -- | Connect two coroutines.  Their execution is interleaved by
 -- exchanging @a@s and @b@s. When the former yields its first @a@ it
@@ -1495,7 +1515,7 @@ runEff_ ::
   IO a
 runEff_ eff = unsafeUnEff (eff MkIOE) emptyEnv
   where
-    emptyEnv = (Vault.empty, ())
+    emptyEnv = (Vault.empty, [])
 
 unsafeProvideIO ::
   (forall e. IOE e -> Eff (e :& es) a) ->
