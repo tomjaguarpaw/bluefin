@@ -488,7 +488,7 @@ newtype HandleD h = MkHandleD (HandleDict Any)
 handleDictOfHandleD :: HandleD h -> HandleDict h
 -- SPJ suggests this might be safe on ghc-devs
 --
---https://mailman.haskell.org/archives/list/ghc-devs@haskell.org/thread/A4AJPPA3WSORHKCMFWAFX26XNQQVYT5R/
+-- https://mailman.haskell.org/archives/list/ghc-devs@haskell.org/thread/A4AJPPA3WSORHKCMFWAFX26XNQQVYT5R/
 handleDictOfHandleD (MkHandleD f) = unsafeCoerce f
 
 handleDictImpl :: (Handle h) => HandleDict h
@@ -503,7 +503,7 @@ handleOneWayCoercible ::
   HandleD h
 -- SPJ suggests this might be safe on ghc-devs
 --
---https://mailman.haskell.org/archives/list/ghc-devs@haskell.org/thread/A4AJPPA3WSORHKCMFWAFX26XNQQVYT5R/
+-- https://mailman.haskell.org/archives/list/ghc-devs@haskell.org/thread/A4AJPPA3WSORHKCMFWAFX26XNQQVYT5R/
 handleOneWayCoercible = MkHandleD (unsafeCoerce (MkHandleDict @h))
 
 instance (Handle h) => Handle (Rec1 h) where
@@ -1374,7 +1374,7 @@ takeConsume ::
   (e1 :> es, e2 :> es) =>
   Int ->
   Consume a e1 ->
-  Stream a e2->
+  Stream a e2 ->
   -- | ͘
   Eff es ()
 takeConsume count source sink = loop count
