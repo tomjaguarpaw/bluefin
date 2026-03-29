@@ -94,6 +94,7 @@ hcException :: HandleCloner (Exception ex) (Exception ex) e
 hcException = MkHandleCloner $ \ex k -> do
   useImplIn k (mapHandle ex)
 
+{- Disable Reader for now
 instance CloneableHandle (Reader r) where
   cloneableHandleImpl = MkCloneableHandleD hcReader
 
@@ -101,6 +102,7 @@ hcReader :: HandleCloner (Reader r) (Reader r) e
 hcReader = MkHandleCloner $ \(MkReader s) k -> do
   cloneHandleClass s $ \s' -> do
     useImplIn k (MkReader (mapHandle s'))
+-}
 
 -- | Cloning a @HandleReader@ copies its contents to a new
 -- @HandleReader@.  Changes to one will not effect the other.

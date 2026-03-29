@@ -38,13 +38,13 @@ import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
 import Data.Proxy (Proxy (Proxy))
 import Data.Type.Coercion (Coercion (Coercion))
+import Data.Vault.Strict
+import Data.Vault.Strict qualified as Vault
 import GHC.Exts (Any, Proxy#, proxy#)
 import GHC.Generics (Generic, M1, Rec1, (:*:))
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
-import Data.Vault.Strict
-import Data.Vault.Strict qualified as Vault
 
 data Effects = Union Effects Effects
 
@@ -55,9 +55,11 @@ infixr 9 :&
 
 type (:&) = Union
 
-newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: Vault -> IO a}
+type Env = (Vault, ())
+
+newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: Env -> IO a}
   deriving stock (Functor)
-  deriving (Applicative, Monad, MonadFix) via ReaderT Vault IO
+  deriving (Applicative, Monad, MonadFix) via ReaderT Env IO
 
 type role Eff nominal representational
 
@@ -1493,7 +1495,7 @@ runEff_ ::
   IO a
 runEff_ eff = unsafeUnEff (eff MkIOE) emptyEnv
   where
-    emptyEnv = Vault.empty
+    emptyEnv = (Vault.empty, ())
 
 unsafeProvideIO ::
   (forall e. IOE e -> Eff (e :& es) a) ->
@@ -1589,8 +1591,8 @@ tell ::
   Eff es ()
 tell (Writer y) = yield y
 
-newtype Reader r e = MkReader (State r e)
-  deriving newtype (Handle)
+newtype Reader r e = MkReader (Vault.Key (IORef r))
+  deriving (Handle) via OneWayCoercibleHandle (Reader r)
 
 instance (e :> es) => OneWayCoercible (Reader r e) (Reader r es) where
   oneWayCoercibleImpl = oneWayCoercible
@@ -1600,7 +1602,11 @@ runReader ::
   r ->
   (forall e. Reader r e -> Eff (e :& es) a) ->
   Eff es a
-runReader r f = evalState r (f . MkReader)
+runReader r f = UnsafeMkEff $ \(vault, rest) -> do
+  k <- Vault.newKey
+  ref <- newIORef r
+  case f (MkReader k) of
+    UnsafeMkEff m -> m (Vault.insert k ref vault, rest {-FIXME-})
 
 -- | Read the value.  Note that @ask@ has the property that these two
 -- operations are always equivalent:
@@ -1622,7 +1628,12 @@ ask ::
   -- | ͘
   Reader r e ->
   Eff es r
-ask (MkReader st) = get st
+ask (MkReader k) = UnsafeMkEff $ \(vault, _) -> do
+  let mRef = Vault.lookup k vault
+  ref <- case mRef of
+    Nothing -> error "FIXME: make a good error message"
+    Just ref -> pure ref
+  readIORef ref
 
 -- | Read the value modified by a function
 asks ::
@@ -1631,7 +1642,7 @@ asks ::
   -- | Read the value modified by this function
   (r -> a) ->
   Eff es a
-asks (MkReader st) f = fmap f (get st)
+asks r f = fmap f (ask r)
 
 -- | Locally override the value in the @Reader@. It will be restored
 -- when the @local@ block ends.
@@ -1643,12 +1654,16 @@ local ::
   -- | Body
   Eff es a ->
   Eff es a
-local (MkReader st) f k = do
-  orig <- get st
-  bracket
-    (put st (f orig))
-    (\() -> put st orig)
-    (\() -> k)
+local (MkReader key) f k = UnsafeMkEff $ \env@(vault, _) -> do
+  let mRef = Vault.lookup key vault
+  ref <- case mRef of
+    Nothing -> error "FIXME: make a good error message"
+    Just ref -> pure ref
+  orig <- readIORef ref
+  Control.Exception.bracket
+    (writeIORef ref (f orig))
+    (\() -> writeIORef ref orig)
+    (\() -> case k of UnsafeMkEff m -> m env)
 
 newtype HandleReader h e = UnsafeMkHandleReader (State (h e) e)
   deriving (Handle) via OneWayCoercibleHandle (HandleReader h)
