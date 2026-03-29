@@ -184,12 +184,12 @@ connectCoroutines m1 m2 = unsafeProvideIO $ \io -> do
   bv <- effIO io newEmptyMVar
 
   let t1 :: forall e. IOE e -> Eff (e :& es) r
-      t1 io' = forEach (useImplUnder . m1) $ \a -> effIO io' $ do
+      t1 io' = withClonedEnv $ forEach (useImplUnder . m1) $ \a -> effIO io' $ do
         putMVar av a
         takeMVar bv
 
   let t2 :: forall e. IOE e -> Eff (e :& es) r
-      t2 io' = do
+      t2 io' = withClonedEnv $ do
         ainit <- effIO io' (takeMVar av)
         forEach (useImplUnder . m2 ainit) $ \b_ -> effIO io' $ do
           putMVar bv b_
@@ -1626,7 +1626,7 @@ runReader r f = UnsafeMkEff $ \(vault, rest) -> do
   k <- Vault.newKey
   ref <- newIORef r
   case f (MkReader k) of
-    UnsafeMkEff m -> m (Vault.insert k ref vault, rest {-FIXME-})
+    UnsafeMkEff m -> m (Vault.insert k ref vault, MkKeyIORef k : rest)
 
 -- | Read the value.  Note that @ask@ has the property that these two
 -- operations are always equivalent:
