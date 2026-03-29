@@ -43,6 +43,8 @@ import GHC.Generics (Generic, M1, Rec1, (:*:))
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
+import Data.Vault.Strict
+import Data.Vault.Strict qualified as Vault
 
 data Effects = Union Effects Effects
 
@@ -53,9 +55,9 @@ infixr 9 :&
 
 type (:&) = Union
 
-newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: () -> IO a}
+newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: Vault -> IO a}
   deriving stock (Functor)
-  deriving (Applicative, Monad, MonadFix) via ReaderT () IO
+  deriving (Applicative, Monad, MonadFix) via ReaderT Vault IO
 
 type role Eff nominal representational
 
@@ -1491,7 +1493,7 @@ runEff_ ::
   IO a
 runEff_ eff = unsafeUnEff (eff MkIOE) emptyEnv
   where
-    emptyEnv = ()
+    emptyEnv = Vault.empty
 
 unsafeProvideIO ::
   (forall e. IOE e -> Eff (e :& es) a) ->
