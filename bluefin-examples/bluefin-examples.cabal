@@ -83,6 +83,7 @@ library
       Bluefin.Examples.Pipes.Prelude,
       Bluefin.Examples.Prim,
       Bluefin.Examples.Random,
+      Bluefin.Examples.Reader,
       Bluefin.Examples.Stream.InsideAndOut,
       Bluefin.Examples.Stream.Many,
       Bluefin.Examples.Terminal
