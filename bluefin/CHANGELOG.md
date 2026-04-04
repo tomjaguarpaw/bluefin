@@ -1,3 +1,5 @@
+# 0.5.1.0
+
 * Add `<:` type synonym for `:>`
 
   It is suggested you switch your uses of `:>` to `<:` because it is a
