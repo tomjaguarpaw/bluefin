@@ -43,6 +43,9 @@ import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
 
+-- | Each inhabitant of @Effects@ is a set of effect tags, used for
+-- effect tracking to ensure that effects don't escape the scope of
+-- their handler
 data Effects = Union Effects Effects
 
 -- | @type (:&) :: Effects -> Effects -> Effects@
