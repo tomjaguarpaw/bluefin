@@ -32,7 +32,7 @@ module Bluefin.GadtEffect
     --
     -- @
     -- instance
-    --   (e :> es) =>
+    --   (e \<: es) =>
     --   t'Bluefin.Compound.OneWayCoercible' ('GadtEffect' FileSystem r e) (GadtEffect FileSystem r es)
     --   where
     --   'Bluefin.Compound.oneWayCoercibleImpl' = 'oneWayCoercibleGadtEffectTrustMe' $ \\case
@@ -51,7 +51,7 @@ module Bluefin.GadtEffect
     --
     -- @
     -- readFile ::
-    --   (e1 :> es) =>
+    --   (e1 \<: es) =>
     --   'Send' FileSystem e1 ->
     --   FilePath ->
     --   Eff es String
@@ -59,7 +59,7 @@ module Bluefin.GadtEffect
     --   'send' fc (ReadFile path)
     --
     -- writeFile ::
-    --   (e1 :> es) =>
+    --   (e1 \<: es) =>
     --   Send FileSystem e1 ->
     --   FilePath ->
     --   String ->
@@ -68,7 +68,7 @@ module Bluefin.GadtEffect
     --   send fc (WriteFile path content)
     --
     -- trace ::
-    --   (e1 :> es) =>
+    --   (e1 \<: es) =>
     --   Send FileSystem e1 ->
     --   String ->
     --   Eff es r ->
@@ -96,7 +96,7 @@ module Bluefin.GadtEffect
     --
     -- runFileSystem ::
     --   forall es e1 e2 r.
-    --   (e1 :> es, e2 :> es) =>
+    --   (e1 \<: es, e2 \<: es) =>
     --   t'Bluefin.IO.IOE' e1 ->
     --   t'Bluefin.Exception.Exception' t'Control.Exception.IOException' e2 ->
     --   (forall e. 'Send' FileSystem e -> Eff (e :& es) r) ->
@@ -114,7 +114,7 @@ module Bluefin.GadtEffect
     --   where
     --     -- If you don't want to write this signature you can use
     --     -- {-# LANGUAGE NoMonoLocalBinds #-}
-    --     adapt :: (e1 :> es', e2 :> es') => IO r' -> Eff es' r'
+    --     adapt :: (e1 \<: es', e2 \<: es') => IO r' -> Eff es' r'
     --     adapt m = 'Bluefin.IO.rethrowIO' io ex (effIO io m)
     -- @
 
@@ -137,7 +137,7 @@ module Bluefin.GadtEffect
     --
     -- @
     -- instance
-    --   (e :> es) =>
+    --   (e \<: es) =>
     --   t'Bluefin.Compound.OneWayCoercible' ('GadtEffect' E r e) (GadtEffect E r es)
     --   where
     --   'Bluefin.Compound.oneWayCoercibleImpl' = 'oneWayCoercibleGadtEffectTrustMe' $ \\case
@@ -155,7 +155,7 @@ module Bluefin.GadtEffect
     --
     -- @
     -- runE ::
-    --   (e1 :> es) =>
+    --   (e1 \<: es) =>
     --   IOE e1 ->
     --   (forall e. Send E e -> Eff (e :& es) r) ->
     --   Eff es r
@@ -170,7 +170,7 @@ module Bluefin.GadtEffect
     --
     -- @
     -- augmentOp2Interpret ::
-    --   (e1 :> es, e2 :> es) =>
+    --   (e1 \<: es, e2 \<: es) =>
     --   IOE e2 ->
     --   Send E e1 ->
     --   (forall e. Send E e -> Eff (e :& es) r) ->
@@ -184,7 +184,7 @@ module Bluefin.GadtEffect
     --
     -- @
     -- augmentOp2Interpose ::
-    --   (e1 :> es, e2 :> es) =>
+    --   (e1 \<: es, e2 \<: es) =>
     --   IOE e2 ->
     --   t'Bluefin.HandleReader.HandleReader' (Send E) e1 ->
     --   Eff es r ->

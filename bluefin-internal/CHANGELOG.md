@@ -1,3 +1,5 @@
+* Add `<:` type synonym for `:>`
+
 # 0.5.0.0
 
 * Fix dodgy `Bluefin.Primitive.Internal.primitive` implementation

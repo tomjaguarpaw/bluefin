@@ -22,7 +22,7 @@ module Bluefin.CloneableHandle
     --
     -- @
     -- bluefinRace ::
-    --   ('CloneableHandle' h, e1 :> es) =>
+    --   ('CloneableHandle' h, e1 \<: es) =>
     --   t'Bluefin.IO.IOE' e1 ->
     --   h es ->
     --   (forall e. IOE e -> h e -> t'Bluefin.Eff.Eff' e r) ->

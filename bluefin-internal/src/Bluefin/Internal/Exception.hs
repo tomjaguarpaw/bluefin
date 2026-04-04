@@ -73,13 +73,13 @@ instance (Handle h) => Handle (HandlerUnwrapped r a h) where
   handleImpl = handleOneWayCoercible
 
 instance
-  (Handle h, e :> es) =>
+  (Handle h, e <: es) =>
   OneWayCoercible (MakeExceptions r a h e) (MakeExceptions r a h es)
   where
   oneWayCoercibleImpl = unsafeOneWayCoercible
 
 instance
-  (Handle h, e :> es) =>
+  (Handle h, e <: es) =>
   OneWayCoercible (HandlerUnwrapped r a h e) (HandlerUnwrapped r a h es)
   where
   oneWayCoercibleImpl = unsafeOneWayCoercible
@@ -226,7 +226,7 @@ data BracketBase bodyRes r a es = MkBracketBase
   deriving (Generic)
 
 instance
-  (e :> es) =>
+  (e <: es) =>
   OneWayCoercible
     (BracketBase bodyRes r a e)
     (BracketBase bodyRes r a es)
@@ -234,7 +234,7 @@ instance
   oneWayCoercibleImpl = gOneWayCoercible
 
 useImplBracketBase ::
-  (e :> es) =>
+  (e <: es) =>
   BracketBase b r a e ->
   BracketBase b r a es
 useImplBracketBase = oneWayCoerce

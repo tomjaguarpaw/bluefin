@@ -13,7 +13,7 @@ module Bluefin.Compound
     -- @
     -- newtype Counter1 e = MkCounter1 ('Bluefin.State.State' Int e)
     --
-    -- incCounter1 :: (e :> es) => Counter1 e -> 'Bluefin.Eff.Eff' es ()
+    -- incCounter1 :: (e \<: es) => Counter1 e -> 'Bluefin.Eff.Eff' es ()
     -- incCounter1 (MkCounter1 st) = 'Bluefin.State.modify' st (+ 1)
     --
     -- runCounter1 ::
@@ -55,7 +55,7 @@ module Bluefin.Compound
     -- @
     -- data Counter2 e1 e2 = MkCounter2 ('Bluefin.State.State' Int e1) ('Bluefin.Exception.Exception' () e2)
     --
-    -- incCounter2 :: (e1 :> es, e2 :> es) => Counter2 e1 e2 -> 'Bluefin.Eff.Eff' es ()
+    -- incCounter2 :: (e1 \<: es, e2 \<: es) => Counter2 e1 e2 -> 'Bluefin.Eff.Eff' es ()
     -- incCounter2 (MkCounter2 st ex) = do
     --   count <- 'Bluefin.State.get' st
     --   when (count >= 10) $
@@ -103,7 +103,7 @@ module Bluefin.Compound
     -- @
     -- data Counter3 e = MkCounter3 ('Bluefin.State.State' Int e) ('Bluefin.Exception.Exception' () e)
     --
-    -- incCounter3 :: (e :> es) => Counter3 e -> Eff es ()
+    -- incCounter3 :: (e \<: es) => Counter3 e -> Eff es ()
     -- incCounter3 (MkCounter3 st ex) = do
     --   count <- 'Bluefin.State.get' st
     --   when (count >= 10) $
@@ -148,12 +148,12 @@ module Bluefin.Compound
     -- @
     -- newtype Counter3B e = MkCounter3B ('Bluefin.IO.IOE' e)
     --
-    -- incCounter3B :: (e :> es) => Counter3B e -> 'Bluefin.Eff.Eff' es ()
+    -- incCounter3B :: (e \<: es) => Counter3B e -> 'Bluefin.Eff.Eff' es ()
     -- incCounter3B (MkCounter3B io) =
     --   effIO io (putStrLn "You tried to increment the counter")
     --
     -- runCounter3B ::
-    --   (e1 :> es) =>
+    --   (e1 \<: es) =>
     --   IOE e1 ->
     --   (forall e. Counter3B e -> Eff (e :& es) r) ->
     --   Eff es r
@@ -193,7 +193,7 @@ module Bluefin.Compound
     -- data Counter4 e
     --   = MkCounter4 ('Bluefin.State.State' Int e) ('Bluefin.Exception.Exception' () e) ('Bluefin.Stream.Stream' String e)
     --
-    -- incCounter4 :: (e :> es) => Counter4 e -> Eff es ()
+    -- incCounter4 :: (e \<: es) => Counter4 e -> Eff es ()
     -- incCounter4 (MkCounter4 st ex y) = do
     --   count <- 'Bluefin.State.get' st
     --
@@ -205,13 +205,13 @@ module Bluefin.Compound
     --
     --   'Bluefin.State.put' st (count + 1)
     --
-    -- getCounter4 :: (e :> es) => Counter4 e -> String -> Eff es Int
+    -- getCounter4 :: (e \<: es) => Counter4 e -> String -> Eff es Int
     -- getCounter4 (MkCounter4 st _ y) msg = do
     --   yield y msg
     --   get st
     --
     -- runCounter4 ::
-    --   (e1 :> es) =>
+    --   (e1 \<: es) =>
     --   Stream String e1 ->
     --   (forall e. Counter4 e -> Eff (e :& es) r) ->
     --   Eff es Int
@@ -261,17 +261,17 @@ module Bluefin.Compound
     --   deriving (Generic)
     --   deriving (Handle) via 'OneWayCoercibleHandle' Counter5
     --
-    -- instance (e :> es) => 'OneWayCoercible.OneWayCoercible' (Counter5 e) (Counter5 es) where
+    -- instance (e \<: es) => 'OneWayCoercible.OneWayCoercible' (Counter5 e) (Counter5 es) where
     --   oneWayCoercibleImpl = 'OneWayCoercible.gOneWayCoercible'
     --
-    -- incCounter5 :: (e :> es) => Counter5 e -> Eff es ()
+    -- incCounter5 :: (e \<: es) => Counter5 e -> Eff es ()
     -- incCounter5 e = incCounter5Impl ('mapHandle' e)
     --
-    -- getCounter5 :: (e :> es) => Counter5 e -> String -> Eff es Int
+    -- getCounter5 :: (e \<: es) => Counter5 e -> String -> Eff es Int
     -- getCounter5 e msg = getCounter5Impl (mapHandle e) msg
     --
     -- runCounter5 ::
-    --   (e1 :> es) =>
+    --   (e1 \<: es) =>
     --   Stream String e1 ->
     --   (forall e. Counter5 e -> Eff (e :& es) r) ->
     --   Eff es Int
@@ -333,19 +333,19 @@ module Bluefin.Compound
     --   deriving (Generic)
     --   deriving (Handle) via 'OneWayCoercibleHandle' Counter6
     --
-    -- instance (e :> es) => 'OneWayCoercible.OneWayCoercible' (Counter6 e) (Counter6 es) where
+    -- instance (e \<: es) => 'OneWayCoercible.OneWayCoercible' (Counter6 e) (Counter6 es) where
     --   oneWayCoercibleImpl = 'OneWayCoercible.gOneWayCoercible'
     --
-    -- incCounter6 :: (e :> es) => Counter6 e -> Eff es ()
+    -- incCounter6 :: (e \<: es) => Counter6 e -> Eff es ()
     -- incCounter6 e = incCounter6Impl (mapHandle e)
     --
-    -- getCounter6 :: (e :> es) => Counter6 e -> String -> Eff es Int
+    -- getCounter6 :: (e \<: es) => Counter6 e -> String -> Eff es Int
     -- getCounter6 (MkCounter6 _ st y) msg = do
     --   yield y msg
     --   get st
     --
     -- runCounter6 ::
-    --   (e1 :> es) =>
+    --   (e1 \<: es) =>
     --   Stream String e1 ->
     --   (forall e. Counter6 e -> Eff (e :& es) r) ->
     --   Eff es Int
@@ -408,7 +408,7 @@ module Bluefin.Compound
     -- -- can't derive the @OneWayCoercible@ instance with
     -- -- 'OneWayCoercible.gOneWayCoercible' so instead we use 'oneWayCoercibleTrustMe'.
     --
-    -- instance (e :> es) => 'OneWayCoercible' (Counter7 e) (Counter7 es) where
+    -- instance (e \<: es) => 'OneWayCoercible' (Counter7 e) (Counter7 es) where
     --   oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \\c ->
     --     MkCounter7
     --       { incCounter7Impl = \\ex -> 'useImplUnder' (incCounter7Impl c ex),
@@ -417,16 +417,16 @@ module Bluefin.Compound
     --       }
     --
     -- incCounter7 ::
-    --   (e :> es, e1 :> es) => Counter7 e -> Exception () e1 -> Eff es ()
+    --   (e \<: es, e1 \<: es) => Counter7 e -> Exception () e1 -> Eff es ()
     -- incCounter7 e ex = 'makeOp' (incCounter7Impl ('mapHandle' e) (mapHandle ex))
     --
-    -- getCounter7 :: (e :> es) => Counter7 e -> String -> Eff es Int
+    -- getCounter7 :: (e \<: es) => Counter7 e -> String -> Eff es Int
     -- getCounter7 (MkCounter7 _ st y) msg = do
     --   yield y msg
     --   get st
     --
     -- runCounter7 ::
-    --   (e1 :> es) =>
+    --   (e1 \<: es) =>
     --   Stream String e1 ->
     --   (forall e. Counter7 e -> Eff (e :& es) r) ->
     --   Eff es Int
@@ -504,7 +504,7 @@ module Bluefin.Compound
     -- -- 'OneWayCoercible.gOneWayCoercible' instead we use 'oneWayCoercibleTrustMe'.
     --
     -- instance
-    --   (e :> es) =>
+    --   (e \<: es) =>
     --   OneWayCoercible (DynamicReader r e) (DynamicReader r es)
     --   where
     --   oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \\h ->
@@ -514,13 +514,13 @@ module Bluefin.Compound
     --       }
     --
     -- askLR ::
-    --   (e :> es) =>
+    --   (e \<: es) =>
     --   DynamicReader r e ->
     --   Eff es r
     -- askLR c = 'makeOp' (askLRImpl ('mapHandle' c))
     --
     -- localLR ::
-    --   (e :> es) =>
+    --   (e \<: es) =>
     --   DynamicReader r e ->
     --   (r -> r) ->
     --   Eff es a ->
@@ -557,13 +557,13 @@ module Bluefin.Compound
     --   deriving (Generic)
     --   deriving (Handle) via 'OneWayCoercibleHandle' FileSystem
     --
-    -- instance (e :> es) => 'OneWayCoercible.OneWayCoercible' (FileSystem e) (FileSystem es) where
+    -- instance (e \<: es) => 'OneWayCoercible.OneWayCoercible' (FileSystem e) (FileSystem es) where
     --   oneWayCoercibleImpl = 'OneWayCoercible.gOneWayCoercible'
     --
-    -- readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
+    -- readFile :: (e \<: es) => FileSystem e -> FilePath -> Eff es String
     -- readFile fs filepath = readFileImpl ('mapHandle' fs) filepath
     --
-    -- writeFile :: (e :> es) => FileSystem e -> FilePath -> String -> Eff es ()
+    -- writeFile :: (e \<: es) => FileSystem e -> FilePath -> String -> Eff es ()
     -- writeFile fs filepath contents =
     --   writeFileImpl (mapHandle fs) filepath contents
     -- @
@@ -574,7 +574,7 @@ module Bluefin.Compound
     --
     -- @
     -- runFileSystemPure ::
-    --   (e1 :> es) =>
+    --   (e1 \<: es) =>
     --   Exception String e1 ->
     --   [(FilePath, String)] ->
     --   (forall e2. FileSystem e2 -> Eff (e2 :& es) r) ->
@@ -601,7 +601,7 @@ module Bluefin.Compound
     -- @
     -- runFileSystemIO ::
     --   forall e1 e2 es r.
-    --   (e1 :> es, e2 :> es) =>
+    --   (e1 \<: es, e2 \<: es) =>
     --   Exception String e1 ->
     --   IOE e2 ->
     --   (forall e. FileSystem e -> Eff (e :& es) r) ->
@@ -616,7 +616,7 @@ module Bluefin.Compound
     --           \\filepath -> adapt . Prelude.writeFile filepath
     --       }
     --   where
-    --     adapt :: (e1 :> ess, e2 :> ess) => IO a -> Eff ess a
+    --     adapt :: (e1 \<: ess, e2 \<: ess) => IO a -> Eff ess a
     --     adapt m =
     --       effIO io (Control.Exception.try @IOException m) >>= \\case
     --         Left e -> 'Bluefin.Exception.throw' ex (show e)
@@ -627,7 +627,7 @@ module Bluefin.Compound
     -- does some file system operations.
     --
     -- @
-    -- action :: (e :> es) => FileSystem e -> Eff es String
+    -- action :: (e \<: es) => FileSystem e -> Eff es String
     -- action fs = do
     --   file <- readFile fs "\/dev\/null"
     --   when (length file == 0) $ do

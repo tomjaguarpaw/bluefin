@@ -11,7 +11,7 @@ import Bluefin.Compound
     useImplWithin,
   )
 import Bluefin.Consume (Consume, await)
-import Bluefin.Eff (Eff, bracket, runEff_, (:&), (:>))
+import Bluefin.Eff (Eff, bracket, runEff_, (:&), type (<:))
 import Bluefin.IO (IOE, effIO)
 import Bluefin.Jump (jumpTo, withJump)
 import Bluefin.State (evalState, get, modify)
@@ -75,7 +75,7 @@ newtype Wrap h r es = MkWrap (forall e. h e -> Eff (e :& es) r)
 
 mix ::
   forall e1 e2 es.
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   [(Int, FilePath)] ->
   IOE e2 ->
   Stream [Data.Maybe.Maybe String] e1 ->
@@ -98,7 +98,7 @@ mix timings io y = do
 
 -- | When the stream is finished, yield Nothing for evermore.
 nothingOnEnd ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   (forall e. Stream a e -> Eff (e :& es) r) ->
   Stream (Data.Maybe.Maybe a) e1 ->
   Eff es r
@@ -107,7 +107,7 @@ nothingOnEnd s y = do
   forever (yield y Data.Maybe.Nothing)
 
 pad ::
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   IOE e1 ->
   (Int, FilePath) ->
   Stream String e2 ->
@@ -119,7 +119,7 @@ pad io (start, fname) y = do
 -- General purpose Bluefin function for streaming the
 -- lines of a file
 linesOfFile ::
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   String ->
   IOE e1 ->
   Stream String e2 ->
@@ -149,7 +149,7 @@ linesOfFile filename io y = do
 -- and then stops. It does so by jumping out of an infinite loop
 -- when a countdown (which starts at n) hits 0.
 take ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Integer ->
   (forall e. Stream a e -> Eff (e :& es) ()) ->
   Stream a e1 ->

@@ -32,6 +32,8 @@ common warnings
       EmptyDataDeriving
       ExistentialQuantification
       ExplicitForAll
+      -- ExplicitNamespaces is in GHC2024 but not GHC2021
+      ExplicitNamespaces
       -- Not available until 9.2
       -- FieldSelectors
       FlexibleContexts
@@ -63,7 +65,6 @@ common warnings
       TypeApplications
       TypeOperators
       TypeSynonymInstances
-      NoExplicitNamespaces
       -- Others
       DataKinds
       DerivingStrategies

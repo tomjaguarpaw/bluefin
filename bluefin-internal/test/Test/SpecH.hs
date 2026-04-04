@@ -11,7 +11,7 @@ import Data.Monoid (All (All))
 type SpecH = Stream (String, Maybe (SpecInfo ()))
 
 assertEqual ::
-  (e :> es, Eq a, Show a) => SpecH e -> String -> a -> a -> Eff es ()
+  (e <: es, Eq a, Show a) => SpecH e -> String -> a -> a -> Eff es ()
 assertEqual y n c1 c2 =
   yield
     y
@@ -27,7 +27,7 @@ type SpecInfo r = DslBuilder (Stream String) r
 
 runTests ::
   forall es e3.
-  (e3 :> es) =>
+  (e3 <: es) =>
   (forall e1. SpecH e1 -> Eff (e1 :& es) ()) ->
   Stream String e3 ->
   Eff es Bool
@@ -55,7 +55,7 @@ runTests f y = do
   pure passedAll
 
 runSpecH ::
-  (e :> es) =>
+  (e <: es) =>
   IOE e ->
   (forall e1. SpecH e1 -> Eff (e1 :& es) ()) ->
   Eff es ()

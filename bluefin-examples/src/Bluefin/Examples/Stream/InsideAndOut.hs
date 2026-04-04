@@ -3,7 +3,7 @@ module Bluefin.Examples.Stream.InsideAndOut where
 import Bluefin.Compound (useImplWithin)
 import Bluefin.Consume (Consume, await, consumeEach, consumeStream)
 import Bluefin.EarlyReturn (returnEarly, withEarlyReturn)
-import Bluefin.Eff (Eff, runEff_, (:&), (:>))
+import Bluefin.Eff (Eff, runEff_, (:&), type (<:))
 import Bluefin.IO (IOE, effIO)
 import Bluefin.Jump (Jump, jumpTo, withJump)
 import Bluefin.State (evalState, get)
@@ -21,7 +21,7 @@ print10 = runEff_ $ \io -> do
     effIO io (print i)
 
 printConsume ::
-  (e1 :> es, e2 :> es, Show a) =>
+  (e1 <: es, e2 <: es, Show a) =>
   IOE e2 ->
   Consume (Maybe a) e1 ->
   Eff es ()
@@ -35,7 +35,7 @@ printConsume io iterator =
 
 -- FIXME: This should probably be a Bluefin library function
 nothingOnEnd ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   (forall e. Stream a e -> Eff (e :& es) r) ->
   Stream (Maybe a) e1 ->
   Eff es r
@@ -66,7 +66,7 @@ find haystack needle = do
     pure False
 
 interleaveConsume ::
-  (e1 :> es, e2 :> es, e3 :> es, e4 :> es) =>
+  (e1 <: es, e2 <: es, e3 <: es, e4 <: es) =>
   Jump e1 ->
   Consume (Maybe a) e2 ->
   Consume (Maybe a) e3 ->
@@ -81,7 +81,7 @@ interleaveConsume done c1 c2 y = do
         interleaveConsume done c2 c1 y
 
 interleave ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   (forall e. Stream a e -> Eff (e :& es) ()) ->
   (forall e. Stream a e -> Eff (e :& es) ()) ->
   Stream a e1 ->
@@ -103,7 +103,7 @@ data Tree = MkTree
     treeRight :: Maybe Tree
   }
 
-inOrder :: (e1 :> es) => Tree -> Stream Tree e1 -> Eff es ()
+inOrder :: (e1 <: es) => Tree -> Stream Tree e1 -> Eff es ()
 inOrder tree callback = do
   case treeLeft tree of
     Nothing -> pure ()
@@ -134,7 +134,7 @@ contains haystack needle = do
 -- https://journal.stuffwithstuff.com/2013/02/24/iteration-inside-and-out-part-2/
 
 concatConsumes ::
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   Consume (Maybe b) e1 ->
   Consume (Maybe b) e2 ->
   (forall e. Consume (Maybe b) e -> Eff (e :& es) r) ->
@@ -157,7 +157,7 @@ concatConsumes c1 c2 o = do
 
 -- But it's probably better just to yield to a stream
 concatConsumesToStream ::
-  (e1 :> es, e2 :> es, e3 :> es) =>
+  (e1 <: es, e2 <: es, e3 <: es) =>
   Consume (Maybe b) e1 ->
   Consume (Maybe b) e2 ->
   Stream b e3 ->
@@ -174,7 +174,7 @@ concatConsumesToStream c1 c2 y = do
       Nothing -> jumpTo done
 
 concatStreams ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   (forall e. Stream a e -> Eff (e :& es) ()) ->
   (forall e. Stream a e -> Eff (e :& es) ()) ->
   Stream a e1 ->
@@ -184,7 +184,7 @@ concatStreams s1 s2 y = do
   forEach s2 $ \item -> yield y item
 
 concatDeep ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   (forall e. Stream a e -> Eff (e :& es) ()) ->
   (forall e. Stream a e -> Eff (e :& es) ()) ->
   Stream a e1 ->
@@ -195,14 +195,14 @@ concatDeep a b y = do
   walkSecond b y
   where
     walkFirst ::
-      (e1 :> es) =>
+      (e1 <: es) =>
       (forall e. Stream a e -> Eff (e :& es) r) ->
       Stream a e1 ->
       Eff es r
     walkFirst a' y' = forEach a' $ \item -> yield y' item
 
     walkSecond ::
-      (e1 :> es) =>
+      (e1 <: es) =>
       (forall e. Stream a e -> Eff (e :& es) r) ->
       Stream a e1 ->
       Eff es r

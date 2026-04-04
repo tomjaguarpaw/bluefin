@@ -11,7 +11,7 @@ import Bluefin.Compound
     gOneWayCoercible,
     mapHandle,
   )
-import Bluefin.Eff (Eff, runPureEff, (:>))
+import Bluefin.Eff (Eff, runPureEff, type (<:))
 import Bluefin.Exception (Exception, try)
 import Bluefin.Prim qualified as P
 import Control.Monad.Primitive (PrimMonad (PrimState, primitive))
@@ -25,7 +25,7 @@ data ExAndPrim e = MkExAndPrim (Exception String e) (P.Prim e)
   deriving (Handle) via OneWayCoercibleHandle ExAndPrim
   deriving stock (Generic)
 
-instance (e :> es) => OneWayCoercible (ExAndPrim e) (ExAndPrim es) where
+instance (e <: es) => OneWayCoercible (ExAndPrim e) (ExAndPrim es) where
   oneWayCoercibleImpl = gOneWayCoercible
 
 -- Define a monad M containing the Prim handle
@@ -34,7 +34,7 @@ newtype M e es a = MkM (ReaderT (ExAndPrim e) (Eff es) a)
 
 -- Define a way of running M
 runM ::
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   Exception String e1 ->
   P.Prim e2 ->
   M es es r ->
@@ -43,7 +43,7 @@ runM ex prim (MkM m) =
   runReaderT m (MkExAndPrim (mapHandle ex) (mapHandle prim))
 
 -- Give M a PrimMonad instance
-instance (e :> es) => PrimMonad (M e es) where
+instance (e <: es) => PrimMonad (M e es) where
   type PrimState (M e es) = P.PrimStateEff e
   primitive f =
     MkM (ReaderT (\(MkExAndPrim _ prim) -> P.primitive prim f))

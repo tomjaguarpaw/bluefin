@@ -14,7 +14,7 @@ import Bluefin.Internal
     useImplIn,
     useImplUnder,
     (:&),
-    (:>),
+    type (<:),
   )
 import Bluefin.Internal.OneWayCoercible (OneWayCoercible (oneWayCoercibleImpl), OneWayCoercibleD)
 import Data.Kind (Type)
@@ -31,7 +31,7 @@ newtype Send f e = MkSend (EffectHandler f e)
 -- usages provided for people who are migrating from those libraries.
 type Effect = (Type -> Type) -> Type -> Type
 
-instance (e :> es) => OneWayCoercible (Send f e) (Send f es) where
+instance (e <: es) => OneWayCoercible (Send f e) (Send f es) where
   oneWayCoercibleImpl =
     oneWayCoercibleTrustMe (\(MkSend g) -> MkSend (useImplUnder . g))
 
@@ -41,7 +41,7 @@ instance (e :> es) => OneWayCoercible (Send f e) (Send f es) where
 -- and @polysemy@'s
 -- [@send@](https://hackage.haskell.org/package/polysemy/docs/Polysemy.html#v:send).
 send ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Send f e1 ->
   -- | Handle this operation using the effect handler currently in
   -- scope for the @Send f@ handle.
@@ -66,7 +66,7 @@ type EffectHandler f es =
 --
 -- runFileSystem ::
 --   forall es e1 e2 r.
---   (e1 :> es, e2 :> es) =>
+--   (e1 \<: es, e2 \<: es) =>
 --   t'Bluefin.IO.IOE' e1 ->
 --   t'Bluefin.Exception.Exception' t'Control.Exception.IOException' e2 ->
 --   (forall e. 'Send' FileSystem e -> Eff (e :& es) r) ->
@@ -84,7 +84,7 @@ type EffectHandler f es =
 --   where
 --     -- If you don't want to write this signature you can use
 --     -- {-# LANGUAGE NoMonoLocalBinds #-}
---     adapt :: (e1 :> es', e2 :> es') => IO r' -> Eff es' r'
+--     adapt :: (e1 \<: es', e2 \<: es') => IO r' -> Eff es' r'
 --     adapt m = 'Bluefin.IO.rethrowIO' io ex (effIO io m)
 -- @
 interpret ::
@@ -107,7 +107,7 @@ mapGadtEffect f = MkGadtEffect . f . unGadtEffect
 -- |
 -- @
 -- instance
---   (e :> es) =>
+--   (e \<: es) =>
 --   t'Bluefin.Compound.OneWayCoercible' ('GadtEffect' FileSystem r e) (GadtEffect FileSystem r es)
 --   where
 --   'Bluefin.Compound.oneWayCoercibleImpl' = 'oneWayCoercibleGadtEffectTrustMe' $ \\case
@@ -116,8 +116,8 @@ mapGadtEffect f = MkGadtEffect . f . unGadtEffect
 --     Trace msg body -> Trace msg (useImpl body)
 -- @
 oneWayCoercibleGadtEffectTrustMe ::
-  (e :> es) =>
-  (forall e' es'. (e' :> es') => f (Eff e') r -> f (Eff es') r) ->
+  (e <: es) =>
+  (forall e' es'. (e' <: es') => f (Eff e') r -> f (Eff es') r) ->
   -- | ͘
   OneWayCoercibleD (GadtEffect f r e) (GadtEffect f r es)
 oneWayCoercibleGadtEffectTrustMe k = oneWayCoercibleTrustMe (mapGadtEffect k)
@@ -126,7 +126,7 @@ oneWayCoercibleGadtEffectTrustMe k = oneWayCoercibleTrustMe (mapGadtEffect k)
 --
 -- @
 -- augmentOp2Interpose ::
---   (e1 :> es, e2 :> es) =>
+--   (e1 \<: es, e2 \<: es) =>
 --   IOE e2 ->
 --   t'Bluefin.HandleReader.HandleReader' (Send E) e1 ->
 --   Eff es r ->
@@ -136,7 +136,7 @@ oneWayCoercibleGadtEffectTrustMe k = oneWayCoercibleTrustMe (mapGadtEffect k)
 --   op -> 'passthrough' fc op
 -- @
 passthrough ::
-  (Handle (GadtEffect f r), e1 :> es, e2 :> es) =>
+  (Handle (GadtEffect f r), e1 <: es, e2 <: es) =>
   Send f e1 ->
   f (Eff e2) r ->
   -- | ͘
@@ -146,7 +146,7 @@ passthrough fc = send fc . unGadtEffect . mapHandle . MkGadtEffect
 -- |
 -- @
 -- augmentOp2Interpose ::
---   (e1 :> es, e2 :> es) =>
+--   (e1 \<: es, e2 \<: es) =>
 --   IOE e2 ->
 --   t'Bluefin.HandleReader.HandleReader' (Send E) e1 ->
 --   Eff es r ->
@@ -156,7 +156,7 @@ passthrough fc = send fc . unGadtEffect . mapHandle . MkGadtEffect
 --   op -> 'passthrough' fc op
 -- @
 interpose ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   -- | Reimplementation of effect handler for @Send f@ in terms of the
   -- the original effect handler, which is passed as the argument
   (Send f es -> EffectHandler f es) ->

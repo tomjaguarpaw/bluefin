@@ -26,7 +26,7 @@ import GHC.Generics
 import GHC.TypeLits (ErrorMessage (Text), TypeError)
 
 withEffToIOCloneHandle ::
-  (e1 :> es, CloneableHandle h) =>
+  (e1 <: es, CloneableHandle h) =>
   IOE e1 ->
   -- | Handle accessible in the continuation
   h es ->
@@ -62,7 +62,7 @@ instance
   oneWayCoercibleImpl = unsafeOneWayCoercible
 
 cloneHandle2 ::
-  (Handle h1, Handle h2, e1 :> es) =>
+  (Handle h1, Handle h2, e1 <: es) =>
   HandleCloner h1 h2 es ->
   h1 e1 ->
   (forall e. h2 e -> Eff (e :& es) r) ->
@@ -108,7 +108,7 @@ instance (CloneableHandle h) => CloneableHandle (HandleReader h) where
   cloneableHandleImpl = MkCloneableHandleD hcHandleReader
 
 cloneHandleClass ::
-  (e1 :> es, CloneableHandle h) =>
+  (e1 <: es, CloneableHandle h) =>
   h e1 ->
   (forall e. h e -> Eff (e :& es) r) ->
   Eff es r
@@ -142,7 +142,7 @@ instance (Handle h1, Handle h2) => Handle (h1 :~> h2) where
   handleImpl = handleOneWayCoercible
 
 instance
-  (Handle h1, Handle h2, e :> es) =>
+  (Handle h1, Handle h2, e <: es) =>
   OneWayCoercible
     ((h1 :~> h2) e)
     ((h1 :~> h2) es)
@@ -219,7 +219,7 @@ newtype GenericCloneableHandle h e = MkGenericCloneableHandle (h e)
   deriving newtype (Handle)
 
 instance
-  (Handle h, e :> es) =>
+  (Handle h, e <: es) =>
   OneWayCoercible (GenericCloneableHandle h e) (GenericCloneableHandle h es)
   where
   oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \(MkGenericCloneableHandle h) ->
@@ -259,7 +259,7 @@ gCloneableHandle =
 --   deriving ('Bluefin.Compound.Handle') via t'Bluefin.Compound.OneWayCoercibleHandle' MyHandle
 --   deriving ('CloneableHandle') via 'GenericCloneableHandle' MyHandle
 --
--- instance (e t'Bluefin.Eff.:>' es) => t'Bluefin.Compound.OneWayCoercible' (MyHandle e) (MyHandle es) where
+-- instance (e t'Bluefin.Eff.<:' es) => t'Bluefin.Compound.OneWayCoercible' (MyHandle e) (MyHandle es) where
 --   'Bluefin.Compound.oneWayCoercibleImpl' = 'Bluefin.Compound.gOneWayCoercible'
 -- @
 class (Handle h) => CloneableHandle h where

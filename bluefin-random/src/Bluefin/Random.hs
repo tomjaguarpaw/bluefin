@@ -22,7 +22,7 @@ module Bluefin.Random
 where
 
 import Bluefin.Compound (Handle)
-import Bluefin.Eff (Eff, Effects, (:&), (:>))
+import Bluefin.Eff (Eff, Effects, (:&), type (<:))
 import Bluefin.IO (IOE, effIO)
 import Bluefin.State (State, get, put, runState)
 import System.Random qualified as Rnd
@@ -42,14 +42,14 @@ import System.Random.Stateful qualified as Rnd
 --
 -- @
 -- 'System.Random.Stateful.uniformM' ::
---   (Uniform a, RandomGen g, e1 :> es) =>
+--   (Uniform a, RandomGen g, e1 \<: es) =>
 --   Random g e1 ->
 --   Eff es a
 -- @
 --
 -- @
 -- 'System.Random.Stateful.uniformRM' ::
---   (UniformRange a, RandomGen g, e1 :> es) =>
+--   (UniformRange a, RandomGen g, e1 \<: es) =>
 --   (a, a) ->
 --   Random g e1 ->
 --   Eff es a
@@ -57,7 +57,7 @@ import System.Random.Stateful qualified as Rnd
 --
 -- @
 -- 'System.Random.Stateful.uniformListM' ::
---   (Uniform a, RandomGen g, e1 :> es) =>
+--   (Uniform a, RandomGen g, e1 \<: es) =>
 --   Int ->
 --   Random g e1 ->
 --   Eff es [a]
@@ -65,7 +65,7 @@ import System.Random.Stateful qualified as Rnd
 --
 -- @
 -- 'System.Random.Stateful.uniformListRM' ::
---   (UniformRange a, RandomGen g, e1 :> es) =>
+--   (UniformRange a, RandomGen g, e1 \<: es) =>
 --   Int ->
 --   (a, a) ->
 --   Random g e1 ->
@@ -74,7 +74,7 @@ import System.Random.Stateful qualified as Rnd
 --
 -- @
 -- 'System.Random.Stateful.uniformShuffleListM' ::
---   (RandomGen g, e1 :> es) =>
+--   (RandomGen g, e1 \<: es) =>
 --   [a] ->
 --   Random g e1 ->
 --   Eff es [a]
@@ -82,7 +82,7 @@ import System.Random.Stateful qualified as Rnd
 --
 -- @
 -- 'System.Random.Stateful.uniformByteArrayM' ::
---   (RandomGen g, e1 :> es) =>
+--   (RandomGen g, e1 \<: es) =>
 --   Bool ->
 --   Int ->
 --   Random g e1 ->
@@ -91,7 +91,7 @@ import System.Random.Stateful qualified as Rnd
 --
 -- @
 -- 'System.Random.Stateful.uniformByteStringM' ::
---   (RandomGen g, e1 :> es) =>
+--   (RandomGen g, e1 \<: es) =>
 --   Int ->
 --   Random g e1 ->
 --   Eff es ByteString
@@ -99,7 +99,7 @@ import System.Random.Stateful qualified as Rnd
 --
 -- @
 -- 'System.Random.Stateful.uniformShortByteStringM' ::
---   (RandomGen g, e1 :> es) =>
+--   (RandomGen g, e1 \<: es) =>
 --   Int ->
 --   Random g e1 ->
 --   Eff es ShortByteString
@@ -107,28 +107,28 @@ import System.Random.Stateful qualified as Rnd
 --
 -- @
 -- 'System.Random.Stateful.uniformDouble01M' ::
---   (RandomGen g, e1 :> es) =>
+--   (RandomGen g, e1 \<: es) =>
 --   Random g e1 ->
 --   Eff es Double
 -- @
 --
 -- @
 -- 'System.Random.Stateful.uniformDoublePositive01M' ::
---   (RandomGen g, e1 :> es) =>
+--   (RandomGen g, e1 \<: es) =>
 --   Random g e1 ->
 --   Eff es Double
 -- @
 --
 -- @
 -- 'System.Random.Stateful.uniformFloat01M' ::
---   (RandomGen g, e1 :> es) =>
+--   (RandomGen g, e1 \<: es) =>
 --   Random g e1 ->
 --   Eff es Float
 -- @
 --
 -- @
 -- 'System.Random.Stateful.uniformFloatPositive01M' ::
---   (RandomGen g, e1 :> es) =>
+--   (RandomGen g, e1 \<: es) =>
 --   Random g e1 ->
 --   Eff es Float
 -- @
@@ -147,7 +147,7 @@ newtype RandomPure g (e :: Effects) = RandomPure g
   deriving newtype (Rnd.RandomGen)
 
 instance
-  (e :> es, Rnd.RandomGen g) =>
+  (e <: es, Rnd.RandomGen g) =>
   Rnd.StatefulGen (Random g e) (Eff es)
   where
   uniformWord64 =
@@ -157,7 +157,7 @@ instance
     flip Rnd.modifyGen (Rnd.uniformByteArray pinned size)
 
 instance
-  (e :> es, Rnd.RandomGen g) =>
+  (e <: es, Rnd.RandomGen g) =>
   Rnd.FrozenGen (RandomPure g e) (Eff es)
   where
   type MutableGen (RandomPure g e) (Eff es) = Random g e
@@ -186,7 +186,7 @@ evalRandom g f = fst <$> runRandom g f
 -- need to use a 'Rnd.RandomGen' other than 'Rnd.StdGen' or you know
 -- you need to create a 'Rnd.StdGen' seed in a non-standard way.
 withInitStdGen ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   IOE e1 ->
   (forall e. Random Rnd.StdGen e -> Eff (e :& es) a) ->
   -- | ͘

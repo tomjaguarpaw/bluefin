@@ -15,7 +15,7 @@ newtype DslBuilderEff h es r
   = MkDslBuilderEff {unMkDslBuilderEff :: forall e. h e -> Eff (e :& es) r}
 
 useImplDslBuilderEff ::
-  (e :> es) =>
+  (e <: es) =>
   DslBuilderEff h e r ->
   -- | ͘
   DslBuilderEff h es r
@@ -35,7 +35,7 @@ dslBuilderEff ::
 dslBuilderEff = MkDslBuilderEff
 
 instance
-  (e :> es) =>
+  (e <: es) =>
   OneWayCoercible (DslBuilderEff h e r) (DslBuilderEff h es r)
   where
   oneWayCoercibleImpl = oneWayCoercible

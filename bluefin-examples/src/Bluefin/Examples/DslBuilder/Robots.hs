@@ -11,7 +11,7 @@ import Bluefin.Compound
     mapHandle,
   )
 import Bluefin.DslBuilder (DslBuilder, dslBuilder, runDslBuilder)
-import Bluefin.Eff (runPureEff, (:>))
+import Bluefin.Eff (runPureEff, type (<:))
 import Bluefin.Stream (Stream, yield, yieldToList)
 import Control.Monad (replicateM_, unless)
 import Data.Foldable (for_)
@@ -140,7 +140,7 @@ data ArenaH e = MkArenaH (Stream RobotEntry e) (Stream ObstacleEntry e)
   deriving (Generic)
   deriving (Handle) via OneWayCoercibleHandle ArenaH
 
-instance (e :> es) => OneWayCoercible (ArenaH e) (ArenaH es) where
+instance (e <: es) => OneWayCoercible (ArenaH e) (ArenaH es) where
   oneWayCoercibleImpl = gOneWayCoercible
 
 obstacle :: Obstacle -> (Int, Int) -> ArenaBuilder
@@ -167,7 +167,7 @@ data InstructionsH e = MkInstructionsH (Stream Instruction e)
   deriving (Generic)
   deriving (Handle) via OneWayCoercibleHandle InstructionsH
 
-instance (e :> es) => OneWayCoercible (InstructionsH e) (InstructionsH es) where
+instance (e <: es) => OneWayCoercible (InstructionsH e) (InstructionsH es) where
   oneWayCoercibleImpl = gOneWayCoercible
 
 instructionsBuilder :: Instruction -> InstructionsBuilder

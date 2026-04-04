@@ -15,7 +15,7 @@ import Bluefin.Internal
     oneWayCoercibleTrustMe,
     useImplIn,
     (:&),
-    (:>),
+    type (<:),
   )
 import Bluefin.Internal qualified
 import Bluefin.Internal.OneWayCoercible (OneWayCoercible (oneWayCoercibleImpl))
@@ -28,12 +28,12 @@ data Handle e = UnsafeMkHandle System.IO.Handle (IOE e)
     (Bluefin.Internal.Handle)
     via Bluefin.Internal.OneWayCoercibleHandle Handle
 
-instance (e :> es) => OneWayCoercible (Handle e) (Handle es) where
+instance (e <: es) => OneWayCoercible (Handle e) (Handle es) where
   oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \(UnsafeMkHandle h io) ->
     UnsafeMkHandle h (mapHandle io)
 
 withFile ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   IOE e1 ->
   FilePath ->
   System.IO.IOMode ->
@@ -50,7 +50,7 @@ withFile io fp iomode k =
     )
 
 hPutChar ::
-  (e :> es) =>
+  (e <: es) =>
   Handle e ->
   Char ->
   -- | ͘
@@ -58,7 +58,7 @@ hPutChar ::
 hPutChar h = unsafeWithHandle h . flip System.IO.hPutChar
 
 hPutStr ::
-  (e :> es) =>
+  (e <: es) =>
   Handle e ->
   String ->
   -- | ͘
@@ -66,7 +66,7 @@ hPutStr ::
 hPutStr h = unsafeWithHandle h . flip System.IO.hPutStr
 
 hPutStrLn ::
-  (e :> es) =>
+  (e <: es) =>
   Handle e ->
   String ->
   -- | ͘
@@ -74,21 +74,21 @@ hPutStrLn ::
 hPutStrLn h = unsafeWithHandle h . flip System.IO.hPutStrLn
 
 hFlush ::
-  (e :> es) =>
+  (e <: es) =>
   Handle e ->
   -- | ͘
   Eff es ()
 hFlush h = unsafeWithHandle h System.IO.hFlush
 
 hGetLine ::
-  (e :> es) =>
+  (e <: es) =>
   Handle e ->
   -- | ͘
   Eff es String
 hGetLine h = unsafeWithHandle h System.IO.hGetLine
 
 hIsEOF ::
-  (e :> es) =>
+  (e <: es) =>
   Handle e ->
   -- | ͘
   Eff es Bool
@@ -99,7 +99,7 @@ hIsEOF h = unsafeWithHandle h System.IO.hIsEOF
 -- issue](https://github.com/tomjaguarpaw/bluefin/issues/new) to
 -- request it be added.  In the meantime you can define it yourself with @unsafeWithHandle@.
 unsafeWithHandle ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Handle e1 ->
   (System.IO.Handle -> IO r) ->
   Eff es r

@@ -61,10 +61,10 @@ newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: IO a}
 
 type role Eff nominal representational
 
-instance (e :> es) => OneWayCoercible (Eff e) (Eff es) where
+instance (e <: es) => OneWayCoercible (Eff e) (Eff es) where
   oneWayCoercibleImpl = oneWayCoercible
 
-instance (e :> es) => OneWayCoercible (Eff e r) (Eff es r) where
+instance (e <: es) => OneWayCoercible (Eff e r) (Eff es r) where
   oneWayCoercibleImpl = oneWayCoercible
 
 -- | Because doing 'IO' operations inside 'Eff' requires a value-level
@@ -73,7 +73,7 @@ instance (e :> es) => OneWayCoercible (Eff e r) (Eff es r) where
 newtype EffReader r es a = MkEffReader {unEffReader :: r -> Eff es a}
   deriving (Functor, Applicative, Monad) via (Reader.ReaderT r (Eff es))
 
-instance (e :> es) => MonadIO (EffReader (IOE e) es) where
+instance (e <: es) => MonadIO (EffReader (IOE e) es) where
   liftIO = MkEffReader . flip effIO
 
 effReader :: (r -> Eff es a) -> EffReader r es a
@@ -84,7 +84,7 @@ runEffReader r (MkEffReader m) = m r
 
 -- | Deprecated.  Use 'withEffToIO_' instead.
 withEffToIO ::
-  (e2 :> es) =>
+  (e2 <: es) =>
   -- | Continuation with the unlifting function in scope.
   ((forall r. (forall e1. IOE e1 -> Eff (e1 :& es) r) -> IO r) -> IO a) ->
   IOE e2 ->
@@ -92,7 +92,7 @@ withEffToIO ::
 withEffToIO k io = effIO io (k (\f -> unsafeUnEff (f io)))
 
 withEffToIO' ::
-  (e2 :> es) =>
+  (e2 <: es) =>
   -- | Continuation with the unlifting function in scope.
   IOE e2 ->
   ((forall r. (forall e1. IOE e1 -> Eff (e1 :& es) r) -> IO r) -> IO a) ->
@@ -102,7 +102,7 @@ withEffToIO' io k = withEffToIO k io
 -- | This is equivalent to the 'withRunInIO' method of
 -- 'MonadUnliftIO', but written in Bluefin-style.
 withEffToIO_ ::
-  (e :> es) =>
+  (e <: es) =>
   IOE e ->
   -- | Continuation with the unlifting function in scope.
   ((forall r. Eff es r -> IO r) -> IO a) ->
@@ -112,7 +112,7 @@ withEffToIO_ io k =
 
 -- We can do the old API in terms of withEffToIO_
 withEffToIO_' ::
-  (e2 :> es) =>
+  (e2 <: es) =>
   IOE e2 ->
   -- | Continuation with the unlifting function in scope.
   ((forall r. (forall e1. IOE e1 -> Eff (e1 :& es) r) -> IO r) -> IO a) ->
@@ -124,7 +124,7 @@ withEffToIO_' io k =
 -- through all the consequences.
 
 -- | You probably want to use 'withEffToIO_' instead.
-instance (e :> es) => MonadUnliftIO (EffReader (IOE e) es) where
+instance (e <: es) => MonadUnliftIO (EffReader (IOE e) es) where
   withRunInIO ::
     ((forall a. EffReader (IOE e) es a -> IO a) -> IO b) ->
     EffReader (IOE e) es b
@@ -135,7 +135,7 @@ instance (e :> es) => MonadUnliftIO (EffReader (IOE e) es) where
           effToIO (f io)
 
 race ::
-  (e2 :> es) =>
+  (e2 <: es) =>
   (forall e. IOE e -> Eff (e :& es) a) ->
   (forall e. IOE e -> Eff (e :& es) a) ->
   IOE e2 ->
@@ -201,7 +201,7 @@ streamConsume ::
 streamConsume s c = consumeStream c s
 
 zipCoroutines ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Coroutine (a1, a2) b e1 ->
   (forall e. Coroutine a1 b e -> Eff (e :& es) r) ->
   (forall e. Coroutine a2 b e -> Eff (e :& es) r) ->
@@ -218,15 +218,15 @@ zipCoroutines c m1 m2 = do
           a2' <- yieldCoroutine c2 b'
           put ass (a1', a2')
 
-instance (e :> es) => MonadBase IO (EffReader (IOE e) es) where
+instance (e <: es) => MonadBase IO (EffReader (IOE e) es) where
   liftBase = liftIO
 
-instance (e :> es) => MonadBaseControl IO (EffReader (IOE e) es) where
+instance (e <: es) => MonadBaseControl IO (EffReader (IOE e) es) where
   type StM (EffReader (IOE e) es) a = a
   liftBaseWith = withRunInIO
   restoreM = pure
 
-instance (e :> es) => MonadFail (EffReader (Exception String e) es) where
+instance (e <: es) => MonadFail (EffReader (Exception String e) es) where
   fail = MkEffReader . flip throw
 
 hoistReader ::
@@ -246,7 +246,7 @@ hoistReader f = Reader.ReaderT . (\m -> f . Reader.runReaderT m)
 -- This is not really any better than just running the action in
 -- `IO`.
 withMonadIO ::
-  (e :> es) =>
+  (e <: es) =>
   IOE e ->
   -- | 'MonadIO' operation
   (forall m. (MonadIO m) => m r) ->
@@ -266,7 +266,7 @@ withMonadIO io m = unEffReader m io
 -- This is not really any better than just running the action in
 -- `Either String` and then applying `either (throw f) pure`.
 withMonadFail ::
-  (e :> es) =>
+  (e <: es) =>
   -- | @Exception@ to @throw@ on @fail@
   Exception String e ->
   -- | 'MonadFail' operation
@@ -291,7 +291,7 @@ insertFirst = weakenEff (drop (eq ZW))
 insertSecond :: Eff (c1 :& b) r -> Eff (c1 :& (c2 :& b)) r
 insertSecond = insertManySecond
 
-insertManySecond :: (b :> c) => Eff (c1 :& b) r -> Eff (c1 :& c) r
+insertManySecond :: (b <: c) => Eff (c1 :& b) r -> Eff (c1 :& c) r
 insertManySecond = weakenEff (bimap has has)
 
 assoc1Eff :: Eff ((a :& b) :& c) r -> Eff (a :& (b :& c)) r
@@ -303,7 +303,7 @@ pushFirst = weakenEff (fstI ZW)
 mergeEff :: Eff (a :& a) r -> Eff a r
 mergeEff = weakenEff (merge ZW)
 
-inContext :: (e2 :> e1) => Eff (e1 :& e2) r -> Eff e1 r
+inContext :: (e2 <: e1) => Eff (e1 :& e2) r -> Eff e1 r
 inContext = weakenEff (subsume1 has)
 
 -- | Used to define dynamic effects.
@@ -311,12 +311,12 @@ makeOp :: Eff (e :& e) r -> Eff e r
 makeOp = inContext
 
 -- | Used to define dynamic effects.
-useImpl :: (e :> es) => Eff e r -> Eff es r
+useImpl :: (e <: es) => Eff e r -> Eff es r
 useImpl = weakenEff has
 
 -- | Like 'useImpl'
 useImplUnder ::
-  (e :> es) =>
+  (e <: es) =>
   Eff (e1 :& e) r ->
   -- | ͘
   Eff (e1 :& es) r
@@ -324,7 +324,7 @@ useImplUnder = insertManySecond
 
 -- | Used to define handlers of compound effects.
 useImplIn ::
-  (e :> es) =>
+  (e <: es) =>
   (t -> Eff (es :& e) r) ->
   t ->
   -- | ͘
@@ -333,7 +333,7 @@ useImplIn f h = inContext (f h)
 
 -- | Deprecated.  Use 'useImplUnder' instead.
 useImplWithin ::
-  (e :> es) =>
+  (e <: es) =>
   (t -> Eff (e1 :& e) r) ->
   t ->
   -- | ͘
@@ -352,7 +352,7 @@ newtype Exception exn (e :: Effects)
 
 type role Exception representational nominal
 
-instance (e :> es) => OneWayCoercible (Exception ex e) (Exception ex es) where
+instance (e <: es) => OneWayCoercible (Exception ex e) (Exception ex es) where
   oneWayCoercibleImpl = oneWayCoercible
 
 -- | A handle to a strict mutable state of type @s@
@@ -361,7 +361,7 @@ newtype State s (e :: Effects) = UnsafeMkState (IORef s)
 
 type role State representational nominal
 
-instance (e :> es) => OneWayCoercible (State s e) (State s es) where
+instance (e <: es) => OneWayCoercible (State s e) (State s es) where
   oneWayCoercibleImpl = oneWayCoercible
 
 -- | A handle to a coroutine that yields values of type @a@ and then
@@ -369,7 +369,7 @@ instance (e :> es) => OneWayCoercible (State s e) (State s es) where
 newtype Coroutine a b (e :: Effects) = MkCoroutine (a -> Eff e b)
   deriving (Handle) via OneWayCoercibleHandle (Coroutine a b)
 
-instance (e :> es) => OneWayCoercible (Coroutine a b e) (Coroutine a b es) where
+instance (e <: es) => OneWayCoercible (Coroutine a b e) (Coroutine a b es) where
   oneWayCoercibleImpl = oneWayCoercible
 
 -- | A handle to a stream that yields values of type @a@.  It is
@@ -398,7 +398,7 @@ type Consume a = Coroutine () a
 --   deriving (Generic)
 --   deriving (Handle) via 'OneWayCoercibleHandle' Application
 --
--- instance (e :> es) => 'OneWayCoercible' (Application e) (Application es) where
+-- instance (e \<: es) => 'OneWayCoercible' (Application e) (Application es) where
 --   oneWayCoercibleImpl = 'gOneWayCoercible'
 -- @
 --
@@ -406,7 +406,7 @@ type Consume a = Coroutine () a
 -- you can instead use
 --
 -- @
--- instance (e :> es) => OneWayCoercible (MyHandle e) (MyHandle es) where
+-- instance (e \<: es) => OneWayCoercible (MyHandle e) (MyHandle es) where
 --   oneWayCoercibleImpl = 'oneWayCoercibleTrustMe' $ \\h -> \<mapHandle definition\>
 -- @
 class Handle (h :: Effects -> Type) where
@@ -429,7 +429,7 @@ class Handle (h :: Effects -> Type) where
 --   deriving (Generic)
 --   deriving (Handle) via 'OneWayCoercibleHandle' MyHandle
 --
--- instance (e :> es) => 'OneWayCoercible' (MyHandle e) (MyHandle es) where
+-- instance (e \<: es) => 'OneWayCoercible' (MyHandle e) (MyHandle es) where
 --   'oneWayCoercibleImpl' = 'gOneWayCoercible'
 -- @
 --
@@ -437,23 +437,23 @@ class Handle (h :: Effects -> Type) where
 -- you can instead use
 --
 -- @
--- instance (e :> es) => OneWayCoercible (MyHandle e) (MyHandle es) where
+-- instance (e \<: es) => OneWayCoercible (MyHandle e) (MyHandle es) where
 --   oneWayCoercibleImpl = 'oneWayCoercibleTrustMe' $ \\h -> \<mapHandle definition\>
 -- @
-mapHandle :: forall h e es. (Handle h, e :> es) => h e -> h es
+mapHandle :: forall h e es. (Handle h, e <: es) => h e -> h es
 mapHandle = case handleDictImpl @h of MkHandleDict -> oneWayCoerce
 
 withHandle ::
   forall h r.
   (Handle h) =>
-  ((forall e es. (e :> es) => OneWayCoercible (h e) (h es)) => r) ->
+  ((forall e es. (e <: es) => OneWayCoercible (h e) (h es)) => r) ->
   r
 withHandle r = case handleDictImpl @h of MkHandleDict -> r
 
 type HandleDict :: (Effects -> Type) -> Type
 data HandleDict h where
   MkHandleDict ::
-    (forall e es. (e :> es) => OneWayCoercible (h e) (h es)) =>
+    (forall e es. (e <: es) => OneWayCoercible (h e) (h es)) =>
     HandleDict h
 
 type role HandleDict nominal
@@ -461,7 +461,7 @@ type role HandleDict nominal
 -- The essential properties of HandleD h are
 --
 -- (defining Handle' h =
---    forall e es. (e :> es) => OneWayCoercible (h e) (h es))
+--    forall e es. (e <: es) => OneWayCoercible (h e) (h es))
 --
 -- 1. It can be created by having Handle' h in scope
 --
@@ -501,7 +501,7 @@ type role HandleD representational
 
 handleOneWayCoercible ::
   forall h.
-  (forall e es. (e :> es) => OneWayCoercible (h e) (h es)) =>
+  (forall e es. (e <: es) => OneWayCoercible (h e) (h es)) =>
   -- | ͘
   HandleD h
 -- SPJ suggests this might be safe on ghc-devs
@@ -532,8 +532,8 @@ instance (Handle h1, Handle h2) => Handle (h1 :*: h2) where
 -- (N.B. it must not be literally @mapHandle@ otherwise you'll have a
 -- circular definition!)
 oneWayCoercibleTrustMe ::
-  (e :> es) =>
-  (forall e' es'. (e' :> es') => h e' -> h es') ->
+  (e <: es) =>
+  (forall e' es'. (e' <: es') => h e' -> h es') ->
   -- | ͘
   OneWayCoercibleD (h e) (h es)
 -- Forcing the argument doesn't do much of a check, but it is
@@ -563,7 +563,7 @@ newtype OneWayCoercibleHandle a es = MkOneWayCoercibleHandle (a es)
 
 instance
   forall h.
-  (forall e' es'. (e' :> es') => OneWayCoercible (OneWayCoercibleHandle h e') (OneWayCoercibleHandle h es')) =>
+  (forall e' es'. (e' <: es') => OneWayCoercible (OneWayCoercibleHandle h e') (OneWayCoercibleHandle h es')) =>
   Handle (OneWayCoercibleHandle h)
   where
   handleImpl = handleOneWayCoercible
@@ -639,7 +639,35 @@ subsume2 :: (e1 `In` e2) -> (e1 :& e2) `In` e2
 subsume2 i = cmp (bimap i (eq ZW)) (merge ZW)
 
 -- | The subset constraint on sets of effect tags
+--
+-- Please use the type synonym '<:' instead of @:>@.  The former is a
+-- better name for this constraint and @:>@ will be renamed @<:@ in a
+-- future version.
 class (es1 :: Effects) :> (es2 :: Effects)
+
+-- | The subset constraint on sets of effect tags.  @<:@ is a type
+-- operator (see the extension @TypeOperators@) so in order to import
+-- it you need to use the @ExplicitNamespaces@ extension and the
+-- @type@ import qualifier, like this:
+--
+-- @
+-- {-# LANUGAGE ExplicitNamespaces #-}
+-- import Bluefin.Eff (type (<:))
+-- @
+--
+-- \"@<:@\" is a synonym for \"':>'\".  \"@<:@\" is a better name for
+-- this constraint than \"@:>@\" because it is more evocative of
+-- mathematical relations like @<@, @<=@, @⊂@ and @⊆@ which hold when
+-- the argument on the left of the operator is "smaller than" the
+-- argument on the right.  In the case of @<:@ we have that @e1 <: e2@
+-- when the set of effect tags @e1@ is a subset of or equal to @e2@,
+-- i.e. "@e1@ is smaller than (or equal to) @e2@".  For example, the
+-- following constraints hold (note that ':&' is the union of sets of
+-- effect tags):
+--
+-- * @e <: e@
+-- * @e <: (e1 :& ... :& e :& ... :& en)@
+type (<:) = (:>)
 
 -- | A set of effects @e@ is a subset of itself
 instance e :> e
@@ -668,9 +696,9 @@ instanceProof3 ZW = fstI ZW
 subset ::
   forall e1 es m.
   (Monad m) =>
-  (e1 :> es) =>
+  (e1 <: es) =>
   m ()
-subset = satisfied @(e1 :> es)
+subset = satisfied @(e1 <: es)
 
 satisfied :: forall c m. (Monad m, c) => m ()
 satisfied = pure ()
@@ -695,16 +723,16 @@ handleTag _ = pure Proxy
 -- Right "No exception thrown"
 -- @
 throw ::
-  (e :> es) =>
+  (e <: es) =>
   Exception ex e ->
   -- | Value to throw
   ex ->
   Eff es a
 throw h = case mapHandle h of MkException throw_ -> throw_
 
-has :: forall a b. (a :> b) => a `In` b
+has :: forall a b. (a <: b) => a `In` b
 -- This is safe because, as shown by instanceProof1/2/3, the only way
--- to construct `a :> b` is if `a `In` b`.
+-- to construct `a <: b` is if `a `In` b`.
 has = unsafeInAxiom ZW
 
 data Dict c where
@@ -714,8 +742,8 @@ unsafeCoerceDict :: forall c c'. Dict c -> Dict c'
 unsafeCoerceDict = unsafeCoerce @(Dict c) @(Dict c')
 
 -- Seems like it could be better
-have :: forall a b. a `In` b -> Dict (a :> b)
-have _ = unsafeCoerceDict @(a :> (a :& b)) @(a :> b) Dict
+have :: forall a b. a `In` b -> Dict (a <: b)
+have _ = unsafeCoerceDict @(a <: (a :& b)) @(a <: b) Dict
 
 -- |
 -- @
@@ -794,7 +822,7 @@ catch f h = handle h f
 -- @
 rethrowIO ::
   forall ex es e1 e2 r.
-  (e1 :> es, e2 :> es, Control.Exception.Exception ex) =>
+  (e1 <: es, e2 <: es, Control.Exception.Exception ex) =>
   IOE e1 ->
   Exception ex e2 ->
   Eff es r ->
@@ -861,7 +889,7 @@ finally body after =
         (effToIO (useImpl after))
 
 withStateInIO ::
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   IOE e1 ->
   State s e2 ->
   (IORef s -> IO r) ->
@@ -876,7 +904,7 @@ withStateInIO io (UnsafeMkState r) k = effIO io (k r)
 -- (20,10)
 -- @
 get ::
-  (e :> es) =>
+  (e <: es) =>
   State s e ->
   -- | The current value of the state
   Eff es s
@@ -890,7 +918,7 @@ get st = unsafeProvideIO $ \io -> withStateInIO io st readIORef
 -- ((), 30)
 -- @
 put ::
-  (e :> es) =>
+  (e <: es) =>
   State s e ->
   -- | The new value of the state.  The new value is forced before
   -- writing it to the state.
@@ -905,7 +933,7 @@ put st s = unsafeProvideIO $ \io -> withStateInIO io st (flip writeIORef $! s)
 -- ((), 20)
 -- @
 modify ::
-  (e :> es) =>
+  (e <: es) =>
   State s e ->
   -- | Apply this function to the state.  The new value of the state
   -- is forced before writing it to the state.
@@ -956,7 +984,7 @@ withStateSource f = useImplIn f StateSource
 -- 15
 -- @
 newState ::
-  (e :> es) =>
+  (e <: es) =>
   StateSource e ->
   -- | The initial value for the state handle
   s ->
@@ -987,7 +1015,7 @@ runState s f = do
     pure (a, s')
 
 yieldCoroutine ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Coroutine a b e1 ->
   -- | ͘
   a ->
@@ -1006,7 +1034,7 @@ yieldCoroutine (MkCoroutine f) = useImpl . f
 -- ([1,2,100], ())
 -- @
 yield ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Stream a e1 ->
   -- | Yield this value from the stream
   a ->
@@ -1065,7 +1093,7 @@ ignoreStream k = forEach k (\_ -> pure ())
 -- ([1, 2, 100], ())
 -- @
 inFoldable ::
-  (Foldable t, e1 :> es) =>
+  (Foldable t, e1 <: es) =>
   -- | Yield all these values from the stream
   t a ->
   Stream a e1 ->
@@ -1080,7 +1108,7 @@ inFoldable t = for_ t . yield
 -- ([(0, \"A\"), (1, \"B\"), (2, \"C\")], ())
 -- @
 enumerate ::
-  (e2 :> es) =>
+  (e2 <: es) =>
   -- | ͘
   (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
   Stream (Int, a) e2 ->
@@ -1095,7 +1123,7 @@ enumerate s = enumerateFrom 0 s
 -- ([(1, \"A\"), (2, \"B\"), (3, \"C\")], ())
 -- @
 enumerateFrom ::
-  (e2 :> es) =>
+  (e2 <: es) =>
   -- | Initial value
   Int ->
   (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
@@ -1121,7 +1149,7 @@ consumeEach ::
   Eff es r
 consumeEach k e = forEach k (\() -> e)
 
-await :: (e :> es) => Consume a e -> Eff es a
+await :: (e <: es) => Consume a e -> Eff es a
 await r = yieldCoroutine r ()
 
 type EarlyReturn = Exception
@@ -1154,7 +1182,7 @@ withEarlyReturn = handle pure
 -- "Returned early with 5"
 -- @
 returnEarly ::
-  (e :> es) =>
+  (e <: es) =>
   EarlyReturn r e ->
   -- | Return early to the handler, with this value.
   r ->
@@ -1210,15 +1238,15 @@ compound ::
   Compound h1 h2 (e1 :& e2)
 compound = Compound proxy# proxy#
 
-inComp :: forall a b c r. (a :> b) => (b :> c) => ((a :> c) => r) -> r
+inComp :: forall a b c r. (a <: b) => (b <: c) => ((a <: c) => r) -> r
 inComp k = case have (cmp (has @a @b) (has @b @c)) of Dict -> k
 
 withCompound ::
   forall h1 h2 e es r.
-  (e :> es) =>
+  (e <: es) =>
   Compound h1 h2 e ->
   -- | ͘
-  (forall e1 e2. (e1 :> es, e2 :> es) => h1 e1 -> h2 e2 -> Eff es r) ->
+  (forall e1 e2. (e1 <: es, e2 <: es) => h1 e1 -> h2 e2 -> Eff es r) ->
   Eff es r
 withCompound c f =
   case c of
@@ -1227,27 +1255,27 @@ withCompound c f =
 
 withC1 ::
   forall e1 e2 ss es r.
-  (ss :> es) =>
+  (ss <: es) =>
   Compound e1 e2 ss ->
-  (forall st. (st :> es) => e1 st -> Eff es r) ->
+  (forall st. (st <: es) => e1 st -> Eff es r) ->
   Eff es r
 withC1 c f = withCompound c (\h _ -> f h)
 
 withC2 ::
   forall e1 e2 ss es r.
-  (ss :> es) =>
+  (ss <: es) =>
   Compound e1 e2 ss ->
-  (forall st. (st :> es) => e2 st -> Eff es r) ->
+  (forall st. (st <: es) => e2 st -> Eff es r) ->
   Eff es r
 withC2 c f = withCompound c (\_ i -> f i)
 
-putC :: forall ss es e. (ss :> es) => Compound e (State Int) ss -> Int -> Eff es ()
+putC :: forall ss es e. (ss <: es) => Compound e (State Int) ss -> Int -> Eff es ()
 putC c i = withC2 c (\h -> put h i)
 
-getC :: forall ss es e. (ss :> es) => Compound e (State Int) ss -> Eff es Int
+getC :: forall ss es e. (ss <: es) => Compound e (State Int) ss -> Eff es Int
 getC c = withC2 c (\h -> get h)
 
--- TODO: Make this (s1 :> es, s2 :> es), like withC
+-- TODO: Make this (s1 <: es, s2 <: es), like withC
 runCompound ::
   e1 s1 ->
   -- | ͘
@@ -1316,7 +1344,7 @@ yieldToReverseList f = do
     pure (as, r)
 
 mapStream ::
-  (e2 :> es) =>
+  (e2 <: es) =>
   -- | Apply this function to all elements of the input stream.
   (a -> b) ->
   -- | Input stream
@@ -1326,7 +1354,7 @@ mapStream ::
 mapStream f = mapMaybe (Just . f)
 
 mapMaybe ::
-  (e2 :> es) =>
+  (e2 <: es) =>
   -- | Yield from the output stream all of the elemnts of the input
   -- stream for which this function returns @Just@
   (a -> Maybe b) ->
@@ -1341,7 +1369,7 @@ mapMaybe f s y = forEach s $ \a -> do
 
 -- | Remove 'Nothing' elements from a stream.
 catMaybes ::
-  (e2 :> es) =>
+  (e2 <: es) =>
   -- | Input stream
   (forall e1. Stream (Maybe a) e1 -> Eff (e1 :& es) r) ->
   Stream a e2 ->
@@ -1357,7 +1385,7 @@ catMaybes s y = mapMaybe id s y
 -- ([1,2,3,1,2,3],())
 -- @
 cycleToStream ::
-  (Foldable f, e1 :> es) =>
+  (Foldable f, e1 <: es) =>
   f a ->
   Stream a e1 ->
   -- | ͘
@@ -1374,7 +1402,7 @@ cycleToStream f y = do
 -- ([1,2,3,4],())
 -- @
 takeConsume ::
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   Int ->
   Consume a e1 ->
   Stream a e2 ->
@@ -1426,13 +1454,13 @@ withJump = withEarlyReturn
 -- 15
 -- @
 jumpTo ::
-  (e :> es) =>
+  (e <: es) =>
   Jump e ->
   -- | ͘
   Eff es a
 jumpTo tag = throw tag ()
 
-unwrap :: (e :> es) => Jump e -> Maybe a -> Eff es a
+unwrap :: (e <: es) => Jump e -> Maybe a -> Eff es a
 unwrap j = \case
   Nothing -> jumpTo j
   Just a -> pure a
@@ -1443,7 +1471,7 @@ data IOE (e :: Effects) = MkIOE
 
 type role IOE nominal
 
-instance (e :> es) => OneWayCoercible (IOE e) (IOE es) where
+instance (e <: es) => OneWayCoercible (IOE e) (IOE es) where
   oneWayCoercibleImpl = unsafeOneWayCoercible
 
 -- | Run an 'IO' operation in 'Eff'
@@ -1454,7 +1482,7 @@ instance (e :> es) => OneWayCoercible (IOE e) (IOE es) where
 -- Hello, world!
 -- @
 effIO ::
-  (e :> es) =>
+  (e <: es) =>
   IOE e ->
   IO a ->
   -- | ͘
@@ -1503,7 +1531,7 @@ connect ::
   (forall e1. Coroutine a b e1 -> Eff (e1 :& es) r1) ->
   (forall e2. a -> Coroutine b a e2 -> Eff (e2 :& es) r2) ->
   forall e1 e2.
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   Eff
     es
     ( Either
@@ -1516,7 +1544,7 @@ head' ::
   forall a b r es.
   (forall e. Coroutine a b e -> Eff (e :& es) r) ->
   forall e.
-  (e :> es) =>
+  (e <: es) =>
   Eff
     es
     ( Either
@@ -1532,7 +1560,7 @@ head' c = do
 newtype Writer w e = Writer (Stream w e)
   deriving (Handle) via OneWayCoercibleHandle (Writer w)
 
-instance (e :> es) => OneWayCoercible (Writer w e) (Writer w es) where
+instance (e <: es) => OneWayCoercible (Writer w e) (Writer w es) where
   oneWayCoercibleImpl = oneWayCoercible
 
 -- |
@@ -1580,7 +1608,7 @@ execWriter f = fmap snd (runWriter f)
 -- True
 -- @
 tell ::
-  (e :> es) =>
+  (e <: es) =>
   Writer w e ->
   -- | ͘
   w ->
@@ -1590,7 +1618,7 @@ tell (Writer y) = yield y
 newtype Reader r e = MkReader (State r e)
   deriving newtype (Handle)
 
-instance (e :> es) => OneWayCoercible (Reader r e) (Reader r es) where
+instance (e <: es) => OneWayCoercible (Reader r e) (Reader r es) where
   oneWayCoercibleImpl = oneWayCoercible
 
 runReader ::
@@ -1616,7 +1644,7 @@ runReader r f = evalState r (f . MkReader)
 --   pure (r, r)
 -- @
 ask ::
-  (e :> es) =>
+  (e <: es) =>
   -- | ͘
   Reader r e ->
   Eff es r
@@ -1624,7 +1652,7 @@ ask (MkReader st) = get st
 
 -- | Read the value modified by a function
 asks ::
-  (e :> es) =>
+  (e <: es) =>
   Reader r e ->
   -- | Read the value modified by this function
   (r -> a) ->
@@ -1634,7 +1662,7 @@ asks (MkReader st) f = fmap f (get st)
 -- | Locally override the value in the @Reader@. It will be restored
 -- when the @local@ block ends.
 local ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Reader r e1 ->
   -- | In the body, the reader value is modified by this function.
   (r -> r) ->
@@ -1660,7 +1688,7 @@ newtype HandleReader h e = UnsafeMkHandleReader (State (h e) e)
 -- handle via `localHandle`.
 mapHandleReader ::
   forall h e es.
-  (Handle h, e :> es) =>
+  (Handle h, e <: es) =>
   HandleReader h e ->
   -- | ͘
   HandleReader h es
@@ -1670,7 +1698,7 @@ mapHandleReader = case coerceH of Coercion -> coerce
     coerceH = unsafeCoerce (Coercion :: Coercion (h e) (h e))
 
 localHandle ::
-  (e :> es, Handle h) =>
+  (e <: es, Handle h) =>
   HandleReader h e ->
   (h es -> h es) ->
   Eff es r ->
@@ -1685,14 +1713,14 @@ localHandle hh@(UnsafeMkHandleReader st) f k = do
     (\() -> k)
 
 askHandle ::
-  (e :> es, Handle h) =>
+  (e <: es, Handle h) =>
   HandleReader h e ->
   -- | ͘
   Eff es (h es)
 askHandle hh = let UnsafeMkHandleReader st = mapHandle hh in get st
 
 asksHandle ::
-  (e1 :> es, Handle h) =>
+  (e1 <: es, Handle h) =>
   HandleReader h e1 ->
   (forall e. h e -> Eff (e :& es) r) ->
   -- | ͘
@@ -1702,7 +1730,7 @@ asksHandle hh k = do
   makeOp (k h)
 
 runHandleReader ::
-  (e1 :> es, Handle h) =>
+  (e1 <: es, Handle h) =>
   h e1 ->
   (forall e. HandleReader h e -> Eff (e :& es) r) ->
   -- | ͘
@@ -1722,13 +1750,13 @@ runHandleReader h k = do
 
     useImplIn k h'
 
-instance (e :> es) => OneWayCoercible (HandleReader h e) (HandleReader h es) where
+instance (e <: es) => OneWayCoercible (HandleReader h e) (HandleReader h es) where
   oneWayCoercibleImpl = unsafeOneWayCoercible
 
 newtype ConstEffect r (e :: Effects) = MkConstEffect r
   deriving (Handle) via OneWayCoercibleHandle (ConstEffect r)
 
-instance (e :> es) => OneWayCoercible (ConstEffect r e) (ConstEffect r es) where
+instance (e <: es) => OneWayCoercible (ConstEffect r e) (ConstEffect r es) where
   oneWayCoercibleImpl = oneWayCoercible
 
 runConstEffect ::

@@ -64,13 +64,13 @@ oddsUntilFirstGreaterThan5 =
                 jumpTo break
 
 -- | Inverse to 'try'
-eitherEff :: (e1 :> es) => Either e r -> Exception e e1 -> Eff es r
+eitherEff :: (e1 <: es) => Either e r -> Exception e e1 -> Eff es r
 eitherEff eith ex = case eith of
   Left e -> throw ex e
   Right r -> pure r
 
 -- | Inverse to 'runState'
-stateEff :: (e1 :> es) => (s -> (a, s)) -> State s e1 -> Eff es a
+stateEff :: (e1 <: es) => (s -> (a, s)) -> State s e1 -> Eff es a
 stateEff f st = do
   s <- get st
   let (a, s') = f s
@@ -78,12 +78,12 @@ stateEff f st = do
   pure a
 
 -- | Inverse to 'yieldToList'
-listEff :: (e1 :> es) => ([a], r) -> Stream a e1 -> Eff es r
+listEff :: (e1 <: es) => ([a], r) -> Stream a e1 -> Eff es r
 listEff (as, r) y = do
   for_ as (yield y)
   pure r
 
-test_localInHandler :: (e :> es) => SpecH e -> Eff es ()
+test_localInHandler :: (e <: es) => SpecH e -> Eff es ()
 test_localInHandler y = runReader "global" $ \re ->
   forEach
     (\y2 -> local re (const "local") (yield y2 ()))
@@ -92,7 +92,7 @@ test_localInHandler y = runReader "global" $ \re ->
 -- This test confirms the buggy behavior reported in
 --
 --    https://github.com/tomjaguarpaw/bluefin/issues/98
-test_streamConsumeReader :: (e :> es) => SpecH e -> Eff es ()
+test_streamConsumeReader :: (e <: es) => SpecH e -> Eff es ()
 test_streamConsumeReader spech = do
   runReader @Int 0 $ \r -> do
     streamConsume

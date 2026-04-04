@@ -8,7 +8,7 @@ import Bluefin.Compound
     OneWayCoercibleHandle (..),
     useImpl,
   )
-import Bluefin.Eff (Eff, runEff, (:&), (:>))
+import Bluefin.Eff (Eff, runEff, (:&), type (<:))
 import Bluefin.Exception (Exception, rethrowIO)
 import Bluefin.GadtEffect
   ( Effect,
@@ -36,7 +36,7 @@ deriving via
     Handle (GadtEffect FileSystem r)
 
 instance
-  (e :> es) =>
+  (e <: es) =>
   OneWayCoercible (GadtEffect FileSystem r e) (GadtEffect FileSystem r es)
   where
   oneWayCoercibleImpl = oneWayCoercibleGadtEffectTrustMe $ \case
@@ -45,7 +45,7 @@ instance
     Trace msg body -> Trace msg (useImpl body)
 
 readFile ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Send FileSystem e1 ->
   FilePath ->
   Eff es String
@@ -53,7 +53,7 @@ readFile fc path =
   send fc (ReadFile path)
 
 writeFile ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Send FileSystem e1 ->
   FilePath ->
   String ->
@@ -62,7 +62,7 @@ writeFile fc path content =
   send fc (WriteFile path content)
 
 trace ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Send FileSystem e1 ->
   String ->
   Eff es r ->
@@ -71,7 +71,7 @@ trace fc msg body = send fc (Trace msg body)
 
 runFileSystem ::
   forall es e1 e2 r.
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   IOE e1 ->
   Exception IOException e2 ->
   (forall e. Send FileSystem e -> Eff (e :& es) r) ->
@@ -89,7 +89,7 @@ runFileSystem io ex = interpret $ \case
   where
     -- If you don't want to write this signature you can use
     -- {-# LANGUAGE NoMonoLocalBinds #-}
-    adapt :: (e1 :> es', e2 :> es') => IO r' -> Eff es' r'
+    adapt :: (e1 <: es', e2 <: es') => IO r' -> Eff es' r'
     adapt m = rethrowIO io ex (effIO io m)
 
 data E :: Effect where
@@ -103,7 +103,7 @@ deriving via
     Handle (GadtEffect E r)
 
 instance
-  (e :> es) =>
+  (e <: es) =>
   OneWayCoercible (GadtEffect E r e) (GadtEffect E r es)
   where
   oneWayCoercibleImpl = oneWayCoercibleGadtEffectTrustMe $ \case
@@ -112,7 +112,7 @@ instance
     Op3 -> Op3
 
 runE ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   IOE e1 ->
   (forall e. Send E e -> Eff (e :& es) r) ->
   Eff es r
@@ -122,7 +122,7 @@ runE io = interpret $ \case
   Op3 -> effIO io (putStrLn "op3")
 
 augmentOp2Interpret ::
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   IOE e2 ->
   Send E e1 ->
   (forall e. Send E e -> Eff (e :& es) r) ->
@@ -135,7 +135,7 @@ augmentOp2Interpret io fc = interpret $ \case
 --
 --   https://hackage-content.haskell.org/package/effectful-core-2.6.1.0/docs/Effectful-Dispatch-Dynamic.html#v:interpose
 augmentOp2Interpose ::
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   IOE e2 ->
   HandleReader (Send E) e1 ->
   Eff es r ->

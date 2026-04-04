@@ -15,7 +15,7 @@ import Bluefin.Compound
     oneWayCoercibleImpl,
     useImplIn,
   )
-import Bluefin.Eff (Eff, (:&), (:>))
+import Bluefin.Eff (Eff, (:&), type (<:))
 import Bluefin.Eff qualified as BF
 import Bluefin.Exception (Exception)
 import Bluefin.Exception qualified as BF
@@ -34,15 +34,15 @@ data DbEff es = MkDbEff
   deriving (Generic)
   deriving (Handle) via OneWayCoercibleHandle DbEff
 
-instance (e :> es) => OneWayCoercible (DbEff e) (DbEff es) where
+instance (e <: es) => OneWayCoercible (DbEff e) (DbEff es) where
   oneWayCoercibleImpl = gOneWayCoercible
 
-query :: (e :> es) => DbEff e -> DbHandle -> UserId -> Eff es User
+query :: (e <: es) => DbEff e -> DbHandle -> UserId -> Eff es User
 query db dbHandle userId = makeOp $ queryImpl (mapHandle db) dbHandle userId
 
 runDbEffIo ::
   forall exEff dbEff es r.
-  (exEff :> es, dbEff :> es) =>
+  (exEff <: es, dbEff <: es) =>
   Exception String exEff ->
   IOE dbEff ->
   (forall e. DbEff e -> Eff (e :& es) r) ->

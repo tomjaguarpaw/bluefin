@@ -185,7 +185,7 @@ module Bluefin.DslBuilder
     --   deriving t'Bluefin.Compound.Generic'
     --   deriving t'Bluefin.Compound.Handle' via t'Bluefin.Compound.OneWayCoercibleHandle' ArenaH
     --
-    -- instance (e :> es) => 'Bluefin.Compound.OneWayCoercible' (ArenaH e) (ArenaH es) where
+    -- instance (e \<: es) => 'Bluefin.Compound.OneWayCoercible' (ArenaH e) (ArenaH es) where
     --   'Bluefin.Compound.oneWayCoercibleImpl' = 'Bluefin.Compound.gOneWayCoercible'
     -- @
     --
@@ -248,7 +248,7 @@ module Bluefin.DslBuilder
     --   deriving t'Bluefin.Compound.Generic'
     --   deriving t'Bluefin.Compound.Handle' via t'Bluefin.Compound.OneWayCoercibleHandle' InstructionsH
     --
-    -- instance (e :> es) => t'Bluefin.Compound.OneWayCoercible' (InstructionsH e) (InstructionsH es) where
+    -- instance (e \<: es) => t'Bluefin.Compound.OneWayCoercible' (InstructionsH e) (InstructionsH es) where
     --   oneWayCoercibleImpl = 'Bluefin.Compound.gOneWayCoercible'
     -- @
     --

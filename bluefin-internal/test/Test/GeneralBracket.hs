@@ -9,7 +9,7 @@ import Bluefin.Internal.OneWayCoercible
 import Control.Exception (ErrorCall)
 import Test.SpecH (SpecH, assertEqual)
 
-test_generalBracket :: (e1 :> es, e2 :> es) => IOE e1 -> SpecH e2 -> Eff es ()
+test_generalBracket :: (e1 <: es, e2 <: es) => IOE e1 -> SpecH e2 -> Eff es ()
 test_generalBracket io s = do
   (actual, ()) <- yieldToList $ \y -> example io y
 
@@ -23,12 +23,12 @@ data ThreeExceptions e
   deriving (Generic)
   deriving (Handle) via OneWayCoercibleHandle ThreeExceptions
 
-instance (e :> es) => OneWayCoercible (ThreeExceptions e) (ThreeExceptions es) where
+instance (e <: es) => OneWayCoercible (ThreeExceptions e) (ThreeExceptions es) where
   oneWayCoercibleImpl = gOneWayCoercible
 
 threeExceptionsMakeExceptions ::
   forall es e1.
-  (e1 :> es) =>
+  (e1 <: es) =>
   Stream String e1 ->
   MakeExceptions String () ThreeExceptions es
 threeExceptionsMakeExceptions y =
@@ -48,7 +48,7 @@ threeExceptionsMakeExceptions y =
 
 example ::
   forall es e1 e2.
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   IOE e1 ->
   Stream String e2 ->
   Eff es ()
@@ -71,7 +71,7 @@ example io y = do
     -- If you want to avoid writing this signature use
     --  NoMonoLocalBinds and NoMonomorphismRestriction
     g ::
-      (e2 :> es') =>
+      (e2 <: es') =>
       ( forall e. ThreeExceptions e -> String -> Eff (e :& es') r
       ) ->
       Eff es' ()

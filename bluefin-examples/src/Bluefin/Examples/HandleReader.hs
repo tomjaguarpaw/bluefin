@@ -1,7 +1,7 @@
 module Bluefin.Examples.HandleReader where
 
 import Bluefin.Compound (Handle, mapHandle, useImpl)
-import Bluefin.Eff (Eff, runEff, (:&), (:>))
+import Bluefin.Eff (Eff, runEff, (:&), type (<:))
 import Bluefin.HandleReader
   ( HandleReader,
     askHandle,
@@ -17,7 +17,7 @@ newtype SummableStream e = MkSummableStream (HandleReader (Stream Int) e)
 
 -- | Run the @SummableStream@ in a @Stream@
 runSummableStream ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Stream Int e1 ->
   (forall e. SummableStream e -> Eff (e :& es) r) ->
   Eff es r
@@ -27,14 +27,14 @@ runSummableStream y k =
 
 -- | Yield to the @SummableStream@
 yieldSummable ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   SummableStream e1 ->
   Int ->
   Eff es ()
 yieldSummable (MkSummableStream hr) n = onHandle hr (\y -> yield y n)
 
 onHandle ::
-  (Handle h, e1 :> es) =>
+  (Handle h, e1 <: es) =>
   HandleReader h e1 ->
   (forall e. h e -> Eff e r) ->
   Eff es r
@@ -46,7 +46,7 @@ onHandle hr k = do
 -- well as yielding to the @Stream@ as normal, also accumulates into
 -- the @State@.
 sumYields ::
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   SummableStream e1 ->
   State Int e2 ->
   Eff es r ->

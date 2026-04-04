@@ -16,7 +16,7 @@ import Bluefin.Compound
     gOneWayCoercible,
     mapHandle,
   )
-import Bluefin.Eff (Eff, runEff_, (:>))
+import Bluefin.Eff (Eff, runEff_, type (<:))
 import Bluefin.Exception (Exception, throw, try)
 import Bluefin.IO (IOE, effIO)
 import Bluefin.State (State, evalState, get, modify)
@@ -27,7 +27,7 @@ data MyHandle e = MkMyHandle (Exception String e) (State Int e)
   deriving (Handle) via OneWayCoercibleHandle MyHandle
   deriving (CloneableHandle) via GenericCloneableHandle MyHandle
 
-instance (e :> es) => OneWayCoercible (MyHandle e) (MyHandle es) where
+instance (e <: es) => OneWayCoercible (MyHandle e) (MyHandle es) where
   oneWayCoercibleImpl = gOneWayCoercible
 
 -- -- Run one time
@@ -58,7 +58,7 @@ example = runEff_ $ \io -> evalState 0 $ \st -> do
   effIO io (putStrLn ("State started at 0 and was cloned. Now: " <> show s))
 
 bluefinRace ::
-  (CloneableHandle h, e1 :> es) =>
+  (CloneableHandle h, e1 <: es) =>
   IOE e1 ->
   h es ->
   (forall e. IOE e -> h e -> Eff e r) ->

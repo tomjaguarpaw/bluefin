@@ -1,3 +1,5 @@
+{-# LANGUAGE ExplicitNamespaces #-}
+
 module Bluefin.Eff
   ( -- * 'Eff' monad
     Eff,
@@ -22,6 +24,7 @@ module Bluefin.Eff
     -- * Effect tracking
     Effects,
     (:>),
+    type (<:),
     (:&),
   )
 where

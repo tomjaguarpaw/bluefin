@@ -1,3 +1,10 @@
+* Add `<:` type synonym for `:>`
+
+  It is suggested you switch your uses of `:>` to `<:` because it is a
+  "subset" like constraint and the latter looks more like a subset
+  symbol.  The former may be deprecated and then removed in future
+  versions.
+
 # 0.5.0.0
 
 * Fix dodgy `Bluefin.Primitive.primitive` implementation

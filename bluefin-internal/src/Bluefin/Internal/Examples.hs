@@ -206,7 +206,7 @@ example3_ = runEff_ $ \io -> do
   forEach formattedLines $ \line -> effIO io (putStrLn line)
 
 awaitList ::
-  (e :> es) =>
+  (e <: es) =>
   [a] ->
   IOE e ->
   (forall e1. Consume a e1 -> Eff (e1 :& es) ()) ->
@@ -226,7 +226,7 @@ awaitList l io k = evalState l $ \s -> do
           pure x
 
 takeRec ::
-  (e3 :> es) =>
+  (e3 <: es) =>
   Int ->
   (forall e. Consume a e -> Eff (e :& es) ()) ->
   Consume a e3 ->
@@ -241,7 +241,7 @@ takeRec n k rec =
         await rec
 
 mapRec ::
-  (e :> es) =>
+  (e <: es) =>
   (a -> b) ->
   (forall e1. Consume b e1 -> Eff (e1 :& es) ()) ->
   Consume a e ->
@@ -249,7 +249,7 @@ mapRec ::
 mapRec f = traverseRec (pure . f)
 
 traverseRec ::
-  (e :> es) =>
+  (e <: es) =>
   (a -> Eff es b) ->
   (forall e1. Consume b e1 -> Eff (e1 :& es) ()) ->
   Consume a e ->
@@ -259,7 +259,7 @@ traverseRec f k rec = forEach k $ \() -> do
   f r
 
 awaitUsage ::
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   IOE e1 ->
   (forall e. Consume () e -> Eff (e :& es) ()) ->
   Consume Int e2 ->
@@ -424,10 +424,10 @@ countPositivesNegatives is = runPureEff $
 
 type MyHandle = Compound (State Int) (Exception String)
 
-myInc :: (e :> es) => MyHandle e -> Eff es ()
+myInc :: (e <: es) => MyHandle e -> Eff es ()
 myInc h = withCompound h (\s _ -> modify s (+ 1))
 
-myBail :: (e :> es) => MyHandle e -> Eff es r
+myBail :: (e <: es) => MyHandle e -> Eff es r
 myBail h = withCompound h $ \s e -> do
   i <- get s
   throw e ("Current state was: " ++ show i)
@@ -485,7 +485,7 @@ stateSourceExample = runPureEff $ withStateSource $ \source -> do
   get total
 
 incrementReadLine ::
-  (e1 :> es, e2 :> es, e3 :> es) =>
+  (e1 <: es, e2 <: es, e3 <: es) =>
   State Int e1 ->
   Exception String e2 ->
   IOE e3 ->
@@ -515,7 +515,7 @@ runIncrementReadLine = runEff_ $ \io -> do
 
 newtype Counter1 e = MkCounter1 (State Int e)
 
-incCounter1 :: (e :> es) => Counter1 e -> Eff es ()
+incCounter1 :: (e <: es) => Counter1 e -> Eff es ()
 incCounter1 (MkCounter1 st) = modify st (+ 1)
 
 runCounter1 ::
@@ -539,7 +539,7 @@ exampleCounter1 = runPureEff $ runCounter1 $ \c -> do
 
 data Counter2 e1 e2 = MkCounter2 (State Int e1) (Exception () e2)
 
-incCounter2 :: (e1 :> es, e2 :> es) => Counter2 e1 e2 -> Eff es ()
+incCounter2 :: (e1 <: es, e2 <: es) => Counter2 e1 e2 -> Eff es ()
 incCounter2 (MkCounter2 st ex) = do
   count <- get st
   when (count >= 10) $
@@ -567,7 +567,7 @@ exampleCounter2 = runPureEff $ runCounter2 $ \c ->
 
 data Counter3 e = MkCounter3 (State Int e) (Exception () e)
 
-incCounter3 :: (e :> es) => Counter3 e -> Eff es ()
+incCounter3 :: (e <: es) => Counter3 e -> Eff es ()
 incCounter3 (MkCounter3 st ex) = do
   count <- get st
   when (count >= 10) $
@@ -595,12 +595,12 @@ exampleCounter3 = runPureEff $ runCounter3 $ \c ->
 
 newtype Counter3B e = MkCounter3B (IOE e)
 
-incCounter3B :: (e :> es) => Counter3B e -> Eff es ()
+incCounter3B :: (e <: es) => Counter3B e -> Eff es ()
 incCounter3B (MkCounter3B io) =
   effIO io (putStrLn "You tried to increment the counter")
 
 runCounter3B ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   IOE e1 ->
   (forall e. Counter3B e -> Eff (e :& es) r) ->
   Eff es r
@@ -622,7 +622,7 @@ exampleCounter3B = runEff_ $ \io -> runCounter3B io $ \c -> do
 data Counter4 e
   = MkCounter4 (State Int e) (Exception () e) (Stream String e)
 
-incCounter4 :: (e :> es) => Counter4 e -> Eff es ()
+incCounter4 :: (e <: es) => Counter4 e -> Eff es ()
 incCounter4 (MkCounter4 st ex y) = do
   count <- get st
 
@@ -634,13 +634,13 @@ incCounter4 (MkCounter4 st ex y) = do
 
   put st (count + 1)
 
-getCounter4 :: (e :> es) => Counter4 e -> String -> Eff es Int
+getCounter4 :: (e <: es) => Counter4 e -> String -> Eff es Int
 getCounter4 (MkCounter4 st _ y) msg = do
   yield y msg
   get st
 
 runCounter4 ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Stream String e1 ->
   (forall e. Counter4 e -> Eff (e :& es) r) ->
   Eff es Int
@@ -671,17 +671,17 @@ data Counter5 e = MkCounter5
   deriving (Generic)
   deriving (Handle) via OneWayCoercibleHandle Counter5
 
-instance (e :> es) => OneWayCoercible (Counter5 e) (Counter5 es) where
+instance (e <: es) => OneWayCoercible (Counter5 e) (Counter5 es) where
   oneWayCoercibleImpl = gOneWayCoercible
 
-incCounter5 :: (e :> es) => Counter5 e -> Eff es ()
+incCounter5 :: (e <: es) => Counter5 e -> Eff es ()
 incCounter5 e = incCounter5Impl (mapHandle e)
 
-getCounter5 :: (e :> es) => Counter5 e -> String -> Eff es Int
+getCounter5 :: (e <: es) => Counter5 e -> String -> Eff es Int
 getCounter5 e msg = getCounter5Impl (mapHandle e) msg
 
 runCounter5 ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Stream String e1 ->
   (forall e. Counter5 e -> Eff (e :& es) r) ->
   Eff es Int
@@ -730,19 +730,19 @@ data Counter6 e = MkCounter6
   deriving (Generic)
   deriving (Handle) via OneWayCoercibleHandle Counter6
 
-instance (e :> es) => OneWayCoercible (Counter6 e) (Counter6 es) where
+instance (e <: es) => OneWayCoercible (Counter6 e) (Counter6 es) where
   oneWayCoercibleImpl = gOneWayCoercible
 
-incCounter6 :: (e :> es) => Counter6 e -> Eff es ()
+incCounter6 :: (e <: es) => Counter6 e -> Eff es ()
 incCounter6 e = incCounter6Impl (mapHandle e)
 
-getCounter6 :: (e :> es) => Counter6 e -> String -> Eff es Int
+getCounter6 :: (e <: es) => Counter6 e -> String -> Eff es Int
 getCounter6 (MkCounter6 _ st y) msg = do
   yield y msg
   get st
 
 runCounter6 ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Stream String e1 ->
   (forall e. Counter6 e -> Eff (e :& es) r) ->
   Eff es Int
@@ -792,7 +792,7 @@ data Counter7 e = MkCounter7
 -- | The "forall" in the type of @incCounter7@ means that we can't
 -- derive the @OneWayCoercible@ instance with 'gOneWayCoercible' so
 -- instead we use @oneWayCoercibleTrustMe@.
-instance (e :> es) => OneWayCoercible (Counter7 e) (Counter7 es) where
+instance (e <: es) => OneWayCoercible (Counter7 e) (Counter7 es) where
   oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \c ->
     MkCounter7
       { incCounter7Impl = \ex -> useImplUnder (incCounter7Impl c ex),
@@ -801,16 +801,16 @@ instance (e :> es) => OneWayCoercible (Counter7 e) (Counter7 es) where
       }
 
 incCounter7 ::
-  (e :> es, e1 :> es) => Counter7 e -> Exception () e1 -> Eff es ()
+  (e <: es, e1 <: es) => Counter7 e -> Exception () e1 -> Eff es ()
 incCounter7 e ex = makeOp (incCounter7Impl (mapHandle e) (mapHandle ex))
 
-getCounter7 :: (e :> es) => Counter7 e -> String -> Eff es Int
+getCounter7 :: (e <: es) => Counter7 e -> String -> Eff es Int
 getCounter7 (MkCounter7 _ st y) msg = do
   yield y msg
   get st
 
 runCounter7 ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Stream String e1 ->
   (forall e. Counter7 e -> Eff (e :& es) r) ->
   Eff es Int
@@ -867,18 +867,18 @@ data FileSystem es = MkFileSystem
   deriving (Generic)
   deriving (Handle) via OneWayCoercibleHandle FileSystem
 
-instance (e :> es) => OneWayCoercible (FileSystem e) (FileSystem es) where
+instance (e <: es) => OneWayCoercible (FileSystem e) (FileSystem es) where
   oneWayCoercibleImpl = gOneWayCoercible
 
-readFile :: (e :> es) => FileSystem e -> FilePath -> Eff es String
+readFile :: (e <: es) => FileSystem e -> FilePath -> Eff es String
 readFile fs filepath = readFileImpl (mapHandle fs) filepath
 
-writeFile :: (e :> es) => FileSystem e -> FilePath -> String -> Eff es ()
+writeFile :: (e <: es) => FileSystem e -> FilePath -> String -> Eff es ()
 writeFile fs filepath contents =
   writeFileImpl (mapHandle fs) filepath contents
 
 runFileSystemPure ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Exception String e1 ->
   [(FilePath, String)] ->
   (forall e2. FileSystem e2 -> Eff (e2 :& es) r) ->
@@ -900,7 +900,7 @@ runFileSystemPure ex fs0 k =
 
 runFileSystemIO ::
   forall e1 e2 es r.
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   Exception String e1 ->
   IOE e2 ->
   (forall e. FileSystem e -> Eff (e :& es) r) ->
@@ -915,13 +915,13 @@ runFileSystemIO ex io k =
           \path -> adapt . Prelude.writeFile path
       }
   where
-    adapt :: (e1 :> ess, e2 :> ess) => IO a -> Eff ess a
+    adapt :: (e1 <: ess, e2 <: ess) => IO a -> Eff ess a
     adapt m =
       effIO io (Control.Exception.try @IOException m) >>= \case
         Left e -> throw ex (show e)
         Right r -> pure r
 
-action :: (e :> es) => FileSystem e -> Eff es String
+action :: (e <: es) => FileSystem e -> Eff es String
 action fs = do
   file <- readFile fs "/dev/null"
   when (length file == 0) $ do
@@ -954,14 +954,14 @@ data Application e = MkApplication
   deriving (Generic)
   deriving (Handle) via OneWayCoercibleHandle Application
 
-instance (e :> es) => OneWayCoercible (Application e) (Application es) where
+instance (e <: es) => OneWayCoercible (Application e) (Application es) where
   oneWayCoercibleImpl = gOneWayCoercible
 
 -- This example shows a case where we can use @bracket@ polymorphically
 -- in order to perform correct cleanup if @es@ is instantiated to a
 -- set of effects that includes exceptions.
 polymorphicBracket ::
-  (st :> es) =>
+  (st <: es) =>
   State (Integer, Bool) st ->
   Eff es () ->
   Eff es ()
@@ -990,7 +990,7 @@ polymorphicBracketExample2 =
 pipesExample1 :: IO ()
 pipesExample1 = runEff_ $ \io -> runEffect (count >-> P.print io)
   where
-    count :: (e :> es) => Producer Int e -> Eff es ()
+    count :: (e <: es) => Producer Int e -> Eff es ()
     count p = for_ [1 .. 5] $ \i -> P.yield p i
 
 pipesExample2 :: IO String
@@ -1046,7 +1046,7 @@ data DynamicReader r e = DynamicReader
   deriving (Handle) via OneWayCoercibleHandle (DynamicReader r)
 
 instance
-  (e :> es) =>
+  (e <: es) =>
   OneWayCoercible (DynamicReader r e) (DynamicReader r es)
   where
   oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \h ->
@@ -1056,13 +1056,13 @@ instance
       }
 
 askLR ::
-  (e :> es) =>
+  (e <: es) =>
   DynamicReader r e ->
   Eff es r
 askLR c = askLRImpl (mapHandle c)
 
 localLR ::
-  (e :> es) =>
+  (e <: es) =>
   DynamicReader r e ->
   (r -> r) ->
   Eff es a ->
@@ -1082,21 +1082,21 @@ runDynamicReader r k =
           localLRImpl = \f k' -> local h f (useImpl k')
         }
 
--- Fails to compile unless '(e :> es) => e :> (x :& es)' is incoherent
+-- Fails to compile unless '(e <: es) => e <: (x :& es)' is incoherent
 -- (otherwise I guess it "commits to it too soon")
 example :: ()
 example = runPureEff $
   evalState () $ \st1 ->
     evalState () $ \st2 -> do
       Proxy :: Proxy es <- effTag
-      satisfied @(es :> es)
+      satisfied @(es <: es)
 
       Proxy :: Proxy e1 <- handleTag st1
       Proxy :: Proxy e2 <- handleTag st2
 
-      satisfied @(e1 :> e1)
-      satisfied @(e2 :> e2)
-      satisfied @(e1 :> (e1 :& e2))
-      satisfied @(e2 :> (e1 :& e2))
+      satisfied @(e1 <: e1)
+      satisfied @(e2 <: e2)
+      satisfied @(e1 <: (e1 :& e2))
+      satisfied @(e2 <: (e1 :& e2))
 
-      satisfied @((e1 :& e2) :> (e1 :& e2))
+      satisfied @((e1 :& e2) <: (e1 :& e2))

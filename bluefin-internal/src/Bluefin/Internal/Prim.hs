@@ -15,7 +15,7 @@ data Prim (e :: Effects) = UnsafeMkPrim
 
 data PrimStateEff (es :: Effects)
 
-instance (e :> es) => OneWayCoercible (Prim e) (Prim es) where
+instance (e <: es) => OneWayCoercible (Prim e) (Prim es) where
   oneWayCoercibleImpl = unsafeOneWayCoercible
 
 runPrim ::
@@ -25,7 +25,7 @@ runPrim ::
 runPrim k = makeOp (k UnsafeMkPrim)
 
 primitive ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   Prim e1 ->
   (State# (PrimStateEff e1) -> (# State# (PrimStateEff e1), a #)) ->
   -- | ͘

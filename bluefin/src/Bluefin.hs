@@ -716,7 +716,7 @@ module Bluefin
     -- pattern which looks like
     --
     -- @
-    -- (e1 :> es, ...) -> \<Handle\> e1 -> ... -> Eff es r
+    -- (e1 \<: es, ...) -> \<Handle\> e1 -> ... -> Eff es r
     -- @
     --
     -- Here @\<Handle\>@ could be, for example, @State Int@,
@@ -743,9 +743,9 @@ module Bluefin
     -- Finally, let's look at the constraints.  They are what tie
     -- together the effect tags of the arguments to the effect tag of
     -- the result.  For every argument effect tag @en@ we have a
-    -- constraint @en :> es@.  That tells us the that effect handle
+    -- constraint @en \<: es@.  That tells us the that effect handle
     -- with tag @en@ is allowed to be used within the effectful
-    -- computation.  If we didn't have the @e1 :> es@ constraint, for
+    -- computation.  If we didn't have the @e1 \<: es@ constraint, for
     -- example, that would tell us that the @State Int e1@ isn't
     -- actually used anywhere in the computation.
     --
@@ -754,7 +754,7 @@ module Bluefin
     --
     -- @
     -- incrementReadLine ::
-    --   (e1 :> es, e2 :> es, e3 :> es) =>
+    --   (e1 \<: es, e2 \<: es, e3 \<: es) =>
     --   State Int e1  ->
     --   Exception String e2  ->
     --   IOE e3 ->

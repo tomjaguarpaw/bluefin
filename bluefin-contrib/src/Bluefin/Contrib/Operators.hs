@@ -32,33 +32,33 @@ module Bluefin.Contrib.Operators
   )
 where
 
-import Bluefin.Eff (Eff, (:>))
+import Bluefin.Eff (Eff, type (<:))
 import Bluefin.State (State, modify)
 import Data.Bits (Bits, shiftL, xor, (.&.), (.|.))
 
-(+=) :: (e :> es, Num a) => State a e -> a -> Eff es ()
+(+=) :: (e <: es, Num a) => State a e -> a -> Eff es ()
 (+=) = opEquals (+)
 
-(-=) :: (e :> es, Num a) => State a e -> a -> Eff es ()
+(-=) :: (e <: es, Num a) => State a e -> a -> Eff es ()
 (-=) = opEquals (-)
 
-(*=) :: (e :> es, Num a) => State a e -> a -> Eff es ()
+(*=) :: (e <: es, Num a) => State a e -> a -> Eff es ()
 (*=) = opEquals (*)
 
-(%=) :: (e :> es, Integral a) => State a e -> a -> Eff es ()
+(%=) :: (e <: es, Integral a) => State a e -> a -> Eff es ()
 (%=) = opEquals mod
 
-(&=) :: (e :> es, Bits a) => State a e -> a -> Eff es ()
+(&=) :: (e <: es, Bits a) => State a e -> a -> Eff es ()
 (&=) = opEquals (.&.)
 
-(|=) :: (e :> es, Bits a) => State a e -> a -> Eff es ()
+(|=) :: (e <: es, Bits a) => State a e -> a -> Eff es ()
 (|=) = opEquals (.|.)
 
-(^=) :: (e :> es, Bits a) => State a e -> a -> Eff es ()
+(^=) :: (e <: es, Bits a) => State a e -> a -> Eff es ()
 (^=) = opEquals xor
 
-(<<=) :: (e :> es, Bits a) => State a e -> Int -> Eff es ()
+(<<=) :: (e <: es, Bits a) => State a e -> Int -> Eff es ()
 (<<=) = opEquals shiftL
 
-opEquals :: (e :> es) => (s -> p -> s) -> State s e -> p -> Eff es ()
+opEquals :: (e <: es) => (s -> p -> s) -> State s e -> p -> Eff es ()
 opEquals op st n = modify st (`op` n)

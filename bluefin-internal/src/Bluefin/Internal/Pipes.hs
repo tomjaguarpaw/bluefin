@@ -17,7 +17,7 @@ import Bluefin.Internal
     withEarlyReturn,
     yieldCoroutine,
     (:&),
-    (:>),
+    type (<:),
   )
 import Bluefin.Internal qualified
 import Control.Monad (forever)
@@ -39,7 +39,7 @@ type Effect = Producer Void
 infixl 7 >->
 
 (>->) ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   (forall e. Proxy a' a () b e -> Eff (e :& es) r) ->
   (forall e. Proxy () b c' c e -> Eff (e :& es) r) ->
   Proxy a' a c' c e1 ->
@@ -53,7 +53,7 @@ infixl 7 >->
 infixr 7 <-<
 
 (<-<) ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   (forall e. Proxy () b c' c e -> Eff (e :& es) r) ->
   (forall e. Proxy a' a () b e -> Eff (e :& es) r) ->
   Proxy a' a c' c e1 ->
@@ -62,7 +62,7 @@ infixr 7 <-<
 k1 <-< k2 = k2 >-> k1
 
 for ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   (forall e. Proxy x' x b' b e -> Eff (e :& es) a') ->
   (b -> forall e. Proxy x' x c' c e -> Eff (e :& es) b') ->
   Proxy x' x c' c e1 ->
@@ -75,7 +75,7 @@ for k1 k2 (MkProxy c1 c2) =
 infixr 4 ~>
 
 (~>) ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   (a -> forall e. Proxy x' x b' b e -> Eff (e :& es) a') ->
   (b -> forall e. Proxy x' x c' c e -> Eff (e :& es) b') ->
   a ->
@@ -87,7 +87,7 @@ infixr 4 ~>
 infixl 4 <~
 
 (<~) ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   (b -> forall e. Proxy x' x c' c e -> Eff (e :& es) b') ->
   (a -> forall e. Proxy x' x b' b e -> Eff (e :& es) a') ->
   a ->
@@ -102,7 +102,7 @@ reverseProxy (MkProxy c1 c2) = MkProxy c2 c1
 infixl 5 >~
 
 (>~) ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   (forall e. Proxy a' a y' y e -> Eff (e :& es) b) ->
   (forall e. Proxy () b y' y e -> Eff (e :& es) c) ->
   Proxy a' a y' y e1 ->
@@ -119,7 +119,7 @@ infixl 5 >~
 infixr 5 ~<
 
 (~<) ::
-  (e1 :> es) =>
+  (e1 <: es) =>
   (forall e. Proxy () b y' y e -> Eff (e :& es) c) ->
   (forall e. Proxy a' a y' y e -> Eff (e :& es) b) ->
   Proxy a' a y' y e1 ->
@@ -150,14 +150,14 @@ runEffect k =
     absurd
 
 yield ::
-  (e :> es) =>
+  (e <: es) =>
   Proxy x1 x () a e ->
   a ->
   -- | ͘
   Eff es ()
 yield (MkProxy _ c) = Bluefin.Internal.yield c
 
-await :: (e :> es) => Proxy () a y' y e -> Eff es a
+await :: (e <: es) => Proxy () a y' y e -> Eff es a
 await (MkProxy c _) = yieldCoroutine c ()
 
 -- | @pipe@'s 'next' doesn't exist in Bluefin
@@ -173,7 +173,7 @@ each ::
 each f p = for_ f (yield p)
 
 repeatM ::
-  (e :> es) =>
+  (e <: es) =>
   Eff es a ->
   Proxy x' x () a e ->
   -- | ͘
@@ -183,7 +183,7 @@ repeatM e p = forever $ do
   yield p a
 
 replicateM ::
-  (e :> es) =>
+  (e <: es) =>
   Int ->
   Eff es a ->
   Proxy x' x () a e ->
@@ -194,7 +194,7 @@ replicateM n e p = for_ [0 .. n] $ \_ -> do
   yield p a
 
 print ::
-  (e2 :> es, e1 :> es, Show a) =>
+  (e2 <: es, e1 <: es, Show a) =>
   IOE e1 ->
   Consumer a e2 ->
   -- | ͘
@@ -204,7 +204,7 @@ print io p = forever $ do
   effIO io (Prelude.print a)
 
 unfoldr ::
-  (e :> es) =>
+  (e <: es) =>
   (s -> Eff es (Either r (a, s))) ->
   s ->
   Proxy x1 x () a e ->
@@ -220,7 +220,7 @@ unfoldr next_ sInit p =
         yield p a
 
 mapM_ ::
-  (e :> es) =>
+  (e <: es) =>
   (a -> Eff es ()) ->
   Proxy () a b b' e ->
   -- | ͘
@@ -228,14 +228,14 @@ mapM_ ::
 mapM_ f = for cat (\a _ -> useImpl (f a))
 
 drain ::
-  (e :> es) =>
+  (e <: es) =>
   Proxy () b c' c e ->
   -- | ͘
   Eff es r
 drain = for cat (\_ _ -> pure ())
 
 map ::
-  (e :> es) =>
+  (e <: es) =>
   (a -> b) ->
   Pipe a b e ->
   -- | ͘
@@ -243,7 +243,7 @@ map ::
 map f = for cat (\a p1 -> yield p1 (f a))
 
 mapM ::
-  (e :> es) =>
+  (e <: es) =>
   (a -> Eff es b) ->
   Pipe a b e ->
   -- | ͘
@@ -253,7 +253,7 @@ mapM f = for cat $ \a p -> do
   yield p b_
 
 takeWhile' ::
-  (e :> es) =>
+  (e <: es) =>
   (r -> Bool) ->
   Pipe r r e ->
   -- | ͘
@@ -265,7 +265,7 @@ takeWhile' predicate p = withEarlyReturn $ \early -> forever $ do
     else returnEarly early a
 
 stdinLn ::
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   IOE e1 ->
   Producer String e2 ->
   -- | ͘
@@ -275,7 +275,7 @@ stdinLn io c = forever $ do
   yield c line
 
 stdoutLn ::
-  (e1 :> es, e2 :> es) =>
+  (e1 <: es, e2 <: es) =>
   IOE e1 ->
   Consumer String e2 ->
   -- | ͘
