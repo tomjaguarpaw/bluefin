@@ -47,7 +47,7 @@ data Effects = Union Effects Effects
 
 -- | @type (:&) :: Effects -> Effects -> Effects@
 --
--- Union of effects
+-- Union of sets of effect tags
 infixr 9 :&
 
 type (:&) = Union
@@ -635,7 +635,7 @@ subsume1 i = cmp (bimap (eq ZW) i) (merge ZW)
 subsume2 :: (e1 `In` e2) -> (e1 :& e2) `In` e2
 subsume2 i = cmp (bimap i (eq ZW)) (merge ZW)
 
--- | Effect subset constraint
+-- | The subset constraint on sets of effect tags
 class (es1 :: Effects) :> (es2 :: Effects)
 
 -- | A set of effects @e@ is a subset of itself
