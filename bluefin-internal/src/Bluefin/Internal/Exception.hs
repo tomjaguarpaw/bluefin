@@ -5,7 +5,22 @@
 
 module Bluefin.Internal.Exception where
 
-import Bluefin.Internal hiding (UnsafeMkEff, b)
+import Bluefin.Internal
+  ( Eff,
+    Exception (..),
+    Handle,
+    OneWayCoercibleHandle (..),
+    effIO,
+    handleTag,
+    makeOp,
+    mapHandle,
+    unsafeProvideIO,
+    useImpl,
+    useImplIn,
+    withEffToIO_,
+    (:&),
+    type (<:),
+  )
 import Bluefin.Internal.CloneableHandle (app, (:~>))
 import Bluefin.Internal.Exception.Scoped (InFlight)
 import Bluefin.Internal.Exception.Scoped qualified as SE
