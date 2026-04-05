@@ -1680,7 +1680,7 @@ local (MkReader st) f k = do
     (\() -> put st orig)
     (\() -> k)
 
-newtype HandleReader h e = UnsafeMkHandleReader (State (h e) e)
+newtype HandleReader h e = UnsafeMkHandleReader (Reader (h e) e)
   deriving (Handle) via OneWayCoercibleHandle (HandleReader h)
 
 -- In general this is really tremendously unsafe because we could take
@@ -1712,20 +1712,16 @@ localHandle ::
   Eff es r ->
   -- | ͘
   Eff es r
-localHandle hh@(UnsafeMkHandleReader st) f k = do
+localHandle hh f k = do
   let UnsafeMkHandleReader st' = mapHandle hh
-  orig <- get st
-  bracket
-    (put st' (f (mapHandle orig)))
-    (\() -> put st orig)
-    (\() -> k)
+  local st' f k
 
 askHandle ::
   (e <: es, Handle h) =>
   HandleReader h e ->
   -- | ͘
   Eff es (h es)
-askHandle hh = let UnsafeMkHandleReader st = mapHandle hh in get st
+askHandle hh = let UnsafeMkHandleReader st = mapHandle hh in ask st
 
 asksHandle ::
   (e1 <: es, Handle h) =>
@@ -1744,7 +1740,7 @@ runHandleReader ::
   -- | ͘
   Eff es r
 runHandleReader h k = do
-  evalState (mapHandle h) $ \(st :: State (h es) e) -> do
+  runReader (mapHandle h) $ \(st :: Reader (h es) e) -> do
     let oneWayCoerceH :: OneWayCoercion (h es) (h (e :& es))
         oneWayCoerceH = case handleDictOfHandleD (handleImpl @h) of
           MkHandleDict -> oneWayCoercion
@@ -1752,7 +1748,7 @@ runHandleReader h k = do
     let coerceH :: Coercion (h es) (h (e :& es))
         coerceH = unsafeCoercionOfOneWayCoercion oneWayCoerceH
 
-    let mapS :: State (h es) e' -> State (h (e :& es)) e'
+    let mapS :: Reader (h es) e' -> Reader (h (e :& es)) e'
         mapS = case coerceH of Coercion -> coerce
 
     let h' :: HandleReader h (e :& es)
