@@ -577,7 +577,7 @@ instance
 -- }
 
 -- | A convenience type whose only purpose is to avoid writing @(# #)@
--- as an argument to functions which are only function because
+-- as an argument to functions which are only functions because
 -- top-level definitions of unlifted kind are forbidden.
 newtype ZW = MkZW (# #)
 
