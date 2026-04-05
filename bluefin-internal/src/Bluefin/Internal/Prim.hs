@@ -42,4 +42,5 @@ primitive ::
   (State# (PrimStateEff e1) -> (# State# (PrimStateEff e1), a #)) ->
   -- | ͘
   Eff es a
-primitive UnsafeMkPrim = unsafeCoerce (P.primitive @IO)
+primitive UnsafeMkPrim =
+  unsafeCoerce (P.primitive @IO)
