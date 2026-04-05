@@ -33,6 +33,7 @@ import Control.Monad.Fix (MonadFix)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
 import Control.Monad.Trans.Control (MonadBaseControl, StM, liftBaseWith, restoreM)
+import Control.Monad.Trans.Identity (IdentityT (IdentityT))
 import Control.Monad.Trans.Reader qualified as Reader
 import Data.Coerce (coerce)
 import Data.Foldable (for_)
@@ -60,7 +61,7 @@ type (:&) = Union
 
 newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: IO a}
   deriving stock (Functor)
-  deriving newtype (Applicative, Monad, MonadFix)
+  deriving (Applicative, Monad, MonadFix) via IdentityT IO
 
 type role Eff nominal representational
 
