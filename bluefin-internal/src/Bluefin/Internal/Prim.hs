@@ -37,6 +37,7 @@ runPrim ::
 runPrim k = makeOp (k UnsafeMkPrim)
 
 primitive ::
+  forall e1 es a.
   (e1 <: es) =>
   Prim e1 ->
   (State# (PrimStateEff e1) -> (# State# (PrimStateEff e1), a #)) ->
