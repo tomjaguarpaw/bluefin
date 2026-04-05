@@ -1,6 +1,6 @@
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
-{-# LANGUAGE DerivingVia #-}
 
 module Bluefin.Internal.Prim where
 
@@ -11,7 +11,7 @@ import GHC.Exts (State#)
 import Unsafe.Coerce (unsafeCoerce)
 
 data Prim (e :: Effects) = UnsafeMkPrim
-  deriving Handle via OneWayCoercibleHandle Prim
+  deriving (Handle) via OneWayCoercibleHandle Prim
 
 data PrimStateEff (es :: Effects)
 
