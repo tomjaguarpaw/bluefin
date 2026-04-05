@@ -5,7 +5,19 @@
 module Bluefin.Internal.Prim where
 
 import Bluefin.Internal
+  ( Eff,
+    Effects,
+    Handle,
+    HandleD (MkHandleD),
+    OneWayCoercibleHandle,
+    makeOp,
+    (:&),
+    type (<:),
+  )
 import Bluefin.Internal.OneWayCoercible
+  ( OneWayCoercible (..),
+    unsafeOneWayCoercible,
+  )
 import Control.Monad.Primitive qualified as P
 import GHC.Exts (State#)
 import Unsafe.Coerce (unsafeCoerce)
