@@ -1661,7 +1661,7 @@ asks ::
   -- | Read the value modified by this function
   (r -> a) ->
   Eff es a
-asks (MkReader st) f = fmap f (get st)
+asks r f = fmap f (ask r)
 
 -- | Locally override the value in the @Reader@. It will be restored
 -- when the @local@ block ends.
