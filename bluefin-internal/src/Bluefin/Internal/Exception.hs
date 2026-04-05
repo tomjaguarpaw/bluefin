@@ -60,17 +60,13 @@ runBodyWithHandlers (handledKeys, bb) =
 -- @Applicative@-like functions that produce and combine them.
 newtype MakeExceptions r a h es
   = MkMakeExceptions (Eff es (HandlerUnwrapped r a h es))
+  deriving (Handle) via OneWayCoercibleHandle (MakeExceptions r a h)
 
 data HandlerUnwrapped r a h es
   = MkHandlerUnwrapped
       [HandledKey (r -> Eff es a)]
       (forall b. (forall e. h e -> Eff (e :& es) b) -> Eff es b)
-
-instance (Handle h) => Handle (MakeExceptions r a h) where
-  handleImpl = handleOneWayCoercible
-
-instance (Handle h) => Handle (HandlerUnwrapped r a h) where
-  handleImpl = handleOneWayCoercible
+  deriving (Handle) via OneWayCoercibleHandle (HandlerUnwrapped r a h)
 
 instance
   (Handle h, e <: es) =>
