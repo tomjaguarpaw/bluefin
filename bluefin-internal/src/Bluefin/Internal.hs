@@ -1745,8 +1745,12 @@ runHandleReader ::
   Eff es r
 runHandleReader h k = do
   evalState (mapHandle h) $ \(st :: State (h es) e) -> do
+    let oneWayCoerceH :: OneWayCoercion (h es) (h (e :& es))
+        oneWayCoerceH = case handleDictOfHandleD (handleImpl @h) of
+          MkHandleDict -> oneWayCoercion
+
     let coerceH :: Coercion (h es) (h (e :& es))
-        coerceH = unsafeCoerce (Coercion :: Coercion (h es) (h es))
+        coerceH = unsafeCoercionOfOneWayCoercion oneWayCoerceH
 
     let mapS :: State (h es) e' -> State (h (e :& es)) e'
         mapS = case coerceH of Coercion -> coerce
