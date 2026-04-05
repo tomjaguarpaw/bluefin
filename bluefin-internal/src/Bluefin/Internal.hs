@@ -16,9 +16,12 @@ import Bluefin.Internal.Exception.Scoped qualified as ScopedException
 import Bluefin.Internal.OneWayCoercible
   ( OneWayCoercible (oneWayCoercibleImpl),
     OneWayCoercibleD,
+    OneWayCoercion,
     gOneWayCoercible,
     oneWayCoerce,
     oneWayCoercible,
+    oneWayCoercion,
+    unsafeCoercionOfOneWayCoercion,
     unsafeOneWayCoercible,
   )
 import Control.Concurrent.Async qualified as Async
@@ -1695,8 +1698,12 @@ mapHandleReader ::
   HandleReader h es
 mapHandleReader = case coerceH of Coercion -> coerce
   where
+    oneWayCoerceH :: OneWayCoercion (h e) (h es)
+    oneWayCoerceH = case handleDictOfHandleD (handleImpl @h) of
+      MkHandleDict -> oneWayCoercion
+
     coerceH :: Coercion (h e) (h es)
-    coerceH = unsafeCoerce (Coercion :: Coercion (h e) (h e))
+    coerceH = unsafeCoercionOfOneWayCoercion oneWayCoerceH
 
 localHandle ::
   (e <: es, Handle h) =>
