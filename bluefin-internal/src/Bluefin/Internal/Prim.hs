@@ -10,7 +10,9 @@ import Bluefin.Internal
     Handle,
     HandleD (MkHandleD),
     OneWayCoercibleHandle,
+    effIO,
     makeOp,
+    unsafeProvideIO,
     (:&),
     type (<:),
   )
@@ -36,6 +38,11 @@ runPrim ::
   Eff es r
 runPrim k = makeOp (k UnsafeMkPrim)
 
+type StateM s a = State# s -> (# State# s, a #)
+
+unsafeCoerceStateM :: forall s1 s2 a. StateM s1 a -> StateM s2 a
+unsafeCoerceStateM = unsafeCoerce
+
 primitive ::
   forall e1 es a.
   (e1 <: es) =>
@@ -43,5 +50,7 @@ primitive ::
   (State# (PrimStateEff e1) -> (# State# (PrimStateEff e1), a #)) ->
   -- | ͘
   Eff es a
-primitive UnsafeMkPrim =
-  unsafeCoerce (P.primitive @IO)
+primitive UnsafeMkPrim k = unsafeProvideIO $ \io ->
+  effIO
+    io
+    (P.primitive @IO (unsafeCoerceStateM @(PrimStateEff e1) @P.RealWorld k))
