@@ -38,6 +38,7 @@ main = runEff_ $ \io -> do
     test_localInHandler y
     test_generalBracket io y
     test_streamConsumeReader y
+    test_streamConsumeHandleReader y
 
 (!?) :: [a] -> Int -> Maybe a
 xs !? i = runPureEff $
@@ -131,3 +132,27 @@ test_streamConsumeReader spech = do
                 local r (subtract 100) $ do
                   forever p
       )
+
+-- This test confirms the buggy behavior reported in
+--
+--    https://github.com/tomjaguarpaw/bluefin/issues/98
+test_streamConsumeHandleReader :: (e <: es) => SpecH e -> Eff es ()
+test_streamConsumeHandleReader spech = do
+  runConstEffect @Int 0 $ \ce ->
+    runHandleReader ce $ \r -> do
+      streamConsume
+        ( \y -> do
+            let s = yield y ()
+            let check i = do
+                  MkConstEffect i' <- askHandle r
+                  assertEqual spech "HandleReader local" i i'
+            check 0
+            s
+            check (-100) -- Should be 0
+        )
+        ( \a -> do
+            let p = await a
+            p
+            localHandle r (\(MkConstEffect i) -> MkConstEffect (subtract 100 i)) $ do
+              forever p
+        )
