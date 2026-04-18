@@ -1524,7 +1524,8 @@ runEff_ ::
   (forall e. IOE e -> Eff e a) ->
   -- | ͘
   IO a
-runEff_ eff = unsafeUnEff (eff MkIOE)
+runEff_ eff =
+  unsafeUnEff (eff MkIOE)
 
 unsafeProvideIO ::
   (forall e. IOE e -> Eff (e :& es) a) ->
