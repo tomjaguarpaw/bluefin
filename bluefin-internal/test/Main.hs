@@ -39,6 +39,7 @@ main = runEff $ \io -> do
     test_generalBracket io y
     test_streamConsumeReader y
     test_streamConsumeHandleReader y
+    test_unliftIOReader io y
 
 (!?) :: [a] -> Int -> Maybe a
 xs !? i = runPureEff $
@@ -162,3 +163,23 @@ test_streamConsumeHandleReader spech = do
             localHandle r (\(MkConstEffect i) -> MkConstEffect (subtract 100 i)) $ do
               forever p
         )
+
+-- Reader should interact well with withEffToIO_
+test_unliftIOReader :: (e1 <: es, e2 <: es) => IOE e1 -> SpecH e2 -> Eff es ()
+test_unliftIOReader io spech = do
+  let foo :: (Int -> IO ()) -> (forall r. Int -> IO r -> IO r) -> IO ()
+      foo myYield mySetLocal = do
+        myYield 0
+        mySetLocal 1 $ do
+          myYield 1
+          mySetLocal 2 $ do
+            myYield 2
+
+  runReader @Int 0 $ \r -> do
+    withEffToIO_ io $ \effToIO -> do
+      foo
+        ( \i -> effToIO $ do
+            i' <- ask r
+            assertEqual spech "myLocal" i i'
+        )
+        (\x -> effToIO . local r (const x) . effIO io)
