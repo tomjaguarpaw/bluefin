@@ -93,6 +93,9 @@ test_localInHandler y = runReader "global" $ \re ->
 -- This test confirms the buggy behavior reported in
 --
 --    https://github.com/tomjaguarpaw/bluefin/issues/98
+--
+-- local run in one branch of a streamConsume should not affect ask in
+-- the other branch.
 test_streamConsumeReader :: (e <: es) => SpecH e -> Eff es ()
 test_streamConsumeReader spech = do
   runReader @Int 0 $ \r -> do
@@ -136,6 +139,9 @@ test_streamConsumeReader spech = do
 -- This test confirms the buggy behavior reported in
 --
 --    https://github.com/tomjaguarpaw/bluefin/issues/98
+--
+-- localHandle run in one branch of a streamConsume should not affect
+-- askHandle in the other branch.
 test_streamConsumeHandleReader :: (e <: es) => SpecH e -> Eff es ()
 test_streamConsumeHandleReader spech = do
   runConstEffect @Int 0 $ \ce ->
