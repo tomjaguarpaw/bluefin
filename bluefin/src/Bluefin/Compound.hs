@@ -7,22 +7,22 @@ module Bluefin.Compound
     -- creating your own effects is equivalent to creating your own
     -- data types.  We just use the techniques we know and love from
     -- Haskell!  For example, if I want to make a "counter" effect
-    -- that allows me to increment a counter then I can wrap a 'Bluefin.State.State'
-    -- handle in a newtype:
+    -- that allows me to increment a counter then I can wrap a 'Bluefin.Capability.Modify.Modify'
+    -- capability in a newtype:
     --
     -- @
-    -- newtype Counter1 e = MkCounter1 ('Bluefin.State.State' Int e)
+    -- newtype Counter1 e = MkCounter1 ('Bluefin.Capability.Modify.Modify' Int e)
     --
     -- incCounter1 :: (e \<: es) => Counter1 e -> 'Bluefin.Eff.Eff' es ()
-    -- incCounter1 (MkCounter1 st) = 'Bluefin.State.modify' st (+ 1)
+    -- incCounter1 (MkCounter1 st) = 'Bluefin.Capability.Modify..modify' st (+ 1)
     --
     -- runCounter1 ::
     --   (forall e. Counter1 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter1 k =
-    --   'Bluefin.State.evalState' 0 $ \\st -> do
+    --   'Bluefin.Modify.evalModify' 0 $ \\st -> do
     --     _ <- k (MkCounter1 st)
-    --     'Bluefin.State.get' st
+    --     'Bluefin.Capability.Modify.get' st
     -- @
     --
     -- Running the handler tells me the number of times I incremented
@@ -47,29 +47,29 @@ module Bluefin.Compound
     -- normal approach we use to wrap multiple values into a single
     -- value: define a new data type with multiple fields.  There's a
     -- caveat to this approach, but before we address the caveat let's
-    -- see the approach in action.  Here we define a new handle,
-    -- @Counter2@, that contains a 'Bluefin.State.State' and 'Bluefin.Exception.Exception' handle
+    -- see the approach in action.  Here we define a new capabiilty,
+    -- @Counter2@, that contains a 'Bluefin.Capability.Modify.Modify' and 'Bluefin.Capability.Throw.Throw' capability
     -- within it.  That allows us to increment the counter and throw
     -- an exception when we hit a limit.
     --
     -- @
-    -- data Counter2 e1 e2 = MkCounter2 ('Bluefin.State.State' Int e1) ('Bluefin.Exception.Exception' () e2)
+    -- data Counter2 e1 e2 = MkCounter2 ('Bluefin.State.State' Int e1) ('Bluefin.Capability.Throw.Throw' () e2)
     --
     -- incCounter2 :: (e1 \<: es, e2 \<: es) => Counter2 e1 e2 -> 'Bluefin.Eff.Eff' es ()
     -- incCounter2 (MkCounter2 st ex) = do
-    --   count <- 'Bluefin.State.get' st
+    --   count <- 'Bluefin.Capabiilty.Modify.get' st
     --   when (count >= 10) $
-    --     'Bluefin.Exception.throw' ex ()
-    --   'Bluefin.State.put' st (count + 1)
+    --     'Bluefin.Capability.Throw.throw' ex ()
+    --   'Bluefin.Modify.put' st (count + 1)
     --
     -- runCounter2 ::
     --   (forall e1 e2. Counter2 e1 e2 -> Eff (e2 :& e1 :& es) r) ->
     --   Eff es Int
     -- runCounter2 k =
-    --   'Bluefin.State.evalState' 0 $ \\st -> do
-    --     _ \<- 'Bluefin.Exception.try' $ \\ex -> do
+    --   'Bluefin.Modify.evalState' 0 $ \\st -> do
+    --     _ \<- 'Bluefin.Capability.Throw.try' $ \\ex -> do
     --       k (MkCounter2 st ex)
-    --     'Bluefin.State.get' st
+    --     'Bluefin.Modify.get' st
     -- @
     --
     -- We can see that attempting to increment the counter fovever
@@ -88,7 +88,7 @@ module Bluefin.Compound
     -- @
     --
     -- The flaw of this approach is that you expose one effect
-    -- parameter for each handle in the data type.  That's rather
+    -- parameter for each capability in the data type.  That's rather
     -- cumbersome!  We can do better.
 
     -- ** Wrap multiple effects, a better approach
@@ -97,27 +97,27 @@ module Bluefin.Compound
     -- expose a single one.  To make this work we have to define our
     -- handler in a slightly different way.  Firstly we apply
     -- 'useImplIn' to the effectful operation @k@ and secondly we
-    -- apply 'mapHandle' to each of the handles out of which we create
-    -- our compound handle.  Everything else remains the same.
+    -- apply 'mapHandle' to each of the capabiilties out of which we create
+    -- our compound capability.  Everything else remains the same.
     --
     -- @
-    -- data Counter3 e = MkCounter3 ('Bluefin.State.State' Int e) ('Bluefin.Exception.Exception' () e)
+    -- data Counter3 e = MkCounter3 ('Bluefin.Capability.Modify.Modify' Int e) ('Bluefin.Capability.Throw.Throw' () e)
     --
     -- incCounter3 :: (e \<: es) => Counter3 e -> Eff es ()
     -- incCounter3 (MkCounter3 st ex) = do
-    --   count <- 'Bluefin.State.get' st
+    --   count <- 'Bluefin.Modify.get' st
     --   when (count >= 10) $
-    --     'Bluefin.Exception.throw' ex ()
-    --   'Bluefin.State.put' st (count + 1)
+    --     'Bluefin.Capability.Throw.throw' ex ()
+    --   'Bluefin.Modify.put' st (count + 1)
     --
     -- runCounter3 ::
     --   (forall e. Counter3 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter3 k =
-    --   'Bluefin.State.evalState' 0 $ \\st -> do
-    --     _ \<- 'Bluefin.Exception.try' $ \\ex -> do
+    --   'Bluefin.Modify.evalState' 0 $ \\st -> do
+    --     _ \<- 'Bluefin.Capability.Throw.try' $ \\ex -> do
     --       'useImplIn' k (MkCounter3 ('mapHandle' st) (mapHandle ex))
-    --     'Bluefin.State.get' st
+    --     'Bluefin.Modify.get' st
     -- @
     --
     -- The example works as before:
@@ -191,19 +191,19 @@ module Bluefin.Compound
     --
     -- @
     -- data Counter4 e
-    --   = MkCounter4 ('Bluefin.State.State' Int e) ('Bluefin.Exception.Exception' () e) ('Bluefin.Stream.Stream' String e)
+    --   = MkCounter4 ('Bluefin.Capability.Modify.Modify' Int e) ('Bluefin.Capability.Throw.Throw' () e) ('Bluefin.Stream.Stream' String e)
     --
     -- incCounter4 :: (e \<: es) => Counter4 e -> Eff es ()
     -- incCounter4 (MkCounter4 st ex y) = do
-    --   count <- 'Bluefin.State.get' st
+    --   count <- 'Bluefin.Modify.get' st
     --
     --   when (even count) $
     --     'Bluefin.Stream.yield' y "Count was even"
     --
     --   when (count >= 10) $
-    --     'Bluefin.Exception.throw' ex ()
+    --     'Bluefin.Capability.Throw.throw' ex ()
     --
-    --   'Bluefin.State.put' st (count + 1)
+    --   'Bluefin.Modify.put' st (count + 1)
     --
     -- getCounter4 :: (e \<: es) => Counter4 e -> String -> Eff es Int
     -- getCounter4 (MkCounter4 st _ y) msg = do
@@ -244,7 +244,7 @@ module Bluefin.Compound
     -- new effects implemented in terms of specific other effects.  We
     -- can also define dynamic effects, whose implementation is left
     -- abstract, to be defined in the handler.  To do that we create a
-    -- handle that is a record of functions.  To run an effectful
+    -- capability that is a record of functions.  To run an effectful
     -- operation we call one of the functions from the record.  We
     -- define the record in the handler.  Here @incCounter5Impl@ and
     -- @getCounter5Impl@ are exactly the same as @incCounter4@ and
@@ -276,21 +276,21 @@ module Bluefin.Compound
     --   (forall e. Counter5 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter5 y k =
-    --   'Bluefin.State.evalState' 0 $ \\st -> do
-    --     _ \<- 'Bluefin.Exception.try' $ \\ex -> do
+    --   'Bluefin.Modify.evalState' 0 $ \\st -> do
+    --     _ \<- 'Bluefin.Capability.Throw.try' $ \\ex -> do
     --       'useImplIn'
     --         k
     --         ( MkCounter5
     --             { incCounter5Impl = do
-    --                 count <- 'Bluefin.State.get' st
+    --                 count <- 'Bluefin.Modify.get' st
     --
     --                 when (even count) $
     --                   'Bluefin.Stream.yield' y "Count was even"
     --
     --                 when (count >= 10) $
-    --                   'Bluefin.Exception.throw' ex ()
+    --                   'Bluefin.Capability.Throw.throw' ex ()
     --
-    --                 'Bluefin.State.put' st (count + 1),
+    --                 'Bluefin.Modify.put' st (count + 1),
     --               getCounter5Impl = \\msg -> do
     --                 yield y msg
     --                 get st
@@ -322,12 +322,12 @@ module Bluefin.Compound
     -- | We can also freely combine concrete and dynamic effects.  In
     -- the following example, the @incCounter6@ effect is left
     -- dynamic, and defined in the handler, whilst @getCounter6@ is
-    -- implemented in terms of concrete 'Bluefin.State.State' and 'Bluefin.Stream.Stream' effects.
+    -- implemented in terms of concrete 'Bluefin.Capability.Modify.Modify' and 'Bluefin.Stream.Stream' effects.
     --
     -- @
     -- data Counter6 e = MkCounter6
     --   { incCounter6Impl :: 'Bluefin.Eff.Eff' e (),
-    --     counter6State :: 'Bluefin.State.State' Int e,
+    --     counter6State :: 'Bluefin.Capability.Modify.Modify' Int e,
     --     counter6Stream :: 'Bluefin.Stream.Stream' String e
     --   }
     --   deriving (Generic)
@@ -350,21 +350,21 @@ module Bluefin.Compound
     --   (forall e. Counter6 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter6 y k =
-    --   'Bluefin.State.evalState' 0 $ \\st -> do
-    --     _ \<- 'Bluefin.Exception.try' $ \\ex -> do
+    --   'Bluefin.Modify.evalState' 0 $ \\st -> do
+    --     _ \<- 'Bluefin.Capability.Throw.try' $ \\ex -> do
     --       'useImplIn'
     --         k
     --         ( MkCounter6
     --             { incCounter6Impl = do
-    --                 count <- 'Bluefin.State.get' st
+    --                 count <- 'Bluefin.Modify.get' st
     --
     --                 when (even count) $
     --                   'Bluefin.Stream.yield' y "Count was even"
     --
     --                 when (count >= 10) $
-    --                   'Bluefin.Exception.throw' ex ()
+    --                   'Bluefin.Capability.Throw.throw' ex ()
     --
-    --                 'Bluefin.State.put' st (count + 1),
+    --                 'Bluefin.Modify.put' st (count + 1),
     --               counter6State = mapHandle st,
     --               counter6Stream = mapHandle y
     --             }
@@ -392,14 +392,14 @@ module Bluefin.Compound
 
     -- ** Dynamic effects with handles as arguments
 
-    -- | We can implement dynamic effects that themselves take handles
-    -- as arguments, by giving all the handle arguments the effect tag
+    -- | We can implement dynamic effects that themselves take capabilities
+    -- as arguments, by giving all the capability arguments the effect tag
     -- @e'@.
     --
     -- @
     -- data Counter7 e = MkCounter7
-    --   { incCounter7Impl :: forall e'. 'Bluefin.Exception.Exception' () e' -> 'Bluefin.Eff.Eff' (e' :& e) (),
-    --     counter7State :: 'Bluefin.State.State' Int e,
+    --   { incCounter7Impl :: forall e'. 'Bluefin.Capability.Throw.Throw' () e' -> 'Bluefin.Eff.Eff' (e' :& e) (),
+    --     counter7State :: 'Bluefin.Capability.Modify.Modify' Int e,
     --     counter7Stream :: 'Bluefin.Stream.Stream' String e
     --   }
     --   deriving (Handle) via OneWayCoercibleHandle Counter7
@@ -431,21 +431,21 @@ module Bluefin.Compound
     --   (forall e. Counter7 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter7 y k =
-    --   'Bluefin.State.evalState' 0 $ \\st -> do
+    --   'Bluefin.Modify.evalState' 0 $ \\st -> do
     --     _ \<-
     --       'useImplIn'
     --         k
     --         ( MkCounter7
     --             { incCounter7Impl = \\ex -> do
-    --                 count \<- 'Bluefin.State.get' st
+    --                 count \<- 'Bluefin.Modify.get' st
     --
     --                 when (even count) $
     --                   'Bluefin.Stream.yield' y "Count was even"
     --
     --                 when (count >= 10) $
-    --                   'Bluefin.Exception.throw' ex ()
+    --                   'Bluefin.Capability.Throw.throw' ex ()
     --
-    --                 'Bluefin.State.put' st (count + 1),
+    --                 'Bluefin.Modify.put' st (count + 1),
     --               counter7State = mapHandle st,
     --               counter7Stream = mapHandle y
     --             }
@@ -580,18 +580,18 @@ module Bluefin.Compound
     --   (forall e2. FileSystem e2 -> Eff (e2 :& es) r) ->
     --   Eff es r
     -- runFileSystemPure ex fs0 k =
-    --   'Bluefin.State.evalState' fs0 $ \\fs ->
+    --   'Bluefin.Modify.evalState' fs0 $ \\fs ->
     --     'useImplIn'
     --       k
     --       MkFileSystem
     --         { readFileImpl = \\filepath -> do
-    --             fs' <- 'Bluefin.State.get' fs
+    --             fs' <- 'Bluefin.Modify.get' fs
     --             case lookup filepath fs' of
     --               Nothing ->
-    --                 'Bluefin.Exception.throw' ex ("File not found: " <> filepath)
+    --                 'Bluefin.Capability.Throw.throw' ex ("File not found: " <> filepath)
     --               Just s -> pure s,
     --           writeFileImpl = \\filepath contents ->
-    --             'Bluefin.State.modify' fs ((filepath, contents) :)
+    --             'Bluefin.Modify.modify' fs ((filepath, contents) :)
     --         }
     -- @
     --
@@ -619,7 +619,7 @@ module Bluefin.Compound
     --     adapt :: (e1 \<: ess, e2 \<: ess) => IO a -> Eff ess a
     --     adapt m =
     --       effIO io (Control.Exception.try @IOException m) >>= \\case
-    --         Left e -> 'Bluefin.Exception.throw' ex (show e)
+    --         Left e -> 'Bluefin.Capability.Throw.throw' ex (show e)
     --         Right r -> pure r
     -- @
     --
@@ -639,7 +639,7 @@ module Bluefin.Compound
     --
     -- @
     -- exampleRunFileSystemPure :: Either String String
-    -- exampleRunFileSystemPure = 'Bluefin.Eff.runPureEff' $ 'Bluefin.Exception.try' $ \\ex ->
+    -- exampleRunFileSystemPure = 'Bluefin.Eff.runPureEff' $ 'Bluefin.Capability.Throw.try' $ \\ex ->
     --   runFileSystemPure ex [("\/dev\/null", "")] action
     -- @
     --

@@ -1,3 +1,6 @@
+-- | This is an old interface and will be deprecated in the
+-- future. You are encouraged to use "Bluefin.Capability.Modify"
+-- instead.
 module Bluefin.State
   ( -- * Handle
     State,

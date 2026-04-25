@@ -9,12 +9,12 @@
 -- if you want it.  Instead of using it directly you are recommended
 -- to use
 --
--- * 'Bluefin.Stream', 'Bluefin.Stream.yield'
--- * 'Bluefin.Consume', 'Bluefin.Consume.await'
--- * 'Bluefin.Stream.consumeStream'
--- * For advanced cases only, 'Bluefin.Coroutine',
---   'Bluefin.Coroutine.yieldCoroutine' and
---   'Bluefin.Coroutine.connectCoroutines'
+-- * t'Bluefin.Capability.Yield.Yield', 'Bluefin.Capability.Yield.yield'
+-- * t'Bluefin.Capability.Await.Await', 'Bluefin.Capability.Await.await'
+-- * 'Bluefin.Capability.Yield.awaitYield'
+-- * For advanced cases only, t'Bluefin.Capability.Request.Request',
+--   'Bluefin.Capability.Request.request' and
+--   'Bluefin.Capability.Request.connectRequests'
 --
 -- See also "Bluefin.Pipes".
 --

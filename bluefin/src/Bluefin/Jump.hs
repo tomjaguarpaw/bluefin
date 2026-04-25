@@ -1,3 +1,5 @@
+-- | This is an old interface and will be deprecated in the
+-- future. You are encouraged to use "Bluefin.Capability.Jump" instead.
 module Bluefin.Jump
   ( -- | 'Jump' allows you to jump back to a previously-set location.
     -- A "jump" is equivalent to an untyped early return, or more

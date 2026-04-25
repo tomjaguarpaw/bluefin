@@ -1,7 +1,7 @@
 module Bluefin.IO
   ( -- | You can run 'IO' operations inside 'Eff'.
 
-    -- * Handle
+    -- * Capability
     IOE,
 
     -- * Handlers

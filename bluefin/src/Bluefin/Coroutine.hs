@@ -1,3 +1,6 @@
+-- | This is an old interface and will be deprecated in the
+-- future. You are encouraged to use "Bluefin.Capability.Request"
+-- instead.
 module Bluefin.Coroutine
   ( -- | @Coroutine@ allows to yield values and receive results back.
     -- [Wikipedia

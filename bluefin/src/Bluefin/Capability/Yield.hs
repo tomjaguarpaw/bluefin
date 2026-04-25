@@ -1,38 +1,34 @@
--- | This is an old interface and will be deprecated in the
--- future. You are encouraged to use "Bluefin.Capability.Yield"
--- instead.
-module Bluefin.Stream
-  ( -- | 'Stream' allows you to yield values during the execution of a
+module Bluefin.Capability.Yield
+  ( -- | 'Yield' allows you to yield values during the execution of a
     -- Bluefin operation.  It provides similar functionality to
-    -- Python's @yield@.  The handler of the 'Stream' will either
+    -- Python's @yield@.  The handler of the 'Yield' will either
     -- handle each element as soon as it is yielded (for example
     -- 'forEach') or gather all yielded elements into a list (for
     -- example 'yieldToList').
     --
     -- For information about prompt finalization/resource safety when
-    -- using Bluefin @Stream@s, see "Bluefin.Coroutine".
+    -- using Bluefin @Yield@s, see "Bluefin.Capability.Request".
 
-    -- * Handle
-    Stream,
+    -- * Capability
+    Yield,
 
     -- * Handlers
     forEach,
     yieldToList,
     yieldToReverseList,
     withYieldToList,
-    ignoreStream,
+    ignoreYield,
     enumerate,
     enumerateFrom,
     mapMaybe,
     catMaybes,
-    consumeStream,
-    streamConsume,
+    awaitYield,
 
     -- * Effectful operations
     yield,
     inFoldable,
-    cycleToStream,
-    takeConsume,
+    cycleToYield,
+    takeAwait,
   )
 where
 

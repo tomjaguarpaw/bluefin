@@ -340,12 +340,12 @@ useImplWithin ::
   Eff (e1 :& es) r
 useImplWithin k = useImplUnder . k
 
--- | Handle to a capability to create strict mutable state handles
+-- | Capability to create strict mutable state capabilities
 data StateSource (e :: Effects) = StateSource
 
 type role StateSource nominal
 
--- | Handle to an exception of type @exn@
+-- | Capability to throw an exception of type @exn@
 newtype Exception exn (e :: Effects)
   = MkException (forall a. exn -> Eff e a)
   deriving (Handle) via OneWayCoercibleHandle (Exception exn)
@@ -355,7 +355,7 @@ type role Exception representational nominal
 instance (e <: es) => OneWayCoercible (Exception ex e) (Exception ex es) where
   oneWayCoercibleImpl = oneWayCoercible
 
--- | A handle to a strict mutable state of type @s@
+-- | Capability to modify a reference to an @s@
 newtype State s (e :: Effects) = UnsafeMkState (IORef s)
   deriving (Handle) via OneWayCoercibleHandle (State s)
 
@@ -364,28 +364,28 @@ type role State representational nominal
 instance (e <: es) => OneWayCoercible (State s e) (State s es) where
   oneWayCoercibleImpl = oneWayCoercible
 
--- | A handle to a coroutine that yields values of type @a@ and then
--- expects values of type @b@.
+-- | Capability to yield a value of type @a@ and then await a value of
+-- type @b@ in response.
 newtype Coroutine a b (e :: Effects) = MkCoroutine (a -> Eff e b)
   deriving (Handle) via OneWayCoercibleHandle (Coroutine a b)
 
 instance (e <: es) => OneWayCoercible (Coroutine a b e) (Coroutine a b es) where
   oneWayCoercibleImpl = oneWayCoercible
 
--- | A handle to a stream that yields values of type @a@.  It is
--- implemented as a handle to a coroutine that yields values of type
--- @a@ and then expects values of type @()@.
+-- | Capability to yield values of type @a@.  It is implemented as a
+-- 'Bluefin.Capability.Request' capability that can yield values of
+-- type @a@ and then await values of type @()@.
 type Stream a = Coroutine a ()
 
 type Consume a = Coroutine () a
 
--- | Every Bluefin handle should have an instance of class @Handle@.
--- Built-in handles, such as 'Exception', 'State' and 'IOE', come with
+-- | Every Bluefin capability should have an instance of class @Handle@.
+-- Built-in capabilities, such as 'Exception', 'State' and 'IOE', come with
 -- @Handle@ instances.
 --
--- You should define a @Handle@ instance for each handle that you
+-- You should define a @Handle@ instance for each capability that you
 -- define yourself.  As
--- an example, an "application" handle with a dynamic effect for
+-- an example, an "application" capability with a dynamic effect for
 -- database queries, a concrete effect for application state and a
 -- concrete effect for a logging effect might look like this:
 --
@@ -406,9 +406,12 @@ type Consume a = Coroutine () a
 -- you can instead use
 --
 -- @
--- instance (e \<: es) => OneWayCoercible (MyHandle e) (MyHandle es) where
+-- instance (e \<: es) => OneWayCoercible (MyCapability e) (MyCapability es) where
 --   oneWayCoercibleImpl = 'oneWayCoercibleTrustMe' $ \\h -> \<mapHandle definition\>
 -- @
+--
+-- Please note the "handle" nomeclature is legacy and will probably
+-- change to "capability" in the future.  See "Bluefin.Capability".
 class Handle (h :: Effects -> Type) where
   handleImpl :: HandleD h
 
@@ -418,18 +421,18 @@ class Handle (h :: Effects -> Type) where
 -- @mapHandle@, for example like this:
 --
 -- @
--- instance Handle MyHandle where
+-- instance Handle MyCapability where
 --   mapHandle h = \<mapHandle definition\>
 -- @
 --
 -- you should change it to
 --
 -- @
--- data MyHandle e = ...
+-- data MyCapability e = ...
 --   deriving (Generic)
---   deriving (Handle) via 'OneWayCoercibleHandle' MyHandle
+--   deriving (Handle) via 'OneWayCoercibleHandle' MyCapability
 --
--- instance (e \<: es) => 'OneWayCoercible' (MyHandle e) (MyHandle es) where
+-- instance (e \<: es) => 'OneWayCoercible' (MyCapability e) (MyCapability es) where
 --   'oneWayCoercibleImpl' = 'gOneWayCoercible'
 -- @
 --
@@ -437,7 +440,7 @@ class Handle (h :: Effects -> Type) where
 -- you can instead use
 --
 -- @
--- instance (e \<: es) => OneWayCoercible (MyHandle e) (MyHandle es) where
+-- instance (e \<: es) => OneWayCoercible (MyCapability e) (MyCapability es) where
 --   oneWayCoercibleImpl = 'oneWayCoercibleTrustMe' $ \\h -> \<mapHandle definition\>
 -- @
 mapHandle :: forall h e es. (Handle h, e <: es) => h e -> h es
@@ -987,9 +990,9 @@ withStateSource f = useImplIn f StateSource
 newState ::
   (e <: es) =>
   StateSource e ->
-  -- | The initial value for the state handle
+  -- | The initial value for the state capability
   s ->
-  -- | A new state handle
+  -- | A new state capability
   Eff es (State s e)
 newState StateSource s = unsafeProvideIO $ \io -> do
   fmap UnsafeMkState (effIO io (newIORef s))
@@ -1466,7 +1469,7 @@ unwrap j = \case
   Nothing -> jumpTo j
   Just a -> pure a
 
--- | Handle that allows you to run 'IO' operations
+-- | Capability to run 'IO' operations
 data IOE (e :: Effects) = MkIOE
   deriving (Handle) via OneWayCoercibleHandle IOE
 
@@ -1766,3 +1769,288 @@ runConstEffect ::
   -- | ͘
   Eff es a
 runConstEffect r k = useImplIn k (MkConstEffect r)
+
+-- Capbility synonyms
+
+type Ask = Reader
+
+type AskCapability = HandleReader
+
+-- | Capability to await values of type @a@
+type Await a = Consume a
+
+type JumpTo = Jump
+
+-- | Capability to yield a value of type @a@ and then await a value of
+-- type @b@ in response.
+type Request = Coroutine
+
+type ReturnEarly = EarlyReturn
+
+-- | Capability to modify a reference to an @s@
+type Modify = State
+
+type Tell = Writer
+
+-- | Capability to throw an exception of type @exn@
+type Throw = Exception
+
+-- | Capability to yield values of type @a@.  It is implemented as a
+-- 'Bluefin.Capability.Request' capability that can yield values of
+-- type @a@ and then await values of type @()@.
+type Yield a = Stream a
+
+runAsk ::
+  -- | Initial value for @Ask@.
+  r ->
+  (forall e. Ask r e -> Eff (e :& es) a) ->
+  Eff es a
+runAsk = runReader
+
+-- | Interleave the execution of two Bluefin operations by sending
+-- their requests to each other.  @a@s are sent from the first to the
+-- second which responds by returning @b@s.  The first runs until it
+-- yields its first @a@ it starts the second (which is awaiting an
+-- @a@).
+connectRequests ::
+  forall es a b r.
+  (forall e. Request a b e -> Eff (e :& es) r) ->
+  (forall e. a -> Request b a e -> Eff (e :& es) r) ->
+  -- | ͘
+  Eff es r
+connectRequests = connectCoroutines
+
+request ::
+  (e1 <: es) =>
+  Request a b e1 ->
+  -- | ͘
+  a ->
+  Eff es b
+request = yieldCoroutine
+
+-- | 'awaitYield' is 'Bluefin.Capability.Request.connectRequests'
+-- specialized to @Await@ and @Yield@, which is the most common case.
+awaitYield ::
+  -- | Starts running first. Each 'await' from the @Consume@ ...
+  (forall e. Await a e -> Eff (e :& es) r) ->
+  -- | ... receives the value 'yield'ed from the @Yield@
+  (forall e. Yield a e -> Eff (e :& es) r) ->
+  Eff es r
+awaitYield = consumeStream
+
+-- | A version of 'forEach' specialized to @Await@.  Every time the
+-- @Await@ is used to 'await' a @b@, feed it the one created by the
+-- handler.
+eachAwait ::
+  -- | Body
+  (forall e. Await b e -> Eff (e :& es) r) ->
+  -- | Value to send to each @await@ in the body.
+  Eff es b ->
+  Eff es r
+eachAwait = consumeEach
+
+-- |
+-- @
+-- runPureEff $ yieldToList $ \yOut -> do
+--   awaitYield
+--     (\\c -> takeAwait 4 c yOut)
+--     (\\yIn -> inFoldable [1..10] yIn)
+-- ([1,2,3,4],())
+-- @
+takeAwait ::
+  (e1 <: es, e2 <: es) =>
+  Int ->
+  Await a e1 ->
+  Yield a e2 ->
+  -- | ͘
+  Eff es ()
+takeAwait = takeConsume
+
+-- |
+--
+-- Ignore all yielded elements.
+--
+-- @
+-- >>> runPureEff $ ignoreYield $ \\y -> do
+--      for_ [0 .. 4] $ \\i -> do
+--        yield y i
+--        yield y (i * 10)
+--
+--      pure 42
+-- 42
+-- @
+ignoreYield ::
+  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
+  -- | ͘
+  Eff es r
+ignoreYield = ignoreStream
+
+-- |
+-- @
+-- runPureEff $ yieldToList $ \yOut -> do
+--   consumeStream
+--     (\\c -> takeAwait 6 c yOut)
+--     (\\yIn -> cycleToYield [1..3] yIn)
+-- ([1,2,3,1,2,3],())
+-- @
+cycleToYield ::
+  (Foldable f, e1 <: es) =>
+  f a ->
+  Yield a e1 ->
+  -- | ͘
+  Eff es ()
+cycleToYield = cycleToStream
+
+-- | Run an 'Eff' action with the ability to return early to this
+-- point.  In the language of exceptions, @withReturnEarly@ installs
+-- an exception handler for an exception of type @r@.
+--
+-- @
+-- >>> runPureEff $ withReturnEarly $ \\e -> do
+--       for_ [1 .. 10] $ \\i -> do
+--         when (i >= 5) $
+--           returnEarly e ("Returned early with " ++ show i)
+--       pure "End of loop"
+-- "Returned early with 5"
+-- @
+withReturnEarly ::
+  (forall e. EarlyReturn r e -> Eff (e :& es) r) ->
+  -- | ͘
+  Eff es r
+withReturnEarly = withEarlyReturn
+
+-- |
+-- @
+-- >>> runPureEff $ evalModify 10 $ \\st -> do
+--       n <- get st
+--       pure (2 * n)
+-- 20
+-- @
+evalModify ::
+  -- | Initial value of modifyable state
+  s ->
+  -- | Stateful computation
+  (forall e. Modify s e -> Eff (e :& es) a) ->
+  -- | Result
+  Eff es a
+evalModify = evalState
+
+-- |
+-- @
+-- >>> runPureEff $ withModify 10 $ \\st -> do
+--       n <- get st
+--       pure (\s -> (2 * n, s))
+-- (20,10)
+-- @
+withModify ::
+  -- | Initial value of modifyable state
+  s ->
+  -- | Stateful computation
+  (forall e. Modify s e -> Eff (e :& es) (s -> a)) ->
+  -- | Result
+  Eff es a
+withModify = withState
+
+-- |
+-- @
+-- >>> runPureEff $ runModify 10 $ \\st -> do
+--       n <- get st
+--       pure (2 * n)
+-- (20,10)
+-- @
+runModify ::
+  -- | Initial value of modifyable state
+  s ->
+  -- | Stateful computation
+  (forall e. Modify s e -> Eff (e :& es) a) ->
+  -- | Result and final state
+  Eff es (a, s)
+runModify = runState
+
+-- |
+-- @
+-- >>> 'Data.Monoid.getAny' $ snd $ runPureEff $ runTell $ \\w -> do
+--       -- Non-empty list (the tell event does happen)
+--       for_ [1 .. 10] $ \\_ -> tell w ('Data.Monoid.Any' True)
+-- True
+-- @
+runTell ::
+  (Monoid w) =>
+  -- | ͘
+  (forall e. Tell w e -> Eff (e :& es) r) ->
+  Eff es (r, w)
+runTell = runWriter
+
+-- |
+-- @
+-- >>> 'Data.Monoid.getAny' $ runPureEff $ execTell $ \\w -> do
+--       -- Non-empty list (the tell event does happen)
+--       for_ [1 .. 10] $ \\_ -> tell w ('Data.Monoid.Any' True)
+-- True
+-- @
+--
+-- @
+-- >>> 'Data.Monoid.getAny' $ runPureEff $ execTell $ \\w -> do
+--       -- Empty list (the tell event does not happen)
+--       for_ [] $ \\_ -> tell w ('Data.Monoid.Any' True)
+-- False
+-- @
+execTell ::
+  (Monoid w) =>
+  -- | ͘
+  (forall e. Tell w e -> Eff (e :& es) r) ->
+  Eff es w
+execTell = execWriter
+
+runAskCapability ::
+  (e1 <: es, Handle h) =>
+  h e1 ->
+  (forall e. HandleReader h e -> Eff (e :& es) r) ->
+  -- | ͘
+  Eff es r
+runAskCapability = runHandleReader
+
+askCapability ::
+  (e <: es, Handle h) =>
+  HandleReader h e ->
+  -- | ͘
+  Eff es (h es)
+askCapability = askHandle
+
+asksCapability ::
+  (e1 <: es, Handle h) =>
+  AskCapability h e1 ->
+  (forall e. h e -> Eff (e :& es) r) ->
+  -- | ͘
+  Eff es r
+asksCapability = asksHandle
+
+localCapability ::
+  (e <: es, Handle h) =>
+  AskCapability h e ->
+  (h es -> h es) ->
+  Eff es r ->
+  -- | ͘
+  Eff es r
+localCapability = localHandle
+
+-- |
+-- @
+-- runPureEff $ 'withStateSource' $ \\source -> do
+--   n <- 'newState' source 5
+--   total <- newState source 0
+--
+--   'Bluefin.JumpTo.withJumpTo' $ \\done -> forever $ do
+--     n' <- 'Bluefin.Capability.Modify.get' n
+--     'Bluefin.Capability.Modify.modify' total (+ n')
+--     when (n' == 0) $ 'Bluefin.JumpTo.jumpTo' done
+--     modify n (subtract 1)
+--
+--   get total
+-- 15
+-- @
+withJumpTo ::
+  (forall e. JumpTo e -> Eff (e :& es) ()) ->
+  -- | ͘
+  Eff es ()
+withJumpTo = withEarlyReturn

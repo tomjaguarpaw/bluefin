@@ -55,16 +55,16 @@ handleExample = runPureEff $ handle (pure . show) $ \e -> do
   pure "No exception thrown"
 
 exampleGet :: (Int, Int)
-exampleGet = runPureEff $ runState 10 $ \st -> do
+exampleGet = runPureEff $ runModify 10 $ \st -> do
   n <- get st
   pure (2 * n)
 
 examplePut :: ((), Int)
-examplePut = runPureEff $ runState 10 $ \st -> do
+examplePut = runPureEff $ runModify 10 $ \st -> do
   put st 30
 
 exampleModify :: ((), Int)
-exampleModify = runPureEff $ runState 10 $ \st -> do
+exampleModify = runPureEff $ runModify 10 $ \st -> do
   modify st (* 2)
 
 yieldExample :: ([Int], ())
@@ -86,8 +86,8 @@ doubleNestedForEach ::
   (forall e. Stream () e -> Eff (e :& es) ()) ->
   Eff es ()
 doubleNestedForEach f =
-  withState () $ \_ -> do
-    withState () $ \_ -> do
+  withModify () $ \_ -> do
+    withModify () $ \_ -> do
       forEach (insertManySecond . f) (\_ -> pure ())
       pure (\_ _ -> ())
 
@@ -139,7 +139,7 @@ effIOExample = runEff_ $ \io -> do
 example1_ :: (Int, Int)
 example1_ =
   let example1 :: Int -> Int
-      example1 n = runPureEff $ evalState n $ \st -> do
+      example1 n = runPureEff $ evalModify n $ \st -> do
         n' <- get st
         when (n' < 10) $
           put st (n' + 10)
@@ -150,8 +150,8 @@ example2_ :: ((Int, Int), (Int, Int))
 example2_ =
   let example2 :: (Int, Int) -> (Int, Int)
       example2 (m, n) = runPureEff $
-        evalState m $ \sm -> do
-          evalState n $ \sn -> do
+        evalModify m $ \sm -> do
+          evalModify n $ \sn -> do
             do
               n' <- get sn
               m' <- get sm
@@ -169,7 +169,7 @@ example2_ =
 example3' :: Int -> Either String Int
 example3' n = runPureEff $
   try $ \ex -> do
-    evalState 0 $ \total -> do
+    evalModify 0 $ \total -> do
       for_ [1 .. n] $ \i -> do
         soFar <- get total
         when (soFar > 20) $ do
@@ -211,7 +211,7 @@ awaitList ::
   IOE e ->
   (forall e1. Consume a e1 -> Eff (e1 :& es) ()) ->
   Eff es ()
-awaitList l io k = evalState l $ \s -> do
+awaitList l io k = evalModify l $ \s -> do
   withJump $ \done ->
     bracket
       (pure ())
@@ -232,7 +232,7 @@ takeRec ::
   Consume a e3 ->
   Eff es ()
 takeRec n k rec =
-  withJump $ \done -> evalState n $ \s -> consumeEach (useImplUnder . k) $ do
+  withJump $ \done -> evalModify n $ \s -> consumeEach (useImplUnder . k) $ do
     s' <- get s
     if s' <= 0
       then jumpTo done
@@ -370,7 +370,7 @@ zipCoroutinesExample :: IO ()
 zipCoroutinesExample = runEff_ $ \io -> do
   let m1 y = do
         r <- yieldCoroutine y 1
-        evalState r $ \rs -> do
+        evalModify r $ \rs -> do
           for_ [1 .. 10 :: Int] $ \i -> do
             r' <- get rs
             r'' <- yieldCoroutine y (r' + i)
@@ -378,7 +378,7 @@ zipCoroutinesExample = runEff_ $ \io -> do
 
   let m2 y = do
         r <- yieldCoroutine y 1
-        evalState r $ \rs -> do
+        evalModify r $ \rs -> do
           for_ [1 .. 5 :: Int] $ \i -> do
             r' <- get rs
             r'' <- yieldCoroutine y (r' - i)
@@ -393,9 +393,9 @@ zipCoroutinesExample = runEff_ $ \io -> do
 -- error message.
 countPositivesNegatives :: [Int] -> String
 countPositivesNegatives is = runPureEff $
-  evalState (0 :: Int) $ \positives -> do
+  evalModify (0 :: Int) $ \positives -> do
     r <- try $ \ex ->
-      evalState (0 :: Int) $ \negatives -> do
+      evalModify (0 :: Int) $ \negatives -> do
         for_ is $ \i -> do
           case compare i 0 of
             GT -> modify positives (+ 1)
@@ -422,7 +422,7 @@ countPositivesNegatives is = runPureEff $
 
 -- How to make compound effects
 
-type MyHandle = Compound (State Int) (Exception String)
+type MyHandle = Compound (Modify Int) (Throw String)
 
 myInc :: (e <: es) => MyHandle e -> Eff es ()
 myInc h = withCompound h (\s _ -> modify s (+ 1))
@@ -437,7 +437,7 @@ runMyHandle ::
   Eff es (Either String (a, Int))
 runMyHandle f =
   try $ \e -> do
-    runState 0 $ \s -> do
+    runModify 0 $ \s -> do
       runCompound s e f
 
 compoundExample :: Either String (a, Int)
@@ -448,7 +448,7 @@ compoundExample = runPureEff $ runMyHandle $ \h -> do
 
 countExample :: IO ()
 countExample = runEff_ $ \io -> do
-  evalState @Int 0 $ \sn -> do
+  evalModify @Int 0 $ \sn -> do
     withJump $ \break -> forever $ do
       n <- get sn
       when (n >= 10) (jumpTo break)
@@ -486,8 +486,8 @@ stateSourceExample = runPureEff $ withStateSource $ \source -> do
 
 incrementReadLine ::
   (e1 <: es, e2 <: es, e3 <: es) =>
-  State Int e1 ->
-  Exception String e2 ->
+  Modify Int e1 ->
+  Throw String e2 ->
   IOE e3 ->
   Eff es ()
 incrementReadLine state exception io = do
@@ -507,13 +507,13 @@ incrementReadLine state exception io = do
 runIncrementReadLine :: IO (Either String Int)
 runIncrementReadLine = runEff_ $ \io -> do
   try $ \exception -> do
-    ((), r) <- runState 0 $ \state -> do
+    ((), r) <- runModify 0 $ \state -> do
       incrementReadLine state exception io
     pure r
 
 -- Counter 1
 
-newtype Counter1 e = MkCounter1 (State Int e)
+newtype Counter1 e = MkCounter1 (Modify Int e)
 
 incCounter1 :: (e <: es) => Counter1 e -> Eff es ()
 incCounter1 (MkCounter1 st) = modify st (+ 1)
@@ -522,7 +522,7 @@ runCounter1 ::
   (forall e. Counter1 e -> Eff (e :& es) r) ->
   Eff es Int
 runCounter1 k =
-  evalState 0 $ \st -> do
+  evalModify 0 $ \st -> do
     _ <- k (MkCounter1 st)
     get st
 
@@ -537,7 +537,7 @@ exampleCounter1 = runPureEff $ runCounter1 $ \c -> do
 
 -- Counter 2
 
-data Counter2 e1 e2 = MkCounter2 (State Int e1) (Exception () e2)
+data Counter2 e1 e2 = MkCounter2 (Modify Int e1) (Throw () e2)
 
 incCounter2 :: (e1 <: es, e2 <: es) => Counter2 e1 e2 -> Eff es ()
 incCounter2 (MkCounter2 st ex) = do
@@ -550,7 +550,7 @@ runCounter2 ::
   (forall e1 e2. Counter2 e1 e2 -> Eff (e2 :& e1 :& es) r) ->
   Eff es Int
 runCounter2 k =
-  evalState 0 $ \st -> do
+  evalModify 0 $ \st -> do
     _ <- try $ \ex -> do
       k (MkCounter2 st ex)
     get st
@@ -565,7 +565,7 @@ exampleCounter2 = runPureEff $ runCounter2 $ \c ->
 
 -- Counter 3
 
-data Counter3 e = MkCounter3 (State Int e) (Exception () e)
+data Counter3 e = MkCounter3 (Modify Int e) (Throw () e)
 
 incCounter3 :: (e <: es) => Counter3 e -> Eff es ()
 incCounter3 (MkCounter3 st ex) = do
@@ -578,7 +578,7 @@ runCounter3 ::
   (forall e. Counter3 e -> Eff (e :& es) r) ->
   Eff es Int
 runCounter3 k =
-  evalState 0 $ \st -> do
+  evalModify 0 $ \st -> do
     _ <- try $ \ex -> do
       useImplIn k (MkCounter3 (mapHandle st) (mapHandle ex))
     get st
@@ -620,7 +620,7 @@ exampleCounter3B = runEff_ $ \io -> runCounter3B io $ \c -> do
 -- Counter 4
 
 data Counter4 e
-  = MkCounter4 (State Int e) (Exception () e) (Stream String e)
+  = MkCounter4 (Modify Int e) (Throw () e) (Stream String e)
 
 incCounter4 :: (e <: es) => Counter4 e -> Eff es ()
 incCounter4 (MkCounter4 st ex y) = do
@@ -645,7 +645,7 @@ runCounter4 ::
   (forall e. Counter4 e -> Eff (e :& es) r) ->
   Eff es Int
 runCounter4 y k =
-  evalState 0 $ \st -> do
+  evalModify 0 $ \st -> do
     _ <- try $ \ex -> do
       useImplIn k (MkCounter4 (mapHandle st) (mapHandle ex) (mapHandle y))
     get st
@@ -686,7 +686,7 @@ runCounter5 ::
   (forall e. Counter5 e -> Eff (e :& es) r) ->
   Eff es Int
 runCounter5 y k =
-  evalState 0 $ \st -> do
+  evalModify 0 $ \st -> do
     _ <- try $ \ex -> do
       useImplIn
         k
@@ -724,7 +724,7 @@ exampleCounter5 = runPureEff $ yieldToList $ \y -> do
 
 data Counter6 e = MkCounter6
   { incCounter6Impl :: Eff e (),
-    counter6State :: State Int e,
+    counter6Modify :: Modify Int e,
     counter6Stream :: Stream String e
   }
   deriving (Generic)
@@ -747,7 +747,7 @@ runCounter6 ::
   (forall e. Counter6 e -> Eff (e :& es) r) ->
   Eff es Int
 runCounter6 y k =
-  evalState 0 $ \st -> do
+  evalModify 0 $ \st -> do
     _ <- try $ \ex -> do
       useImplIn
         k
@@ -762,7 +762,7 @@ runCounter6 y k =
                   throw ex ()
 
                 put st (count + 1),
-              counter6State = mapHandle st,
+              counter6Modify = mapHandle st,
               counter6Stream = mapHandle y
             }
         )
@@ -783,8 +783,8 @@ exampleCounter6 = runPureEff $ yieldToList $ \y -> do
 -- Counter 7
 
 data Counter7 e = MkCounter7
-  { incCounter7Impl :: forall e'. Exception () e' -> Eff (e' :& e) (),
-    counter7State :: State Int e,
+  { incCounter7Impl :: forall e'. Throw () e' -> Eff (e' :& e) (),
+    counter7Modify :: Modify Int e,
     counter7Stream :: Stream String e
   }
   deriving (Handle) via OneWayCoercibleHandle Counter7
@@ -796,12 +796,12 @@ instance (e <: es) => OneWayCoercible (Counter7 e) (Counter7 es) where
   oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \c ->
     MkCounter7
       { incCounter7Impl = \ex -> useImplUnder (incCounter7Impl c ex),
-        counter7State = mapHandle (counter7State c),
+        counter7Modify = mapHandle (counter7Modify c),
         counter7Stream = mapHandle (counter7Stream c)
       }
 
 incCounter7 ::
-  (e <: es, e1 <: es) => Counter7 e -> Exception () e1 -> Eff es ()
+  (e <: es, e1 <: es) => Counter7 e -> Throw () e1 -> Eff es ()
 incCounter7 e ex = makeOp (incCounter7Impl (mapHandle e) (mapHandle ex))
 
 getCounter7 :: (e <: es) => Counter7 e -> String -> Eff es Int
@@ -815,7 +815,7 @@ runCounter7 ::
   (forall e. Counter7 e -> Eff (e :& es) r) ->
   Eff es Int
 runCounter7 y k =
-  evalState 0 $ \st -> do
+  evalModify 0 $ \st -> do
     _ <-
       useImplIn
         k
@@ -830,7 +830,7 @@ runCounter7 y k =
                   throw ex ()
 
                 put st (count + 1),
-              counter7State = mapHandle st,
+              counter7Modify = mapHandle st,
               counter7Stream = mapHandle y
             }
         )
@@ -879,12 +879,12 @@ writeFile fs filepath contents =
 
 runFileSystemPure ::
   (e1 <: es) =>
-  Exception String e1 ->
+  Throw String e1 ->
   [(FilePath, String)] ->
   (forall e2. FileSystem e2 -> Eff (e2 :& es) r) ->
   Eff es r
 runFileSystemPure ex fs0 k =
-  evalState fs0 $ \fs ->
+  evalModify fs0 $ \fs ->
     useImplIn
       k
       MkFileSystem
@@ -901,7 +901,7 @@ runFileSystemPure ex fs0 k =
 runFileSystemIO ::
   forall e1 e2 es r.
   (e1 <: es, e2 <: es) =>
-  Exception String e1 ->
+  Throw String e1 ->
   IOE e2 ->
   (forall e. FileSystem e -> Eff (e :& es) r) ->
   Eff es r
@@ -948,7 +948,7 @@ exampleRunFileSystemIO = runEff_ $ \io -> try $ \ex ->
 
 data Application e = MkApplication
   { queryDatabase :: String -> Int -> Eff e [String],
-    applicationState :: State (Int, Bool) e,
+    applicationModify :: Modify (Int, Bool) e,
     logger :: Stream String e
   }
   deriving (Generic)
@@ -962,7 +962,7 @@ instance (e <: es) => OneWayCoercible (Application e) (Application es) where
 -- set of effects that includes exceptions.
 polymorphicBracket ::
   (st <: es) =>
-  State (Integer, Bool) st ->
+  Modify (Integer, Bool) st ->
   Eff es () ->
   Eff es ()
 polymorphicBracket st act =
@@ -977,14 +977,14 @@ polymorphicBracket st act =
 polymorphicBracketExample1 :: (Integer, Bool)
 polymorphicBracketExample1 =
   runPureEff $ do
-    (_res, st) <- runState (0, False) $ \st -> polymorphicBracket st (pure ())
+    (_res, st) <- runModify (0, False) $ \st -> polymorphicBracket st (pure ())
     pure st
 
 -- Results in (0, True)
 polymorphicBracketExample2 :: (Integer, Bool)
 polymorphicBracketExample2 =
   runPureEff $ do
-    (_res, st) <- runState (0, False) $ \st -> try @Int $ \e -> polymorphicBracket st (throw e 42)
+    (_res, st) <- runModify (0, False) $ \st -> try @Int $ \e -> polymorphicBracket st (throw e 42)
     pure st
 
 pipesExample1 :: IO ()
@@ -1086,8 +1086,8 @@ runDynamicReader r k =
 -- (otherwise I guess it "commits to it too soon")
 example :: ()
 example = runPureEff $
-  evalState () $ \st1 ->
-    evalState () $ \st2 -> do
+  evalModify () $ \st1 ->
+    evalModify () $ \st2 -> do
       Proxy :: Proxy es <- effTag
       satisfied @(es <: es)
 

@@ -1,3 +1,5 @@
+* Add exports for change to "capability" nomenclature
+
 # 0.5.1.0
 
 * Add `<:` type synonym for `:>`

@@ -1,3 +1,14 @@
+* Covert to "capability" nomenclature
+
+  See module "Bluefin.Capability" for a guide to the new naming. Users
+  should convert to the new modules, since the old ones will be
+  deprecated in the future. This is indicated by a comment in the
+  documentation for each module that will undergo deprecation.
+
+  * Add new "Capability" modules
+
+  * Use "capability" terminology throughout documentation
+
 # 0.5.1.0
 
 * Add `<:` type synonym for `:>`

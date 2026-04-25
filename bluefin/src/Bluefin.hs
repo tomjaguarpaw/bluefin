@@ -4,16 +4,16 @@ module Bluefin
     -- | Bluefin is an effect system which allows you to freely mix a
     -- variety of effects, including
     --
-    --  * "Bluefin.EarlyReturn", for early return
-    --  * "Bluefin.Exception", for exceptions
+    --  * "Bluefin.Capability.ReturnEarly", for early return
+    --  * "Bluefin.Capability.Throw", for exceptions
     --  * "Bluefin.IO", for I/O
-    --  * "Bluefin.State", for mutable state
-    --  * "Bluefin.Stream", for streams
+    --  * "Bluefin.Capability.Modify", for mutable state
+    --  * "Bluefin.Capability.Yield", for streams
     --
     -- and to create your own effects in terms of existing ones
     -- ("Bluefin.Compound").
     -- Bluefin effects are accessed explicitly through
-    -- value-level handles.
+    -- value-level capabilities.
 
     -- * Why even use an effect system?
 
@@ -399,7 +399,7 @@ module Bluefin
     -- /-- > exampleBluefin/
     -- /-- 55/
     -- exampleBluefin :: Int
-    -- exampleBluefin = runPureEff $ evalState 0 $ \\st -> do
+    -- exampleBluefin = runPureEff $ evalModify 0 $ \\st -> do
     --   for_ [1..10] $ \\i -> do
     --      modify st (+ i)
     --   get st
@@ -409,7 +409,7 @@ module Bluefin
     -- /-- > exampleEffectful/
     -- /-- 55/
     -- exampleEffectful :: Int
-    -- exampleEffectful = runPureEff $ evalState 0 $ do
+    -- exampleEffectful = runPureEff $ evalModify 0 $ do
     --   for_ [1..10] $ \\i -> do
     --      modify (+ i)
     --   get
@@ -511,25 +511,25 @@ module Bluefin
 
     -- | Bluefin is a Haskell effect system with a new style of API.
     -- It is distinct from prior effect systems because effects are
-    -- accessed explicitly through value-level handles which occur as
-    -- arguments to effectful operations. Handles (such as
-    -- 'Bluefin.State.State' handles, which allow access to mutable
+    -- accessed explicitly through value-level capabilities which occur as
+    -- arguments to effectful operations. Capabilities (such as
+    -- 'Bluefin.Capability.Modify.Modify' capabilities, which allow access to mutable
     -- state) are introduced by handlers (such as
-    -- 'Bluefin.State.evalState', which sets the initial state).
-    -- Here's an example where a mutable state effect handle, @sn@, is
-    -- introduced by its handler, 'Bluefin.State.evalState'.
+    -- 'Bluefin.Capability.Modify.evalModify', which sets the initial state).
+    -- Here's an example where a mutable state effect capability, @sn@, is
+    -- introduced by its handler, 'Bluefin.Capability.Modify.evalModify'.
     --
     -- @
     -- -- If @n < 10@ then add 10 to it, otherwise
     -- -- return it unchanged
     -- example1 :: Int -> Int
     -- example1 n = 'Bluefin.Eff.runPureEff' $
-    --   -- Create a new state handle, sn, and
+    --   -- Create a new modify capability, sn, and
     --   -- initialize the value of the state to n
-    --   'Bluefin.State.evalState' n $ \\sn -> do
-    --     n' <- 'Bluefin.State.get' sn
+    --   'Bluefin.Capability.Modify.evalModify' n $ \\sn -> do
+    --     n' <- 'Bluefin.Capability.Modify.get' sn
     --     when (n' < 10) $
-    --       'Bluefin.State.modify' sn (+ 10)
+    --       'Bluefin.Capability.Modify.modify' sn (+ 10)
     --     get sn
     -- @
     --
@@ -540,12 +540,12 @@ module Bluefin
     -- 12
     -- @
     --
-    -- The handle @sn@ is used in much the same way as an
+    -- The capability @sn@ is used in much the same way as an
     -- 'Data.STRef.STRef' or 'Data.IORef.IORef'.
 
     -- ** Multiple effects of the same type
 
-    -- | A benefit of value-level effect handles is that it's simple
+    -- | A benefit of value-level effect capabilities is that it's simple
     -- to have multiple effects of the same type in scope at the same
     -- time.  It is simple to disambiguate them, because they are
     -- distinct values!  By contrast, existing effect systems require
@@ -560,14 +560,14 @@ module Bluefin
     -- -- to the smaller
     -- example2 :: (Int, Int) -> (Int, Int)
     -- example2 (m, n) = 'Bluefin.Eff.runPureEff' $
-    --   'Bluefin.State.evalState' m $ \\sm -> do
-    --     evalState n $ \\sn -> do
+    --   'Bluefin.Capability.Modify.evalModify' m $ \\sm -> do
+    --     evalModify n $ \\sn -> do
     --       do
-    --         n' <- 'Bluefin.State.get' sn
+    --         n' <- 'Bluefin.Capability.Modify.get' sn
     --         m' <- get sm
     --
     --         if n' < m'
-    --           then 'Bluefin.State.modify' sn (+ 10)
+    --           then 'Bluefin.Capability.Modify.modify' sn (+ 10)
     --           else modify sm (+ 10)
     --
     --       n' <- get sn
@@ -583,11 +583,11 @@ module Bluefin
     -- (30, 13)
     -- @
 
-    -- ** Exception handles
+    -- ** Exception capabilities
 
     -- | Bluefin exceptions are accessed through
-    -- 'Bluefin.Exception.Exception' handles.  An @Exception@ handle
-    -- is introduced by a handler, such as 'Bluefin.Exception.try',
+    -- 'Bluefin.Capability.Throw.Throw' capabilities.  A @Throw@ capability
+    -- is introduced by a handler, such as 'Bluefin.Capability.Throw.try',
     -- and that handler is where the exception, if thrown, will be
     -- handled.  This arrangement differs from normal Haskell
     -- exceptions in two ways.  Firstly, every Bluefin exception will
@@ -600,22 +600,22 @@ module Bluefin
     --
     -- @example3@ shows how to use Bluefin to calculate the sum of
     -- numbers from 1 to @n@, but stop if the sum becomes bigger than
-    -- 20.  The exception handle, @ex@, which has type @Exception
+    -- 20.  The throw capability, @ex@, which has type @Throw
     -- String e@, cannot escape the scope of its handler, @try@.  If
     -- thrown it will be handled at that @try@, and nowhere else.
     --
     -- @
     -- example3 :: Int -> Either String Int
     -- example3 n = 'Bluefin.Eff.runPureEff' $
-    --   'Bluefin.Exception.try' $ \\ex -> do
-    --     'Bluefin.State.evalState' 0 $ \\total -> do
+    --   'Bluefin.Capability.Throw.try' $ \\ex -> do
+    --     'Bluefin.Capability.Modify.evalModify' 0 $ \\total -> do
     --       for_ [1..n] $ \\i -> do
-    --          soFar <- 'Bluefin.State.get' total
+    --          soFar <- 'Bluefin.Capability.Modify.get' total
     --          when (soFar > 20) $ do
-    --            'Bluefin.Exception.throw' ex ("Became too big: " ++ show soFar)
-    --          'Bluefin.State.put' total (soFar + i)
+    --            'Bluefin.Capability.Throw.throw' ex ("Became too big: " ++ show soFar)
+    --          'Bluefin.Capability.Modify.put' total (soFar + i)
     --
-    --       'Bluefin.State.get' total
+    --       'Bluefin.Capability.Modify.get' total
     -- @
     --
     -- @
@@ -628,68 +628,68 @@ module Bluefin
     -- ** Effect scoping
 
     -- | Bluefin's use of the type system is very similar to
-    -- "Control.Monad.ST": it ensures that a handle can never escape
+    -- "Control.Monad.ST": it ensures that a capability can never escape
     -- the scope of its handler.  That is, once the handler has
-    -- finished running there is no way you can use the handle
+    -- finished running there is no way you can use the capability
     -- anymore. For an example of a correctly-scoped function see
-    -- @correctlyScoped@ below.  It uses Bluefin’s @State@ handle to
+    -- @correctlyScoped@ below.  It uses Bluefin’s @Modify@ capability to
     -- compute the sum of the numbers 1 to 10, before multiplying the
-    -- result by 20. In @correctlyScoped@ the @State@ handle is scoped
-    -- to its handler, @evalState@, and everything works as expected:
+    -- result by 20. In @correctlyScoped@ the @Modify@ capability is scoped
+    -- to its handler, @evalModify@, and everything works as expected:
     --
     -- @
     -- -- /Result: 1100/
     -- correctlyScoped :: Eff es Integer
     -- correctlyScoped = do
     --   -- /Initial state 0/
-    --   r \<- 'Bluefin.State.evalState' 0 $ \\st -> do
-    --     -- The 'Bluefin.State.State' handle "st" is scoped to the
-    --     -- handler that introduced it, evalState,
+    --   r \<- 'Bluefin.Capability.Modify.evalModify' 0 $ \\st -> do
+    --     -- The 'Bluefin.Capability.Modify.Modify' handle "st" is scoped to the
+    --     -- handler that introduced it, evalModify,
     --     -- and therefore it can only be used within
     --     -- this do block.
     --
     --     -- /Add up the numbers 1 to 10/
     --     for_ [1..10] $ \\i -> do
-    --       'Bluefin.State.modify' st (+ i)
+    --       'Bluefin.Capability.Modify.modify' st (+ i)
     --
     --     -- /Get the result/
-    --     'Bluefin.State.get' st
+    --     'Bluefin.Capability.Modify.get' st
     --
     --   pure (r * 20)
     -- @
     --
     -- Now let's look at an incorrectly-scoped example,
-    -- @incorrectlyScoped@. It attempts to pass the state handle @st@
-    -- out of the scope of @evalState@:
+    -- @incorrectlyScoped@. It attempts to pass the modify capability @st@
+    -- out of the scope of @evalModify@:
     --
     -- @
     -- incorrectlyScoped :: Eff es Integer
     -- incorrectlyScoped = do
     --   -- /Initial state 0/
-    --   (total, st) \<- 'Bluefin.State.evalState' 0 $ \\st -> do
+    --   (total, st) \<- 'Bluefin.Capability.Modify.evalModify' 0 $ \\st -> do
     --     -- /Add up the numbers 1 to 10/
     --     for_ [1..10] $ \\i -> do
-    --       'Bluefin.State.modify' st (+ i)
+    --       'Bluefin.Capability.Modify.modify' st (+ i)
     --
     --     -- /Get the result/
-    --     r <- 'Bluefin.State.get' st
+    --     r <- 'Bluefin.Capability.Modify.get' st
     --
     --     -- /Pass out the result, and try to pass the/
-    --     -- /'Bluefin.State.State' handle outside its scope, i.e. this/
-    --     -- /do block introduced by evalState/
+    --     -- /'Bluefin.Capability.Modify.Modify' capability outside its scope, i.e. this/
+    --     -- /do block introduced by evalModify/
     --     pure (r, st)
     --
     --   modify st (* 20)
     --   get st
     -- @
     --
-    -- The type system prevents us from passing the @State@ handle out
+    -- The type system prevents us from passing the @Modify@ capability out
     -- of its scope, giving this error message:
     --
     -- @
     -- • Couldn't match type ‘e0’ with ‘e’
-    --   Expected: (Integer, State Integer e0)
-    --     Actual: (Integer, State Integer e)
+    --   Expected: (Integer, Modify Integer e0)
+    --     Actual: (Integer, Modify Integer e)
     --     because type variable ‘e’ would escape its scope
     -- @
 
@@ -699,19 +699,19 @@ module Bluefin
     -- pattern which looks like
     --
     -- @
-    -- (e1 \<: es, ...) -> \<Handle\> e1 -> ... -> Eff es r
+    -- (e1 \<: es, ...) -> \<Capability\> e1 -> ... -> Eff es r
     -- @
     --
-    -- Here @\<Handle\>@ could be, for example, @State Int@,
-    -- @Exception String@ or @IOE@.  Consider the function below,
+    -- Here @\<Capability\>@ could be, for example, @Modify Int@,
+    -- @Throw String@ or @IOE@.  Consider the function below,
     -- @incrementReadLine@. It reads integers from standard input,
     -- accumulates them into a state; it returns when it reads the
     -- input integer @0@ and it throws an exception if it encounters
     -- an input line it cannot parse.
     --
-    -- Firstly, let's look at the arguments, which are all handles to
-    -- Bluefin effects.  There is a state handle, an exception handle,
-    -- and an IO handle, which allow modification of an @Int@ state,
+    -- Firstly, let's look at the arguments, which are all capabilities.
+    -- There is a modify capability, a throw capability,
+    -- and an IO capability, which allow modification of an @Int@ state,
     -- throwing a @String@ exception, and performing @IO@ operations
     -- respectively.  They are each tagged with a different effect
     -- type, @e1@, @e2@ and @e3@ respectively, which are always kept
@@ -726,10 +726,10 @@ module Bluefin
     -- Finally, let's look at the constraints.  They are what tie
     -- together the effect tags of the arguments to the effect tag of
     -- the result.  For every argument effect tag @en@ we have a
-    -- constraint @en \<: es@.  That tells us the that effect handle
+    -- constraint @en \<: es@.  That tells us the that capability
     -- with tag @en@ is allowed to be used within the effectful
     -- computation.  If the @e1 \<: es@ constraint, for
-    -- example, were not required that would tell us that the @State Int e1@ isn't
+    -- example, were not required that would tell us that the @Modify Int e1@ isn't
     -- actually used anywhere in the computation.
     --
     -- GHC and editor tools like HLS do a good job of inferring these
@@ -738,8 +738,8 @@ module Bluefin
     -- @
     -- incrementReadLine ::
     --   (e1 \<: es, e2 \<: es, e3 \<: es) =>
-    --   State Int e1  ->
-    --   Exception String e2  ->
+    --   Modify Int e1  ->
+    --   Throw String e2  ->
     --   IOE e3 ->
     --   Eff es ()
     -- incrementReadLine state exception io = do
@@ -747,20 +747,20 @@ module Bluefin
     --     line <- 'Bluefin.IO.effIO' io getLine
     --     i <- case 'Text.Read.readMaybe' line of
     --       Nothing ->
-    --         'Bluefin.Exception.throw' exception ("Couldn't read: " ++ line)
+    --         'Bluefin.Capability.Throw.throw' exception ("Couldn't read: " ++ line)
     --       Just i ->
     --         pure i
     --
     --     when (i == 0) $
     --       'Bluefin.Jump.jumpTo' break
     --
-    --     'Bluefin.State.modify' state (+ i)
+    --     'Bluefin.Capability.Modify.modify' state (+ i)
     -- @
     --
     -- Now let's look at how we can run such a function.  Each effect
     -- must be handled by a corresponding handler, for example
-    -- 'Bluefin.State.runState' for the state effect,
-    -- 'Bluefin.Exception.try' for the exception effect and
+    -- 'Bluefin.Capability.Modify.runModify' for the state effect,
+    -- 'Bluefin.Capability.Throw.try' for the exception effect and
     -- 'Bluefin.Eff.runEff_' for the @IO@ effect.  The type signatures
     -- of handlers also follow a common pattern, which looks like
     --
@@ -768,8 +768,8 @@ module Bluefin
     -- (forall e. \<Handle\> e -> Eff (e :& es) a) -> Eff es r
     -- @
     --
-    -- This means that the effect tag @e@, corresponding to the handle
-    -- @\<Handle\> e@, has been handled and removed from the set of
+    -- This means that the effect tag @e@, corresponding to the capability
+    -- @\<Capability\> e@, has been handled and removed from the set of
     -- remaining effects, @es@.  (The signatures for
     -- 'Bluefin.Eff.runEff_' and 'Bluefin.Eff.runPureEff' are slightly
     -- different because they remove @Eff@ itself.)  Here, then, is
@@ -778,8 +778,8 @@ module Bluefin
     -- @
     -- runIncrementReadLine :: IO (Either String Int)
     -- runIncrementReadLine = 'Bluefin.Eff.runEff_' $ \\io -> do
-    --   'Bluefin.Exception.try' $ \\exception -> do
-    --     ((), r) \<- 'Bluefin.State.runState' 0 $ \\state -> do
+    --   'Bluefin.Capability.Throw.try' $ \\exception -> do
+    --     ((), r) \<- 'Bluefin.Capability.Modify.runModify' 0 $ \\state -> do
     --       incrementReadLine state exception io
     --     pure r
     --
@@ -810,7 +810,7 @@ module Bluefin
     -- ** @effectful@
 
     -- | The major difference between Bluefin and @effectful@ is that in
-    -- Bluefin effects are represented as value-level handles whereas
+    -- Bluefin effects are represented as value-level capabilities whereas
     -- in @effectful@ they are represented only at the type level.
     -- @effectful@ could be described as "a well-typed implementation of
     -- the @ReaderT@ @IO@ pattern", and Bluefin could be described as
@@ -836,15 +836,15 @@ module Bluefin
 
     -- | Bluefin has a similar implementation style to @effectful@.
     -- t'Bluefin.Eff.Eff' is an opaque wrapper around 'IO',
-    -- t'Bluefin.State.State' is an opaque wrapper around
-    -- 'Data.IORef.IORef', and 'Bluefin.Exception.throw' throws an
-    -- actual @IO@ exception.  t'Bluefin.Coroutine.Coroutine' is
+    -- t'Bluefin.Capability.Modify.Modify' is an opaque wrapper around
+    -- 'Data.IORef.IORef', and 'Bluefin.Capability.Throw.throw' throws an
+    -- actual @IO@ exception.  t'Bluefin.Capability.Request.Request' is
     -- implemented simply as a function.
     --
     -- @
     -- newtype t'Bluefin.Eff.Eff' (es :: 'Bluefin.Eff.Effects') a = 'Bluefin.Internal.UnsafeMkEff' (IO a)
-    -- newtype t'Bluefin.State.State' s (st :: Effects) = 'Bluefin.Internal.UnsafeMkState' (IORef s)
-    -- newtype t'Bluefin.Coroutine.Coroutine' a b (s :: Effects) = 'Bluefin.Internal.UnsafeMkCoroutine' (a -> IO b)
+    -- newtype t'Bluefin.Capability.Modify.Modify' s (st :: Effects) = 'Bluefin.Internal.UnsafeMkState' (IORef s)
+    -- newtype t'Bluefin.Capability.Request.Request' a b (s :: Effects) = 'Bluefin.Internal.UnsafeMkCoroutine' (a -> IO b)
     -- @
     --
     -- The type parameters of kind t'Bluefin.Eff.Effects' are phantom
@@ -879,16 +879,16 @@ module Bluefin
     -- @
     -- countPositivesNegatives :: [Int] -> String
     -- countPositivesNegatives is = 'Bluefin.Eff.runPureEff' $
-    --   'Bluefin.State.evalState' (0 :: Int) $ \\positives -> do
-    --       r \<- 'Bluefin.Exception.try' $ \\ex ->
-    --           evalState (0 :: Int) $ \\negatives -> do
+    --   'Bluefin.Capability.Modify.evalModify' (0 :: Int) $ \\positives -> do
+    --       r \<- 'Bluefin.Capability.Throw.try' $ \\ex ->
+    --           evalModify (0 :: Int) $ \\negatives -> do
     --               for_ is $ \\i -> do
     --                   case compare i 0 of
-    --                       GT -> 'Bluefin.State.modify' positives (+ 1)
+    --                       GT -> 'Bluefin.Capability.Modify.modify' positives (+ 1)
     --                       EQ -> throw ex ()
     --                       LT -> modify negatives (+ 1)
     --
-    --               p <- 'Bluefin.State.get' positives
+    --               p <- 'Bluefin.Capability.Modify.get' positives
     --               n <- get negatives
     --
     --               pure $

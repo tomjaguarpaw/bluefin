@@ -1,7 +1,7 @@
 -- | For defining @PrimMonad@ instances, for example:
 --
 -- @
--- -- Define a handle which includes Prim
+-- -- Define a capability which includes Prim
 -- data ExAndPrim e = MkExAndPrim (Exception String e) (P.Prim e)
 --   -- Give it a Handle instance, as per Bluefin.Compound
 --   deriving (Handle) via OneWayCoercibleHandle ExAndPrim
@@ -10,7 +10,7 @@
 -- instance (e \<: es) => OneWayCoercible (ExAndPrim e) (ExAndPrim es) where
 --   oneWayCoercibleImpl = gOneWayCoercible
 --
--- -- Define a monad M containing the Prim handle
+-- -- Define a monad M containing the Prim capability
 -- newtype M e es a = MkM (ReaderT (ExAndPrim e) (Eff es) a)
 --   deriving newtype (Functor, Applicative, Monad)
 --

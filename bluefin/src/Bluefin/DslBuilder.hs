@@ -177,7 +177,7 @@ module Bluefin.DslBuilder
     -- @
     --
     -- @DslBuilder ArenaH@ is a @Monad@ that allows us access to the
-    -- effects inside the handle @ArenaH@ (and no others).  So what is
+    -- effects inside the capability @ArenaH@ (and no others).  So what is
     -- @ArenaH@? It is defined like this:
     --
     -- @
@@ -241,7 +241,7 @@ module Bluefin.DslBuilder
     -- @
     --
     -- Like with @ArenaBuilder@, to define the @Monad@ we define a
-    -- handle, this time @InstructionsH@:
+    -- capability, this time @InstructionsH@:
     --
     -- @
     -- data InstructionsH e = MkInstructionsH ('Bluefin.Stream.Stream' Instruction e)

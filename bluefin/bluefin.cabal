@@ -21,6 +21,17 @@ library
       NoImplicitPrelude
     exposed-modules:
       Bluefin,
+      Bluefin.Capability,
+      Bluefin.Capability.Ask,
+      Bluefin.Capability.AskCapability,
+      Bluefin.Capability.Await,
+      Bluefin.Capability.JumpTo,
+      Bluefin.Capability.Modify,
+      Bluefin.Capability.Request,
+      Bluefin.Capability.ReturnEarly,
+      Bluefin.Capability.Tell,
+      Bluefin.Capability.Throw,
+      Bluefin.Capability.Yield,
       Bluefin.Compound,
       Bluefin.Consume,
       Bluefin.Coroutine,

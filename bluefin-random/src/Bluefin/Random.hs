@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Bluefin.Random
-  ( -- * Handle
+  ( -- * Capability
     Random,
 
     -- * Handlers

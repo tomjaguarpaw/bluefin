@@ -1,3 +1,6 @@
+-- | This is an old interface and will be deprecated in the
+-- future. You are encouraged to use "Bluefin.Capability.Writer"
+-- instead.
 module Bluefin.Writer
   ( -- | In most cases you'll probably prefer t'Bluefin.Stream.Stream'
     -- to @Writer@, but @Writer@ can still be useful in some cases,

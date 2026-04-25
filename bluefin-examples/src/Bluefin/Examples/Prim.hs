@@ -19,7 +19,7 @@ import Control.Monad.Trans.Reader (ReaderT (ReaderT, runReaderT))
 import Data.Primitive.Array qualified as A
 import Data.Traversable (for)
 
--- Define a handle which includes Prim
+-- Define a capability which includes Prim
 data ExAndPrim e = MkExAndPrim (Exception String e) (P.Prim e)
   -- Give it a Handle instance, as per Bluefin.Compound
   deriving (Handle) via OneWayCoercibleHandle ExAndPrim

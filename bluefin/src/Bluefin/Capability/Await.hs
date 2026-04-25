@@ -1,24 +1,21 @@
--- | This is an old interface and will be deprecated in the
--- future. You are encouraged to use "Bluefin.Capability.Await" instead.
-module Bluefin.Consume
-  ( -- | 'Consume' allows you to await values during the execution of
+module Bluefin.Capability.Await
+  ( -- | 'Await' allows you to await values during the execution of
     -- a Bluefin operation.  It provides similar functionality to
     -- @await@ from Conduit or Pipes.
     --
     -- For information about prompt finalization/resource safety when
     -- using Bluefin @Consume@s, see "Bluefin.Coroutine".
 
-    -- * Handle
-    Consume,
+    -- * Capability
+    Await,
 
     -- * Handlers
-    consumeEach,
-    consumeStream,
-    streamConsume,
+    eachAwait,
+    awaitYield,
 
     -- * Effectful operations
     await,
-    takeConsume,
+    takeAwait,
   )
 where
 
