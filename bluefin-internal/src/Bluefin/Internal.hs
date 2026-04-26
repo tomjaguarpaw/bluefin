@@ -446,6 +446,7 @@ mapHandle = case handleDictImpl @h of MkHandleDict -> oneWayCoerce
 withHandle ::
   forall h r.
   (Handle h) =>
+  -- | ͘
   ((forall e es. (e <: es) => OneWayCoercible (h e) (h es)) => r) ->
   r
 withHandle r = case handleDictImpl @h of MkHandleDict -> r
