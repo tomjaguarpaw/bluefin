@@ -190,7 +190,7 @@ module Bluefin
     -- and [@mtl@](https://hackage.haskell.org/package/mtl) libraries.
     -- The transformer extensions of @State@ and @Either@ are
     -- t'Control.Monad.Trans.State.Strict.StateT' and
-    -- t'Control.Monad.Trans..ExceptT', and the @Mt@ extensions
+    -- t'Control.Monad.Trans.ExceptT', and the @Mt@ extensions
     -- are t'Control.Monad.State.Strict.MonadState' and
     -- t'Control.Monad.Except.MonadError'.  We won't go into more detail
     -- here because this documentation isn't a transformers or MTL
