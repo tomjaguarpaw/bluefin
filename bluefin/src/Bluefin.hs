@@ -140,7 +140,9 @@ module Bluefin
     --
     -- which is not what we want at all: the final value would just be
     -- @"Initial value"@. An approach that /does/ work is to simulate
-    -- mutable state using an ad hoc "state passing" pattern:
+    -- mutable state using an ad hoc "state passing" pattern.  Here
+    -- the variables @s1@ and @s2@ represent different values of the
+    -- same state at different parts of program execution:
     --
     -- @
     -- let s1 = "Initial value"
