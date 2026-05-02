@@ -768,7 +768,7 @@ module Bluefin
     -- (forall e. \<Handle\> e -> Eff (e :& es) a) -> Eff es r
     -- @
     --
-    -- This means that the effect @e@, corresponding to the handle
+    -- This means that the effect tag @e@, corresponding to the handle
     -- @\<Handle\> e@, has been handled and removed from the set of
     -- remaining effects, @es@.  (The signatures for
     -- 'Bluefin.Eff.runEff_' and 'Bluefin.Eff.runPureEff' are slightly
