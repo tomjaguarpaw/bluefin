@@ -728,8 +728,8 @@ module Bluefin
     -- the result.  For every argument effect tag @en@ we have a
     -- constraint @en \<: es@.  That tells us the that effect handle
     -- with tag @en@ is allowed to be used within the effectful
-    -- computation.  If we didn't have the @e1 \<: es@ constraint, for
-    -- example, that would tell us that the @State Int e1@ isn't
+    -- computation.  If the @e1 \<: es@ constraint, for
+    -- example, were not required that would tell us that the @State Int e1@ isn't
     -- actually used anywhere in the computation.
     --
     -- GHC and editor tools like HLS do a good job of inferring these
