@@ -107,7 +107,7 @@ module Bluefin
     -- question: if @let@ bindings don't interact with effects,
     -- because we can inline them freely, then how /can/ we perform
     -- effects in Haskell, and maintain control over the order in
-    -- which various operations occur?  For a hour-long answer,
+    -- which various operations occur?  For an hour-long answer,
     -- concluding with an explanation of the development of effect
     -- systems, you can watch "[A History of Effect
     -- systems](https://www.youtube.com/watch?v=RsTuy1jXQ6Y)" by Tom
