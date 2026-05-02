@@ -458,74 +458,54 @@ module Bluefin
 
     -- * A Comparison of effect systems at a glance
 
-    -- ** Mixing effects
+    -- ** IO
 
     -- |
-    -- - ✅ __IO__: I\/O, state via @IORef@, exceptions via @throw@/@catch@
-    -- - ❌ __ST__: State only
-    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__
-    -- - ✅ __Bluefin__\/__effectful__
-
-    -- ** Fine-grained Effects
-
-    -- |
-    -- - ❌ __IO__: No distinction between different effects (state, exceptions, I/O, etc.)
-    -- - ✅ __ST__: But state only
-    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__: Individual effects are represented at the type level
-    -- - ✅ __Bluefin__\/__effectful__: Individual effects are represented at the type level
-
-    -- ** Encapsulation
-
-    -- |
-    --
-    -- - ❌ __IO__: Can handle exceptions, but doing so is not
+    -- - ✅ __Mixing effects__: I\/O, state via @IORef@, exceptions via @throw@/@catch@
+    -- - ❌ __Fine-grained effects__: No distinction between different effects (state, exceptions, I/O, etc.)
+    -- - ❌ __Encapsulation__: Can handle exceptions, but doing so is not
     --   reflected in the type
-    --
-    -- - ✅ __ST__: State effects handled by @runST@ are not present
+    -- - ✅ __Resource safety__: Operations can be bracketed (see
+    --   @Control.Exception.'Control.Exception.bracket'@)
+    -- - ✅ __Predictable performance__
+    -- - ❌ __Multishot continuations__
+
+    -- ** ST
+
+    -- |
+    -- - ❌ __Mixing effects__: State only
+    -- - ✅ __Fine-grained effects__: But state only
+    -- - ✅ __Encapsulation__: State effects handled by @runST@ are not present
     --   in the operation's type signature
-    --
-    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__: Exceptions,
-    --   state and other effects handled in the body of an operation
+    -- - ❌ __Resource safety__: State only
+    -- - ✅ __Predictable performance__
+    -- - ❌ __Multishot continuations__
+
+    -- ** MTL\/fused-effects\/Polysemy
+
+    -- |
+    -- - ✅ __Mixing effectns__
+    -- - ✅ __Fine-grained effects__: Individual effects are represented at the type level
+    -- - ✅ __Encapsulation__: Exceptions, state and other effects handled in the body of an operation
     --   are not present in the operation's type signature
-    --
-    -- - ✅ __Bluefin__\/__effectful__: Exceptions, state and other
+    -- - ❌ __Resource safety__: Difficult to achieve resource safety for arbitrary effects
+    -- - ❌ __Predictable performance__: Good performance depends critically on GHC optimization
+    -- - ✅ __Multishot continuations__
+
+    -- ** Bluefin\/effectful
+
+    -- |
+    -- - ✅ __Mixing effects__
+    -- - ✅ __Fine-grained effects__: Individual effects are represented at the type level
+    -- - ✅ __Encapsulatio__: Exceptions, state and other
     --   effects handled in the body of an operation are not present
     --   in the operation's type signature
-
-    -- ** Resource Safety
-
-    -- |
-    -- - ✅ __IO__: Operations can be bracketed (see
-    --   @Control.Exception.'Control.Exception.bracket'@)
-    --
-    -- - ❌ __ST__: State only
-    --
-    -- - ❌ __MTL__\/__fused-effects__\/__Polysemy__: Difficult to
-    --   achieve resource safety for arbitrary effects
-    --
-    -- - ✅ __Bluefin__\/__effectful__: Operations can be bracketed
+    -- - ✅ __Resource safety__: Operations can be bracketed
     --   (see e.g. @Bluefin.Eff.'Bluefin.Eff.bracket'@) because these
     --   effect systems wrap @IO@
-
-    -- ** Predictable Performance
-
-    -- |
-    -- - ✅ __IO__: Predictable performance
-    -- - ✅ __ST__: Predictable performance
-    --
-    -- - ❌ __MTL__\/__fused-effects__\/__Polysemy__: Good performance
-    --   depends critically on GHC optimization
-    --
-    -- - ✅ __Bluefin__\/__effectful__: Predictable performance
+    -- - ✅ __Predictable performance__: Predictable performance
     --   because these effect systems wrap @IO@
-
-    -- ** Multishot continuations
-
-    -- |
-    -- - ❌ __IO__
-    -- - ❌ __ST__
-    -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__
-    -- - ❌ __Bluefin__\/__effectful__
+    -- - ❌ __Multishot continuations__
 
     -- * Introduction to Bluefin
 
