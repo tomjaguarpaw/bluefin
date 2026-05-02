@@ -613,7 +613,7 @@ module Bluefin
     -- only one place – normal Haskell exceptions can be handled in a
     -- variety of places, and the closest handler of matching type on
     -- the stack will be the one that will be chosen upon
-    -- 'Control.Exception.throw'.
+    -- @Control.Exception.'Control.Exception.throw'@.
     --
     -- @example3@ shows how to use Bluefin to calculate the sum of
     -- numbers from 1 to @n@, but stop if the sum becomes bigger than
