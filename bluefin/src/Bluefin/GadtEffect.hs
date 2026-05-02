@@ -6,7 +6,7 @@ module Bluefin.GadtEffect
     -- algebraic data type) whose contructors correspond to primitive
     -- operations of the effect, and then creating values of the GADT
     -- and interpreting them in terms of existing effects.  This
-    -- module provides Bluefin's equivalent.  In fact, it @effectful@
+    -- module provides Bluefin's equivalent.  In fact, in @effectful@
     -- and @polysemy@ this is essentially the /only/ way you can
     -- create new effects. That's not true for Bluefin. Bluefin
     -- supports a rich collection of ways to create new effects, most
