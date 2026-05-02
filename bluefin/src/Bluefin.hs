@@ -481,7 +481,8 @@ module Bluefin
     -- - ❌ __IO__: Can handle exceptions, but doing so is not
     --   reflected in the type
     --
-    -- - ❌ __ST__: State only
+    -- - ✅ __ST__: State effects handled by @runST@ are not present
+    --   in the operation's type signature
     --
     -- - ✅ __MTL__\/__fused-effects__\/__Polysemy__: Exceptions,
     --   state and other effects handled in the body of an operation
