@@ -764,8 +764,7 @@ try f =
       withScopedException_ $ \throw_ -> do
         effToIO (f (MkException (effIO io . throw_)))
 
--- | 'handle', but with the argument order swapped
---
+-- |
 -- @
 -- >>> runPureEff $ handle (pure . show) $ \\e -> do
 --       throw e 42
@@ -783,6 +782,7 @@ handle h f =
     Left e -> h e
     Right a -> pure a
 
+-- | 'handle', but with the argument order swapped
 catch ::
   forall exn (es :: Effects) a.
   (forall e. Exception exn e -> Eff (e :& es) a) ->
