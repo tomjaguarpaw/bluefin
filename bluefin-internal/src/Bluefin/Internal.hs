@@ -1120,7 +1120,7 @@ enumerate s = enumerateFrom 0 s
 -- starting from an inital value.
 --
 -- @
--- >>> runPureEff $ yieldToList $ enumerateFrom1 (inFoldable [\"A\", \"B\", \"C\"])
+-- >>> runPureEff $ yieldToList $ enumerateFrom 1 (inFoldable [\"A\", \"B\", \"C\"])
 -- ([(1, \"A\"), (2, \"B\"), (3, \"C\")], ())
 -- @
 enumerateFrom ::
