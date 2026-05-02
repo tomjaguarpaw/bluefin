@@ -110,7 +110,7 @@ module Bluefin
     -- which various operations occur?  For an hour-long answer,
     -- concluding with an explanation of the development of effect
     -- systems, you can watch "[A History of Effect
-    -- systems](https://www.youtube.com/watch?v=RsTuy1jXQ6Y)" by Tom
+    -- systems](https://www.youtube.com/watch?v=RsTuy1jXQ6Y)" by Bluefin author Tom
     -- Ellis (recorded at Zurihac 2025).
     --
     -- The short answer is: t'Control.Monad.Monad's.  @Monad@ is a
