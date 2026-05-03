@@ -20,6 +20,7 @@ import Bluefin.Internal.OneWayCoercible (OneWayCoercible (oneWayCoercibleImpl), 
 import Data.Kind (Type)
 
 type Send :: Effect -> Effects -> Type
+
 -- | Bring a 'Send' into scope with 'interpret'.
 newtype Send f e = MkSend (EffectHandler f e)
   deriving (Handle) via OneWayCoercibleHandle (Send f)

@@ -332,7 +332,6 @@ module Bluefin.DslBuilder
     -- @myDslArena :: Arena@ given above!
 
     -- * @DslBuilder@
-
     DslBuilder,
     dslBuilder,
     runDslBuilder,

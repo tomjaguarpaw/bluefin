@@ -228,7 +228,6 @@ module Bluefin.GadtEffect
     -- @
 
     -- * Handle
-
     Send,
 
     -- * Effectful operations

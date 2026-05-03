@@ -1,6 +1,5 @@
 -- This will probably be superseded by DslBuilderEff because the
 -- latter has a better name
-
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 
@@ -9,9 +8,9 @@ module Bluefin.Internal.DslBuilderEffects where
 import Bluefin.Internal
 import Bluefin.Internal.OneWayCoercible
   ( OneWayCoercible,
+    oneWayCoerce,
     oneWayCoercible,
     oneWayCoercibleImpl,
-    oneWayCoerce,
   )
 
 newtype DslBuilderEffects h es r

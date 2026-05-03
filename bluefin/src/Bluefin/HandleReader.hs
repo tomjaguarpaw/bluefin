@@ -12,7 +12,6 @@
 -- that is, locally augmenting an effect with new behaviors.  If you
 -- want to do the same in Bluefin you may want to start with
 -- @Bluefin.FunctorCoroutine.'Bluefin.FunctorCoroutine.interpose`@.
-
 module Bluefin.HandleReader
   ( -- * Handle
     HandleReader,

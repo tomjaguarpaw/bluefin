@@ -1,9 +1,9 @@
 module Test.SpecH where
 
-import System.Exit (ExitCode (ExitFailure), exitWith)
 import Bluefin.Internal
 import Bluefin.Internal.DslBuilder
 import Data.Monoid (All (All))
+import System.Exit (ExitCode (ExitFailure), exitWith)
 
 -- A SpecH yields pairs of
 --

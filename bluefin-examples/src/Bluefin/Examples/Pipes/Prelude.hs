@@ -42,6 +42,6 @@ module Bluefin.Examples.Pipes.Prelude
   )
 where
 
-import Prelude ()
 -- Eventually we'll copy the actual implementation here
 import Bluefin.Pipes.Prelude
+import Prelude ()

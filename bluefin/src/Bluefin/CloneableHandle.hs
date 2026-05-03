@@ -1,6 +1,5 @@
 -- | @Bluefin.CloneableHandle@ defines the 'CloneableHandle' class,
 -- whose purpose is to support 'withEffToIOCloneHandle'.
-
 module Bluefin.CloneableHandle
   ( -- | 'withEffToIOCloneHandle' is an @IO@ unlifting function that
     -- clones its handle each time it runs @Eff@ in @IO@.  This is
@@ -81,7 +80,7 @@ module Bluefin.CloneableHandle
 
     -- * @CloneableHandle@
     CloneableHandle,
-    GenericCloneableHandle(MkGenericCloneableHandle),
+    GenericCloneableHandle (MkGenericCloneableHandle),
     GCloneableHandle,
 
     -- * @GHC.Generics@ re-exports
