@@ -92,6 +92,7 @@ library
       async,
       base,
       bytestring,
+      directory,
       primitive,
       random >= 1.3 && < 2,
       transformers,
