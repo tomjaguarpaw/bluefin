@@ -1,3 +1,5 @@
+# 0.5.100.0
+
 * Covert to "capability" nomenclature
 
   See module "Bluefin.Capability" for a guide to the new naming. Users

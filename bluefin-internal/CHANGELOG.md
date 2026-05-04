@@ -1,3 +1,5 @@
+# 0.5.100.0
+
 * Add exports for change to "capability" nomenclature
 
 # 0.5.1.0
