@@ -20,7 +20,7 @@ module Bluefin.Compound
     --   (forall e. Counter1 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter1 k =
-    --   'Bluefin.Modify.evalModify' 0 $ \\st -> do
+    --   'Bluefin.Capability.Modify.evalModify' 0 $ \\st -> do
     --     _ <- k (MkCounter1 st)
     --     'Bluefin.Capability.Modify.get' st
     -- @
@@ -53,23 +53,23 @@ module Bluefin.Compound
     -- an exception when we hit a limit.
     --
     -- @
-    -- data Counter2 e1 e2 = MkCounter2 ('Bluefin.State.State' Int e1) ('Bluefin.Capability.Throw.Throw' () e2)
+    -- data Counter2 e1 e2 = MkCounter2 ('Bluefin.Capability.Modify.Modify' Int e1) ('Bluefin.Capability.Throw.Throw' () e2)
     --
     -- incCounter2 :: (e1 \<: es, e2 \<: es) => Counter2 e1 e2 -> 'Bluefin.Eff.Eff' es ()
     -- incCounter2 (MkCounter2 st ex) = do
     --   count <- 'Bluefin.Capabiilty.Modify.get' st
     --   when (count >= 10) $
     --     'Bluefin.Capability.Throw.throw' ex ()
-    --   'Bluefin.Modify.put' st (count + 1)
+    --   'Bluefin.Capability.Modify.put' st (count + 1)
     --
     -- runCounter2 ::
     --   (forall e1 e2. Counter2 e1 e2 -> Eff (e2 :& e1 :& es) r) ->
     --   Eff es Int
     -- runCounter2 k =
-    --   'Bluefin.Modify.evalState' 0 $ \\st -> do
+    --   'Bluefin.Capability.Modify.evalModify' 0 $ \\st -> do
     --     _ \<- 'Bluefin.Capability.Throw.try' $ \\ex -> do
     --       k (MkCounter2 st ex)
-    --     'Bluefin.Modify.get' st
+    --     'Bluefin.Capability.Modify.get' st
     -- @
     --
     -- We can see that attempting to increment the counter fovever
@@ -105,19 +105,19 @@ module Bluefin.Compound
     --
     -- incCounter3 :: (e \<: es) => Counter3 e -> Eff es ()
     -- incCounter3 (MkCounter3 st ex) = do
-    --   count <- 'Bluefin.Modify.get' st
+    --   count <- 'Bluefin.Capability.Modify.get' st
     --   when (count >= 10) $
     --     'Bluefin.Capability.Throw.throw' ex ()
-    --   'Bluefin.Modify.put' st (count + 1)
+    --   'Bluefin.Capability.Modify.put' st (count + 1)
     --
     -- runCounter3 ::
     --   (forall e. Counter3 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter3 k =
-    --   'Bluefin.Modify.evalState' 0 $ \\st -> do
+    --   'Bluefin.Capability.Modify.evalModify' 0 $ \\st -> do
     --     _ \<- 'Bluefin.Capability.Throw.try' $ \\ex -> do
     --       'useImplIn' k (MkCounter3 ('mapHandle' st) (mapHandle ex))
-    --     'Bluefin.Modify.get' st
+    --     'Bluefin.Capability.Modify.get' st
     -- @
     --
     -- The example works as before:
@@ -195,7 +195,7 @@ module Bluefin.Compound
     --
     -- incCounter4 :: (e \<: es) => Counter4 e -> Eff es ()
     -- incCounter4 (MkCounter4 st ex y) = do
-    --   count <- 'Bluefin.Modify.get' st
+    --   count <- 'Bluefin.Capability.Modify.get' st
     --
     --   when (even count) $
     --     'Bluefin.Stream.yield' y "Count was even"
@@ -203,7 +203,7 @@ module Bluefin.Compound
     --   when (count >= 10) $
     --     'Bluefin.Capability.Throw.throw' ex ()
     --
-    --   'Bluefin.Modify.put' st (count + 1)
+    --   'Bluefin.Capability.Modify.put' st (count + 1)
     --
     -- getCounter4 :: (e \<: es) => Counter4 e -> String -> Eff es Int
     -- getCounter4 (MkCounter4 st _ y) msg = do
@@ -216,7 +216,7 @@ module Bluefin.Compound
     --   (forall e. Counter4 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter4 y k =
-    --   evalState 0 $ \\st -> do
+    --   evalModify 0 $ \\st -> do
     --     _ \<- try $ \\ex -> do
     --       'useImplIn' k (MkCounter4 ('mapHandle' st) (mapHandle ex) (mapHandle y))
     --     get st
@@ -276,13 +276,13 @@ module Bluefin.Compound
     --   (forall e. Counter5 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter5 y k =
-    --   'Bluefin.Modify.evalState' 0 $ \\st -> do
+    --   'Bluefin.Capability.Modify.evalModify' 0 $ \\st -> do
     --     _ \<- 'Bluefin.Capability.Throw.try' $ \\ex -> do
     --       'useImplIn'
     --         k
     --         ( MkCounter5
     --             { incCounter5Impl = do
-    --                 count <- 'Bluefin.Modify.get' st
+    --                 count <- 'Bluefin.Capability.Modify.get' st
     --
     --                 when (even count) $
     --                   'Bluefin.Stream.yield' y "Count was even"
@@ -290,7 +290,7 @@ module Bluefin.Compound
     --                 when (count >= 10) $
     --                   'Bluefin.Capability.Throw.throw' ex ()
     --
-    --                 'Bluefin.Modify.put' st (count + 1),
+    --                 'Bluefin.Capability.Modify.put' st (count + 1),
     --               getCounter5Impl = \\msg -> do
     --                 yield y msg
     --                 get st
@@ -350,13 +350,13 @@ module Bluefin.Compound
     --   (forall e. Counter6 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter6 y k =
-    --   'Bluefin.Modify.evalState' 0 $ \\st -> do
+    --   'Bluefin.Capability.Modify.evalModify' 0 $ \\st -> do
     --     _ \<- 'Bluefin.Capability.Throw.try' $ \\ex -> do
     --       'useImplIn'
     --         k
     --         ( MkCounter6
     --             { incCounter6Impl = do
-    --                 count <- 'Bluefin.Modify.get' st
+    --                 count <- 'Bluefin.Capability.Modify.get' st
     --
     --                 when (even count) $
     --                   'Bluefin.Stream.yield' y "Count was even"
@@ -364,7 +364,7 @@ module Bluefin.Compound
     --                 when (count >= 10) $
     --                   'Bluefin.Capability.Throw.throw' ex ()
     --
-    --                 'Bluefin.Modify.put' st (count + 1),
+    --                 'Bluefin.Capability.Modify.put' st (count + 1),
     --               counter6State = mapHandle st,
     --               counter6Stream = mapHandle y
     --             }
@@ -431,13 +431,13 @@ module Bluefin.Compound
     --   (forall e. Counter7 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter7 y k =
-    --   'Bluefin.Modify.evalState' 0 $ \\st -> do
+    --   'Bluefin.Capability.Modify.evalModify' 0 $ \\st -> do
     --     _ \<-
     --       'useImplIn'
     --         k
     --         ( MkCounter7
     --             { incCounter7Impl = \\ex -> do
-    --                 count \<- 'Bluefin.Modify.get' st
+    --                 count \<- 'Bluefin.Capability.Modify.get' st
     --
     --                 when (even count) $
     --                   'Bluefin.Stream.yield' y "Count was even"
@@ -445,7 +445,7 @@ module Bluefin.Compound
     --                 when (count >= 10) $
     --                   'Bluefin.Capability.Throw.throw' ex ()
     --
-    --                 'Bluefin.Modify.put' st (count + 1),
+    --                 'Bluefin.Capability.Modify.put' st (count + 1),
     --               counter7State = mapHandle st,
     --               counter7Stream = mapHandle y
     --             }
@@ -580,18 +580,18 @@ module Bluefin.Compound
     --   (forall e2. FileSystem e2 -> Eff (e2 :& es) r) ->
     --   Eff es r
     -- runFileSystemPure ex fs0 k =
-    --   'Bluefin.Modify.evalState' fs0 $ \\fs ->
+    --   'Bluefin.Capability.Modify.evalModify' fs0 $ \\fs ->
     --     'useImplIn'
     --       k
     --       MkFileSystem
     --         { readFileImpl = \\filepath -> do
-    --             fs' <- 'Bluefin.Modify.get' fs
+    --             fs' <- 'Bluefin.Capability.Modify.get' fs
     --             case lookup filepath fs' of
     --               Nothing ->
     --                 'Bluefin.Capability.Throw.throw' ex ("File not found: " <> filepath)
     --               Just s -> pure s,
     --           writeFileImpl = \\filepath contents ->
-    --             'Bluefin.Modify.modify' fs ((filepath, contents) :)
+    --             'Bluefin.Capability.Modify.modify' fs ((filepath, contents) :)
     --         }
     -- @
     --
