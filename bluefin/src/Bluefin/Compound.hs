@@ -417,7 +417,7 @@ module Bluefin.Compound
     --       }
     --
     -- incCounter7 ::
-    --   (e \<: es, e1 \<: es) => Counter7 e -> Exception () e1 -> Eff es ()
+    --   (e \<: es, e1 \<: es) => Counter7 e -> Throw () e1 -> Eff es ()
     -- incCounter7 e ex = 'makeOp' (incCounter7Impl ('mapHandle' e) (mapHandle ex))
     --
     -- getCounter7 :: (e \<: es) => Counter7 e -> String -> Eff es Int
@@ -575,7 +575,7 @@ module Bluefin.Compound
     -- @
     -- runFileSystemPure ::
     --   (e1 \<: es) =>
-    --   Exception String e1 ->
+    --   Throw String e1 ->
     --   [(FilePath, String)] ->
     --   (forall e2. FileSystem e2 -> Eff (e2 :& es) r) ->
     --   Eff es r
@@ -602,7 +602,7 @@ module Bluefin.Compound
     -- runFileSystemIO ::
     --   forall e1 e2 es r.
     --   (e1 \<: es, e2 \<: es) =>
-    --   Exception String e1 ->
+    --   Throw String e1 ->
     --   IOE e2 ->
     --   (forall e. FileSystem e -> Eff (e :& es) r) ->
     --   Eff es r
