@@ -1625,6 +1625,8 @@ newtype Reader r e = MkReader (State r e)
 instance (e <: es) => OneWayCoercible (Reader r e) (Reader r es) where
   oneWayCoercibleImpl = oneWayCoercible
 
+type role Reader representational nominal
+
 runReader ::
   -- | Initial value for @Reader@.
   r ->
