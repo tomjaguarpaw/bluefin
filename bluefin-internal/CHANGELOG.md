@@ -1,3 +1,5 @@
+* Restrict `Reader` type tag to `Effects`
+
 # 0.7.0.0
 
 * Fix `Reader` bug that caused incorrect scoping in

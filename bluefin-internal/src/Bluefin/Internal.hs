@@ -1635,6 +1635,8 @@ tell ::
   Eff es ()
 tell (Writer y) = yield y
 
+type Reader :: Type -> Effects -> Type
+
 newtype Reader r e = MkReader (Vault.Key r)
   deriving (Handle) via OneWayCoercibleHandle (Reader r)
 
