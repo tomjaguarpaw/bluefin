@@ -91,10 +91,6 @@ test_localInHandler y = runReader "global" $ \re ->
     (\y2 -> local re (const "local") (yield y2 ()))
     (\() -> assertEqual y "Reader local" "local" =<< ask re)
 
--- This test confirms the buggy behavior reported in
---
---    https://github.com/tomjaguarpaw/bluefin/issues/98
---
 -- local run in one branch of a streamConsume should not affect ask in
 -- the other branch.
 test_streamConsumeReader :: (e <: es) => SpecH e -> Eff es ()
@@ -106,23 +102,23 @@ test_streamConsumeReader spech = do
           let check i = assertEqual spech "Reader local" i =<< ask r
           check 0
           s
-          check (-100) -- Should be 0
+          check 0
           s
-          check (-200) -- Should be 0
+          check 0
           local r (+ 1) $ do
-            check (-199) -- Should be 1
+            check 1
             s
-            check (-299) -- Should be 1
+            check 1
             local r (+ 1) $ do
-              check (-298) -- Should be 2
+              check 2
               s
-              check (-398) -- Should be 2
-            check (-299) -- Should be 1
+              check 2
+            check 1
             s
-            check (-299) -- Should be 1
-          check (-200) -- Should be 0
+            check 1
+          check 0
           s
-          check (-200) -- Should be 0
+          check 0
       )
       ( \a -> do
           let p = await a
@@ -137,10 +133,6 @@ test_streamConsumeReader spech = do
                   forever p
       )
 
--- This test confirms the buggy behavior reported in
---
---    https://github.com/tomjaguarpaw/bluefin/issues/98
---
 -- localHandle run in one branch of a streamConsume should not affect
 -- askHandle in the other branch.
 test_streamConsumeHandleReader :: (e <: es) => SpecH e -> Eff es ()
@@ -155,7 +147,7 @@ test_streamConsumeHandleReader spech = do
                   assertEqual spech "HandleReader local" i i'
             check 0
             s
-            check (-100) -- Should be 0
+            check 0
         )
         ( \a -> do
             let p = await a

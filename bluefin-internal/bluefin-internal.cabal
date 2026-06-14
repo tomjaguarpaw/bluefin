@@ -82,7 +82,8 @@ library
       primitive >= 0.8 && < 0.10,
       transformers < 0.7,
       transformers-base < 0.5,
-      monad-control < 1.1
+      monad-control < 1.1,
+      vault >= 0.3
     exposed-modules:
       Bluefin.Internal,
       Bluefin.Internal.CloneableHandle,
@@ -97,7 +98,8 @@ library
       Bluefin.Internal.OneWayCoercible,
       Bluefin.Internal.Pipes,
       Bluefin.Internal.Prim,
-      Bluefin.Internal.System.IO
+      Bluefin.Internal.System.IO,
+      Bluefin.Internal.Vault
 
 test-suite bluefin-test
     import:           defaults

@@ -24,6 +24,8 @@ import Bluefin.Internal.OneWayCoercible
     unsafeCoercionOfOneWayCoercion,
     unsafeOneWayCoercible,
   )
+import Bluefin.Internal.Vault (Vault)
+import Bluefin.Internal.Vault qualified as Vault
 import Control.Concurrent.Async qualified as Async
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 import Control.Exception qualified
@@ -37,7 +39,7 @@ import Control.Monad.Trans.Reader (ReaderT)
 import Control.Monad.Trans.Reader qualified as Reader
 import Data.Coerce (coerce)
 import Data.Foldable (for_)
-import Data.IORef (IORef, newIORef, readIORef, writeIORef)
+import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
 import Data.Proxy (Proxy (Proxy))
 import Data.Type.Coercion (Coercion (Coercion))
@@ -59,7 +61,7 @@ infixr 9 :&
 
 type (:&) = Union
 
-type Env = ()
+type Env = IORef Vault
 
 newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: Env -> IO a}
   deriving stock (Functor)
@@ -148,11 +150,20 @@ race ::
   Eff es a
 race x y io = do
   r <- withEffToIO' io $ \toIO ->
-    Async.race (toIO x) (toIO y)
+    Async.race (toIO (withClonedEnv . x)) (toIO (withClonedEnv . y))
 
   pure $ case r of
     Left a -> a
     Right a -> a
+
+withClonedEnv :: Eff es r -> Eff es r
+withClonedEnv m = UnsafeMkEff $ \vault -> do
+  vault' <- cloneIORef vault
+  case m of UnsafeMkEff m' -> m' vault'
+  where
+    cloneIORef ref = do
+      orig <- readIORef ref
+      newIORef orig
 
 -- | Connect two coroutines.  Their execution is interleaved by
 -- exchanging @a@s and @b@s. When the former yields its first @a@ it
@@ -1527,7 +1538,7 @@ runEff_ ::
   -- | ͘
   IO a
 runEff_ eff = do
-  emptyEnv <- pure ()
+  emptyEnv <- newIORef Vault.empty
   unsafeUnEff (eff MkIOE) emptyEnv
 
 unsafeProvideIO ::
@@ -1624,8 +1635,8 @@ tell ::
   Eff es ()
 tell (Writer y) = yield y
 
-newtype Reader r e = MkReader (State r e)
-  deriving newtype (Handle)
+newtype Reader r e = MkReader (Vault.Key r)
+  deriving (Handle) via OneWayCoercibleHandle (Reader r)
 
 instance (e <: es) => OneWayCoercible (Reader r e) (Reader r es) where
   oneWayCoercibleImpl = oneWayCoercible
@@ -1637,7 +1648,12 @@ runReader ::
   r ->
   (forall e. Reader r e -> Eff (e :& es) a) ->
   Eff es a
-runReader r f = evalState r (f . MkReader)
+runReader r f = do
+  k <- UnsafeMkEff $ \vault -> do
+    k <- Vault.newKey
+    modifyIORef vault (\v -> Vault.insert k r v)
+    pure k
+  makeOp (f (MkReader k))
 
 -- | Read the value.  Note that @ask@ has the property that these two
 -- operations are always equivalent:
@@ -1659,7 +1675,22 @@ ask ::
   -- | ͘
   Reader r e ->
   Eff es r
-ask (MkReader st) = get st
+ask (MkReader k) = UnsafeMkEff $ \vault -> do
+  v <- readIORef vault
+  case Vault.lookup k v of
+    Nothing -> error msg
+    Just ref -> pure ref
+  where
+    msg =
+      unlines
+        [ "ask called on out of scope reference",
+          unwords
+            [ "If you haven't subverted Bluefin's type system",
+              "then this is a Bluefin bug.",
+              "Please report it at",
+              "https://github.com/tomjaguarpaw/bluefin/issues/new"
+            ]
+        ]
 
 -- | Read the value modified by a function
 asks ::
@@ -1680,12 +1711,12 @@ local ::
   -- | Body
   Eff es a ->
   Eff es a
-local (MkReader st) f k = do
-  orig <- get st
-  bracket
-    (put st (f orig))
-    (\() -> put st orig)
-    (\() -> k)
+local (MkReader key) f k = UnsafeMkEff $ \env@vault -> do
+  orig <- readIORef vault
+  Control.Exception.bracket
+    (writeIORef vault (Vault.adjust f key orig))
+    (\() -> writeIORef vault orig)
+    (\() -> case k of UnsafeMkEff m -> m env)
 
 newtype HandleReader h e = UnsafeMkHandleReader (Reader (h e) e)
   deriving (Handle) via OneWayCoercibleHandle (HandleReader h)

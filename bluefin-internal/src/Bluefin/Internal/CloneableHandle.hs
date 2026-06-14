@@ -34,12 +34,13 @@ withEffToIOCloneHandle ::
   ((forall r. (forall e. IOE e -> h e -> Eff e r) -> IO r) -> IO a) ->
   Eff es a
 withEffToIOCloneHandle io h k = do
-  withEffToIO_ io $ \runInIO -> do
-    k $ \body -> do
-      runInIO $ do
-        cloneHandleClass h $ \h' -> do
-          cloneHandleClass io $ \io' -> do
-            body (mapHandle io') (mapHandle h')
+  withClonedEnv $ do
+    withEffToIO_ io $ \runInIO -> do
+      k $ \body -> do
+        runInIO $ do
+          cloneHandleClass h $ \h' -> do
+            cloneHandleClass io $ \io' -> do
+              body (mapHandle io') (mapHandle h')
 
 newtype HandleCloner h1 h2 es
   = MkHandleCloner
@@ -98,9 +99,8 @@ instance CloneableHandle (Reader r) where
   cloneableHandleImpl = MkCloneableHandleD hcReader
 
 hcReader :: HandleCloner (Reader r) (Reader r) e
-hcReader = MkHandleCloner $ \(MkReader s) k -> do
-  cloneHandleClass s $ \s' -> do
-    useImplIn k (MkReader (mapHandle s'))
+hcReader = MkHandleCloner $ \r k -> do
+  useImplIn k (mapHandle r)
 
 -- | Cloning a @HandleReader@ copies its contents to a new
 -- @HandleReader@.  Changes to one will not effect the other.
