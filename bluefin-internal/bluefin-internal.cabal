@@ -83,7 +83,7 @@ library
       transformers < 0.7,
       transformers-base < 0.5,
       monad-control < 1.1,
-      vault >= 0.3
+      vault >= 0.3 && < 0.4
     exposed-modules:
       Bluefin.Internal,
       Bluefin.Internal.CloneableHandle,
