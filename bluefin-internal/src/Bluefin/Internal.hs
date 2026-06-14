@@ -1713,8 +1713,8 @@ localHandle ::
   -- | ͘
   Eff es r
 localHandle hh f k = do
-  let UnsafeMkHandleReader st' = mapHandle hh
-  local st' f k
+  let UnsafeMkHandleReader st = mapHandle hh
+  local st f k
 
 askHandle ::
   (e <: es, Handle h) =>
