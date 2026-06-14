@@ -1,3 +1,10 @@
+# 0.7.0.0
+
+* Fix `Reader` bug that caused incorrect scoping in
+  `awaitYield`/`connectRequests`/`streamConsume`/`connectCoroutines`
+
+  <https://github.com/tomjaguarpaw/bluefin/issues/98>
+
 # 0.6.0.0
 
 * Changed type of `runEff` to match `runEff_`

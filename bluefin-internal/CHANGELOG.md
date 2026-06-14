@@ -1,3 +1,5 @@
+# 0.7.0.0
+
 * Fix `Reader` bug that caused incorrect scoping in
   `awaitYield`/`connectRequests`/`streamConsume`/`connectCoroutines`
 
