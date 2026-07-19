@@ -83,7 +83,7 @@ withYieldToListExample = runPureEff $ withYieldToList @Int $ \y -> do
 -- This shows we can use forEach at any level of nesting with
 -- insertManySecond
 doubleNestedForEach ::
-  (forall e. Stream () e -> Eff (e :& es) ()) ->
+  (forall e. Yield () e -> Eff (e :& es) ()) ->
   Eff es ()
 doubleNestedForEach f =
   withModify () $ \_ -> do
@@ -97,8 +97,8 @@ forEachExample = runPureEff $ yieldToList $ \y -> do
     yield y i
     yield y (i * 10)
 
-ignoreStreamExample :: Int
-ignoreStreamExample = runPureEff $ ignoreStream @Int $ \y -> do
+ignoreYieldExample :: Int
+ignoreYieldExample = runPureEff $ ignoreYield @Int $ \y -> do
   for_ [0 .. 4] $ \i -> do
     yield y i
     yield y (i * 10)
@@ -106,16 +106,16 @@ ignoreStreamExample = runPureEff $ ignoreStream @Int $ \y -> do
   pure 42
 
 -- ([1,2,3,1,2,3],())
-cycleToStreamExample :: ([Int], ())
-cycleToStreamExample = runPureEff $ yieldToList $ \yOut -> do
-  consumeStream
+cycleToYieldExample :: ([Int], ())
+cycleToYieldExample = runPureEff $ yieldToList $ \yOut -> do
+  awaitYield
     (\c -> takeConsume 6 c yOut)
-    (\yIn -> cycleToStream [1 .. 3] yIn)
+    (\yIn -> cycleToYield [1 .. 3] yIn)
 
 -- ([1,2,3,4],())
 takeConsumeExample :: ([Int], ())
 takeConsumeExample = runPureEff $ yieldToList $ \yOut -> do
-  consumeStream
+  awaitYield
     (\c -> takeConsume 4 c yOut)
     (\yIn -> inFoldable [1 .. 10] yIn)
 
@@ -276,10 +276,10 @@ awaitExample = runEff $ \io -> do
   awaitList [1 :: Int ..] io $ awaitUsage io $ \rec -> do
     replicateM_ 5 (await rec)
 
-consumeStreamExample :: IO (Either String String)
-consumeStreamExample = runEff $ \io -> do
+awaitYieldExample :: IO (Either String String)
+awaitYieldExample = runEff $ \io -> do
   try $ \ex -> do
-    consumeStream
+    awaitYield
       ( \r ->
           bracket
             (effIO io (putStrLn "Starting 2"))
@@ -308,15 +308,15 @@ consumeStreamExample = runEff $ \io -> do
             pure "Yielder finished first"
       )
 
-consumeStreamExample2 :: IO ()
-consumeStreamExample2 = runEff $ \io -> do
+awaitYieldExample2 :: IO ()
+awaitYieldExample2 = runEff $ \io -> do
   let counter yeven yodd = for_ [0 :: Int .. 10] $ \i -> do
         if even i
           then yield yeven i
           else yield yodd i
 
   let foo yeven =
-        consumeStream
+        awaitYield
           ( \r -> forever $ do
               i <- await r
               effIO io (putStrLn ("Odd: " ++ show i))
@@ -324,7 +324,7 @@ consumeStreamExample2 = runEff $ \io -> do
           (counter yeven)
 
   let bar =
-        consumeStream
+        awaitYield
           ( \r -> forever $ do
               i <- await r
               effIO io (putStrLn ("Even: " ++ show i))
@@ -620,7 +620,7 @@ exampleCounter3B = runEff $ \io -> runCounter3B io $ \c -> do
 -- Counter 4
 
 data Counter4 e
-  = MkCounter4 (Modify Int e) (Throw () e) (Stream String e)
+  = MkCounter4 (Modify Int e) (Throw () e) (Yield String e)
 
 incCounter4 :: (e <: es) => Counter4 e -> Eff es ()
 incCounter4 (MkCounter4 st ex y) = do
@@ -641,7 +641,7 @@ getCounter4 (MkCounter4 st _ y) msg = do
 
 runCounter4 ::
   (e1 <: es) =>
-  Stream String e1 ->
+  Yield String e1 ->
   (forall e. Counter4 e -> Eff (e :& es) r) ->
   Eff es Int
 runCounter4 y k =
@@ -682,7 +682,7 @@ getCounter5 e msg = getCounter5Impl (mapHandle e) msg
 
 runCounter5 ::
   (e1 <: es) =>
-  Stream String e1 ->
+  Yield String e1 ->
   (forall e. Counter5 e -> Eff (e :& es) r) ->
   Eff es Int
 runCounter5 y k =
@@ -725,7 +725,7 @@ exampleCounter5 = runPureEff $ yieldToList $ \y -> do
 data Counter6 e = MkCounter6
   { incCounter6Impl :: Eff e (),
     counter6Modify :: Modify Int e,
-    counter6Stream :: Stream String e
+    counter6Yield :: Yield String e
   }
   deriving (Generic)
   deriving (Handle) via OneWayCoercibleHandle Counter6
@@ -743,7 +743,7 @@ getCounter6 (MkCounter6 _ st y) msg = do
 
 runCounter6 ::
   (e1 <: es) =>
-  Stream String e1 ->
+  Yield String e1 ->
   (forall e. Counter6 e -> Eff (e :& es) r) ->
   Eff es Int
 runCounter6 y k =
@@ -763,7 +763,7 @@ runCounter6 y k =
 
                 put st (count + 1),
               counter6Modify = mapHandle st,
-              counter6Stream = mapHandle y
+              counter6Yield = mapHandle y
             }
         )
     get st
@@ -785,7 +785,7 @@ exampleCounter6 = runPureEff $ yieldToList $ \y -> do
 data Counter7 e = MkCounter7
   { incCounter7Impl :: forall e'. Throw () e' -> Eff (e' :& e) (),
     counter7Modify :: Modify Int e,
-    counter7Stream :: Stream String e
+    counter7Yield :: Yield String e
   }
   deriving (Handle) via OneWayCoercibleHandle Counter7
 
@@ -797,7 +797,7 @@ instance (e <: es) => OneWayCoercible (Counter7 e) (Counter7 es) where
     MkCounter7
       { incCounter7Impl = \ex -> useImplUnder (incCounter7Impl c ex),
         counter7Modify = mapHandle (counter7Modify c),
-        counter7Stream = mapHandle (counter7Stream c)
+        counter7Yield = mapHandle (counter7Yield c)
       }
 
 incCounter7 ::
@@ -811,7 +811,7 @@ getCounter7 (MkCounter7 _ st y) msg = do
 
 runCounter7 ::
   (e1 <: es) =>
-  Stream String e1 ->
+  Yield String e1 ->
   (forall e. Counter7 e -> Eff (e :& es) r) ->
   Eff es Int
 runCounter7 y k =
@@ -831,7 +831,7 @@ runCounter7 y k =
 
                 put st (count + 1),
               counter7Modify = mapHandle st,
-              counter7Stream = mapHandle y
+              counter7Yield = mapHandle y
             }
         )
     get st
@@ -949,7 +949,7 @@ exampleRunFileSystemIO = runEff $ \io -> try $ \ex ->
 data Application e = MkApplication
   { queryDatabase :: String -> Int -> Eff e [String],
     applicationModify :: Modify (Int, Bool) e,
-    logger :: Stream String e
+    logger :: Yield String e
   }
   deriving (Generic)
   deriving (Handle) via OneWayCoercibleHandle Application
@@ -1007,8 +1007,8 @@ pipesExample2 = runEff $ \io -> runEffect $ do
 -- Finishing
 promptCoroutine :: IO ()
 promptCoroutine = runEff $ \io -> do
-  -- consumeStream connects a consumer to a producer
-  consumeStream
+  -- awaitYield connects a consumer to a producer
+  awaitYield
     -- Like a pipes Consumer.  Prints the first five elements it
     -- awaits.
     ( \r -> for_ [1 :: Int .. 5] $ \_ -> do

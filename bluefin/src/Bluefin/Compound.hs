@@ -183,7 +183,7 @@ module Bluefin.Compound
 
     -- | We can wrap multiple effects, handle some of them and leave
     -- the others to be handled later. Let's extend @Counter3@ with a
-    -- 'Bluefin.Stream.Stream' effect.  Whenever we ask to
+    -- 'Bluefin.Capability.Yield.Yield' effect.  Whenever we ask to
     -- increment the counter, and it is currently an even number, then
     -- we yield a message about that.  Additionally, there's a new
     -- operation @getCounter4@ which allows us to yield a message
@@ -191,14 +191,14 @@ module Bluefin.Compound
     --
     -- @
     -- data Counter4 e
-    --   = MkCounter4 ('Bluefin.Capability.Modify.Modify' Int e) ('Bluefin.Capability.Throw.Throw' () e) ('Bluefin.Stream.Stream' String e)
+    --   = MkCounter4 ('Bluefin.Capability.Modify.Modify' Int e) ('Bluefin.Capability.Throw.Throw' () e) ('Bluefin.Capability.Yield.Yield' String e)
     --
     -- incCounter4 :: (e \<: es) => Counter4 e -> Eff es ()
     -- incCounter4 (MkCounter4 st ex y) = do
     --   count <- 'Bluefin.Capability.Modify.get' st
     --
     --   when (even count) $
-    --     'Bluefin.Stream.yield' y "Count was even"
+    --     'Bluefin.Capability.Yield.yield' y "Count was even"
     --
     --   when (count >= 10) $
     --     'Bluefin.Capability.Throw.throw' ex ()
@@ -212,7 +212,7 @@ module Bluefin.Compound
     --
     -- runCounter4 ::
     --   (e1 \<: es) =>
-    --   Stream String e1 ->
+    --   Yield String e1 ->
     --   (forall e. Counter4 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter4 y k =
@@ -224,7 +224,7 @@ module Bluefin.Compound
     --
     -- @
     -- exampleCounter4 :: ([String], Int)
-    -- exampleCounter4 = 'Bluefin.Eff.runPureEff' $ 'Bluefin.Stream.yieldToList' $ \\y -> do
+    -- exampleCounter4 = 'Bluefin.Eff.runPureEff' $ 'Bluefin.Capability.Yield.yieldToList' $ \\y -> do
     --   runCounter4 y $ \\c -> do
     --     incCounter4 c
     --     incCounter4 c
@@ -272,7 +272,7 @@ module Bluefin.Compound
     --
     -- runCounter5 ::
     --   (e1 \<: es) =>
-    --   Stream String e1 ->
+    --   Yield String e1 ->
     --   (forall e. Counter5 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter5 y k =
@@ -285,7 +285,7 @@ module Bluefin.Compound
     --                 count <- 'Bluefin.Capability.Modify.get' st
     --
     --                 when (even count) $
-    --                   'Bluefin.Stream.yield' y "Count was even"
+    --                   'Bluefin.Capability.Yield.yield' y "Count was even"
     --
     --                 when (count >= 10) $
     --                   'Bluefin.Capability.Throw.throw' ex ()
@@ -303,7 +303,7 @@ module Bluefin.Compound
     --
     -- @
     -- exampleCounter5 :: ([String], Int)
-    -- exampleCounter5 = 'Bluefin.Eff.runPureEff' $ 'Bluefin.Stream.yieldToList' $ \\y -> do
+    -- exampleCounter5 = 'Bluefin.Eff.runPureEff' $ 'Bluefin.Capability.Yield.yieldToList' $ \\y -> do
     --   runCounter5 y $ \\c -> do
     --     incCounter5 c
     --     incCounter5 c
@@ -322,13 +322,13 @@ module Bluefin.Compound
     -- | We can also freely combine concrete and dynamic effects.  In
     -- the following example, the @incCounter6@ effect is left
     -- dynamic, and defined in the handler, whilst @getCounter6@ is
-    -- implemented in terms of concrete 'Bluefin.Capability.Modify.Modify' and 'Bluefin.Stream.Stream' effects.
+    -- implemented in terms of concrete 'Bluefin.Capability.Modify.Modify' and 'Bluefin.Capability.Yield.Yield' effects.
     --
     -- @
     -- data Counter6 e = MkCounter6
     --   { incCounter6Impl :: 'Bluefin.Eff.Eff' e (),
     --     counter6State :: 'Bluefin.Capability.Modify.Modify' Int e,
-    --     counter6Stream :: 'Bluefin.Stream.Stream' String e
+    --     counter6Yield :: 'Bluefin.Capability.Yield.Yield' String e
     --   }
     --   deriving (Generic)
     --   deriving (Handle) via 'OneWayCoercibleHandle' Counter6
@@ -346,7 +346,7 @@ module Bluefin.Compound
     --
     -- runCounter6 ::
     --   (e1 \<: es) =>
-    --   Stream String e1 ->
+    --   Yield String e1 ->
     --   (forall e. Counter6 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter6 y k =
@@ -359,14 +359,14 @@ module Bluefin.Compound
     --                 count <- 'Bluefin.Capability.Modify.get' st
     --
     --                 when (even count) $
-    --                   'Bluefin.Stream.yield' y "Count was even"
+    --                   'Bluefin.Capability.Yield.yield' y "Count was even"
     --
     --                 when (count >= 10) $
     --                   'Bluefin.Capability.Throw.throw' ex ()
     --
     --                 'Bluefin.Capability.Modify.put' st (count + 1),
     --               counter6State = mapHandle st,
-    --               counter6Stream = mapHandle y
+    --               counter6Yield = mapHandle y
     --             }
     --         )
     --     get st
@@ -376,7 +376,7 @@ module Bluefin.Compound
     --
     -- @
     -- exampleCounter6 :: ([String], Int)
-    -- exampleCounter6 = 'Bluefin.Eff.runPureEff' $ 'Bluefin.Stream.yieldToList' $ \\y -> do
+    -- exampleCounter6 = 'Bluefin.Eff.runPureEff' $ 'Bluefin.Capability.Yield.yieldToList' $ \\y -> do
     --   runCounter6 y $ \\c -> do
     --     incCounter6 c
     --     incCounter6 c
@@ -400,7 +400,7 @@ module Bluefin.Compound
     -- data Counter7 e = MkCounter7
     --   { incCounter7Impl :: forall e'. 'Bluefin.Capability.Throw.Throw' () e' -> 'Bluefin.Eff.Eff' (e' :& e) (),
     --     counter7State :: 'Bluefin.Capability.Modify.Modify' Int e,
-    --     counter7Stream :: 'Bluefin.Stream.Stream' String e
+    --     counter7Yield :: 'Bluefin.Capability.Yield.Yield' String e
     --   }
     --   deriving (Handle) via OneWayCoercibleHandle Counter7
     --
@@ -413,7 +413,7 @@ module Bluefin.Compound
     --     MkCounter7
     --       { incCounter7Impl = \\ex -> 'useImplUnder' (incCounter7Impl c ex),
     --         counter7State = 'mapHandle' (counter7State c),
-    --         counter7Stream = mapHandle (counter7Stream c)
+    --         counter7Yield = mapHandle (counter7Yield c)
     --       }
     --
     -- incCounter7 ::
@@ -427,7 +427,7 @@ module Bluefin.Compound
     --
     -- runCounter7 ::
     --   (e1 \<: es) =>
-    --   Stream String e1 ->
+    --   Yield String e1 ->
     --   (forall e. Counter7 e -> Eff (e :& es) r) ->
     --   Eff es Int
     -- runCounter7 y k =
@@ -440,14 +440,14 @@ module Bluefin.Compound
     --                 count \<- 'Bluefin.Capability.Modify.get' st
     --
     --                 when (even count) $
-    --                   'Bluefin.Stream.yield' y "Count was even"
+    --                   'Bluefin.Capability.Yield.yield' y "Count was even"
     --
     --                 when (count >= 10) $
     --                   'Bluefin.Capability.Throw.throw' ex ()
     --
     --                 'Bluefin.Capability.Modify.put' st (count + 1),
     --               counter7State = mapHandle st,
-    --               counter7Stream = mapHandle y
+    --               counter7Yield = mapHandle y
     --             }
     --         )
     --     get st
@@ -457,7 +457,7 @@ module Bluefin.Compound
     --
     -- @
     -- exampleCounter7A :: ([String], Int)
-    -- 'exampleCounter7A = 'Bluefin.Eff.runPureEff' $ 'Bluefin.Stream.yieldToList' $ \\y -> do
+    -- 'exampleCounter7A = 'Bluefin.Eff.runPureEff' $ 'Bluefin.Capability.Yield.yieldToList' $ \\y -> do
     --   handle (\\() -> pure (-42)) $ \\ex ->
     --     runCounter7 y $ \\c -> do
     --       incCounter7 c ex
