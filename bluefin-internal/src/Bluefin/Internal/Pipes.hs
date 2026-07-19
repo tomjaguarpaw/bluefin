@@ -14,7 +14,7 @@ import Bluefin.Internal
     returnEarly,
     useImpl,
     useImplIn,
-    withEarlyReturn,
+    withReturnEarly,
     yieldCoroutine,
     (:&),
     type (<:),
@@ -211,7 +211,7 @@ unfoldr ::
   -- | ͘
   Eff es r
 unfoldr next_ sInit p =
-  withEarlyReturn $ \break -> evalState sInit $ \ss -> forever $ do
+  withReturnEarly $ \break -> evalState sInit $ \ss -> forever $ do
     s <- get ss
     useImpl (next_ s) >>= \case
       Left r -> returnEarly break r
@@ -258,7 +258,7 @@ takeWhile' ::
   Pipe r r e ->
   -- | ͘
   Eff es r
-takeWhile' predicate p = withEarlyReturn $ \early -> forever $ do
+takeWhile' predicate p = withReturnEarly $ \early -> forever $ do
   a <- await p
   if predicate a
     then yield p a
