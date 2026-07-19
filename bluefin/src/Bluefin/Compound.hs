@@ -14,7 +14,7 @@ module Bluefin.Compound
     -- newtype Counter1 e = MkCounter1 ('Bluefin.Capability.Modify.Modify' Int e)
     --
     -- incCounter1 :: (e \<: es) => Counter1 e -> 'Bluefin.Eff.Eff' es ()
-    -- incCounter1 (MkCounter1 st) = 'Bluefin.Capability.Modify..modify' st (+ 1)
+    -- incCounter1 (MkCounter1 st) = 'Bluefin.Capability.Modify.modify' st (+ 1)
     --
     -- runCounter1 ::
     --   (forall e. Counter1 e -> Eff (e :& es) r) ->
@@ -30,7 +30,7 @@ module Bluefin.Compound
     --
     -- @
     -- exampleCounter1 :: Int
-    -- exampleCounter1 = 'Bluefin.Eff.runPureEff' $ runCounter1 $ \\c ->
+    -- exampleCounter1 = 'Bluefin.Eff.runPureEff' $ runCounter1 $ \\c -> do
     --   incCounter1 c
     --   incCounter1 c
     --   incCounter1 c
@@ -47,7 +47,7 @@ module Bluefin.Compound
     -- normal approach we use to wrap multiple values into a single
     -- value: define a new data type with multiple fields.  There's a
     -- caveat to this approach, but before we address the caveat let's
-    -- see the approach in action.  Here we define a new capabiilty,
+    -- see the approach in action.  Here we define a new capability,
     -- @Counter2@, that contains a 'Bluefin.Capability.Modify.Modify' and 'Bluefin.Capability.Throw.Throw' capability
     -- within it.  That allows us to increment the counter and throw
     -- an exception when we hit a limit.
@@ -57,7 +57,7 @@ module Bluefin.Compound
     --
     -- incCounter2 :: (e1 \<: es, e2 \<: es) => Counter2 e1 e2 -> 'Bluefin.Eff.Eff' es ()
     -- incCounter2 (MkCounter2 st ex) = do
-    --   count <- 'Bluefin.Capabiilty.Modify.get' st
+    --   count <- 'Bluefin.Capability.Modify.get' st
     --   when (count >= 10) $
     --     'Bluefin.Capability.Throw.throw' ex ()
     --   'Bluefin.Capability.Modify.put' st (count + 1)
@@ -72,7 +72,7 @@ module Bluefin.Compound
     --     'Bluefin.Capability.Modify.get' st
     -- @
     --
-    -- We can see that attempting to increment the counter fovever
+    -- We can see that attempting to increment the counter forever
     -- bails out when we reach the limit.
     --
     -- @
@@ -97,7 +97,7 @@ module Bluefin.Compound
     -- expose a single one.  To make this work we have to define our
     -- handler in a slightly different way.  Firstly we apply
     -- 'useImplIn' to the effectful operation @k@ and secondly we
-    -- apply 'mapHandle' to each of the capabiilties out of which we create
+    -- apply 'mapHandle' to each of the capabilities out of which we create
     -- our compound capability.  Everything else remains the same.
     --
     -- @
@@ -249,7 +249,7 @@ module Bluefin.Compound
     -- define the record in the handler.  Here @incCounter5Impl@ and
     -- @getCounter5Impl@ are exactly the same as @incCounter4@ and
     -- @getCounter4@ were, they're just defined in the handler.  In
-    -- order to be used polymorphically, the actually effectful
+    -- order to be used polymorphically, the actual effectful
     -- functions we call, @incCounter5@ and @getCounter5@ are derived
     -- from the record fields.
     --
@@ -309,7 +309,7 @@ module Bluefin.Compound
     --     incCounter5 c
     --     n <- getCounter5 c "I'm getting the counter"
     --     when (n == 2) $
-    --       pyield y "n was 2, as expected"
+    --       yield y "n was 2, as expected"
     -- @
     --
     -- @
@@ -327,7 +327,7 @@ module Bluefin.Compound
     -- @
     -- data Counter6 e = MkCounter6
     --   { incCounter6Impl :: 'Bluefin.Eff.Eff' e (),
-    --     counter6State :: 'Bluefin.Capability.Modify.Modify' Int e,
+    --     counter6Modify :: 'Bluefin.Capability.Modify.Modify' Int e,
     --     counter6Yield :: 'Bluefin.Capability.Yield.Yield' String e
     --   }
     --   deriving (Generic)
@@ -365,7 +365,7 @@ module Bluefin.Compound
     --                   'Bluefin.Capability.Throw.throw' ex ()
     --
     --                 'Bluefin.Capability.Modify.put' st (count + 1),
-    --               counter6State = mapHandle st,
+    --               counter6Modify = mapHandle st,
     --               counter6Yield = mapHandle y
     --             }
     --         )
@@ -399,7 +399,7 @@ module Bluefin.Compound
     -- @
     -- data Counter7 e = MkCounter7
     --   { incCounter7Impl :: forall e'. 'Bluefin.Capability.Throw.Throw' () e' -> 'Bluefin.Eff.Eff' (e' :& e) (),
-    --     counter7State :: 'Bluefin.Capability.Modify.Modify' Int e,
+    --     counter7Modify :: 'Bluefin.Capability.Modify.Modify' Int e,
     --     counter7Yield :: 'Bluefin.Capability.Yield.Yield' String e
     --   }
     --   deriving (Handle) via OneWayCoercibleHandle Counter7
@@ -412,7 +412,7 @@ module Bluefin.Compound
     --   oneWayCoercibleImpl = oneWayCoercibleTrustMe $ \\c ->
     --     MkCounter7
     --       { incCounter7Impl = \\ex -> 'useImplUnder' (incCounter7Impl c ex),
-    --         counter7State = 'mapHandle' (counter7State c),
+    --         counter7Modify = 'mapHandle' (counter7Modify c),
     --         counter7Yield = mapHandle (counter7Yield c)
     --       }
     --
@@ -446,7 +446,7 @@ module Bluefin.Compound
     --                   'Bluefin.Capability.Throw.throw' ex ()
     --
     --                 'Bluefin.Capability.Modify.put' st (count + 1),
-    --               counter7State = mapHandle st,
+    --               counter7Modify = mapHandle st,
     --               counter7Yield = mapHandle y
     --             }
     --         )
@@ -457,7 +457,7 @@ module Bluefin.Compound
     --
     -- @
     -- exampleCounter7A :: ([String], Int)
-    -- 'exampleCounter7A = 'Bluefin.Eff.runPureEff' $ 'Bluefin.Capability.Yield.yieldToList' $ \\y -> do
+    -- exampleCounter7A = 'Bluefin.Eff.runPureEff' $ 'Bluefin.Capability.Yield.yieldToList' $ \\y -> do
     --   handle (\\() -> pure (-42)) $ \\ex ->
     --     runCounter7 y $ \\c -> do
     --       incCounter7 c ex
@@ -517,7 +517,7 @@ module Bluefin.Compound
     --   (e \<: es) =>
     --   DynamicReader r e ->
     --   Eff es r
-    -- askLR c = 'makeOp' (askLRImpl ('mapHandle' c))
+    -- askLR c = askLRImpl ('mapHandle' c)
     --
     -- localLR ::
     --   (e \<: es) =>
@@ -537,7 +537,7 @@ module Bluefin.Compound
     --       k
     --       DynamicReader
     --         { askLRImpl = 'Bluefin.Reader.ask' h,
-    --           localLRImpl = \\f k' -> makeOp ('Bluefin.Reader.local' h f ('useImpl' k'))
+    --           localLRImpl = \\f k' -> 'Bluefin.Reader.local' h f ('useImpl' k')
     --         }
     -- @
 
