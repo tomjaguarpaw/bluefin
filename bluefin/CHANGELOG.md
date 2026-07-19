@@ -1,4 +1,10 @@
-* Restrict Reader type tag to Effects
+# 0.7.0.1
+
+* Update `Bluefin.Compound` documentation
+
+* Restrict Reader type tag to Effects.  This is technically a breaking
+  change, but it is extremely unlikely any consumers will be broken by
+  it.
 
 # 0.7.0.0
 

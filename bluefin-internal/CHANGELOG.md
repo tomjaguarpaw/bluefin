@@ -1,4 +1,9 @@
+# 0.8.0.0
+
 * Restrict `Reader` type tag to `Effects`
+
+* Move most of `Bluefin.Internal.Examples`, `zipCoroutines` and
+  `mapStream` to `Bluefin.Examples`
 
 # 0.7.0.0
 
