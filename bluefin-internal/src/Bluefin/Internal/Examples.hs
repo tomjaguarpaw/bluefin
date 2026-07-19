@@ -467,9 +467,9 @@ while :: Eff es Bool -> Eff es a -> Eff es ()
 while condM body =
   withJump $ \break_ -> do
     forever $ do
-      cond <- insertFirst condM
+      cond <- useImpl condM
       unless cond (jumpTo break_)
-      insertFirst body
+      useImpl body
 
 stateSourceExample :: Int
 stateSourceExample = runPureEff $ withStateSource $ \source -> do
