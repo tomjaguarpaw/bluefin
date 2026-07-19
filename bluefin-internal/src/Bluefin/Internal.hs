@@ -217,24 +217,6 @@ streamConsume ::
   Eff es r
 streamConsume s c = consumeStream c s
 
-zipCoroutines ::
-  (e1 <: es) =>
-  Coroutine (a1, a2) b e1 ->
-  (forall e. Coroutine a1 b e -> Eff (e :& es) r) ->
-  (forall e. Coroutine a2 b e -> Eff (e :& es) r) ->
-  -- | ͘
-  Eff es r
-zipCoroutines c m1 m2 = do
-  connectCoroutines m1 $ \a1 c1 -> do
-    connectCoroutines (useImplUnder . m2) $ \a2 c2 -> do
-      evalState (a1, a2) $ \ass -> do
-        forever $ do
-          as <- get ass
-          b' <- yieldCoroutine c as
-          a1' <- yieldCoroutine c1 b'
-          a2' <- yieldCoroutine c2 b'
-          put ass (a1', a2')
-
 instance (e <: es) => MonadBase IO (EffReader (IOE e) es) where
   liftBase = liftIO
 
@@ -1363,16 +1345,6 @@ yieldToReverseList f = do
       modify s (i :)
     as <- get s
     pure (as, r)
-
-mapStream ::
-  (e2 <: es) =>
-  -- | Apply this function to all elements of the input stream.
-  (a -> b) ->
-  -- | Input stream
-  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
-  Stream b e2 ->
-  Eff es r
-mapStream f = mapMaybe (Just . f)
 
 mapMaybe ::
   (e2 <: es) =>
