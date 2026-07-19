@@ -81,14 +81,14 @@ withYieldToListExample = runPureEff $ withYieldToList @Int $ \y -> do
   pure length
 
 -- This shows we can use forEach at any level of nesting with
--- insertManySecond
+-- useImplUnder
 doubleNestedForEach ::
   (forall e. Yield () e -> Eff (e :& es) ()) ->
   Eff es ()
 doubleNestedForEach f =
   withModify () $ \_ -> do
     withModify () $ \_ -> do
-      forEach (insertManySecond . f) (\_ -> pure ())
+      forEach (useImplUnder . f) (\_ -> pure ())
       pure (\_ _ -> ())
 
 forEachExample :: ([Int], ())
