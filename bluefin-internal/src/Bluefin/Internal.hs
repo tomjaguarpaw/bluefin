@@ -282,7 +282,7 @@ unsafeCoerceEff :: Eff t r -> Eff t' r
 unsafeCoerceEff = coerce
 
 weakenEff :: t `In` t' -> Eff t r -> Eff t' r
-weakenEff _ = unsafeCoerceEff
+weakenEff (In# (# #)) = unsafeCoerceEff
 
 insertFirst :: Eff b r -> Eff (c1 :& b) r
 insertFirst = weakenEff (drop (eq ZW))
