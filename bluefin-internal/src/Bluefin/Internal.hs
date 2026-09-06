@@ -40,7 +40,7 @@ import Control.Monad.Trans.Reader (ReaderT)
 import Control.Monad.Trans.Reader qualified as Reader
 import Data.Coerce (Coercible, coerce)
 import Data.Foldable (for_)
-import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
+import Data.IORef (IORef, modifyIORef', newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
 import Data.Proxy (Proxy (Proxy))
 import Data.Type.Coercion (Coercion (Coercion))
@@ -1639,7 +1639,7 @@ runReader ::
 runReader r f = do
   k <- UnsafeMkEff $ \vault -> do
     k <- Vault.newKey
-    modifyIORef vault (\v -> Vault.insert k r v)
+    modifyIORef' vault (\v -> Vault.insert k r v)
     pure k
   makeOp (f (MkReader k))
 
