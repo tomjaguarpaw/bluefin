@@ -18,12 +18,12 @@ import Bluefin.Internal.OneWayCoercible
     OneWayCoercibleD,
     OneWayCoercion,
     gOneWayCoercible,
-    oneWayCoerce,
     oneWayCoercible,
     oneWayCoercion,
     trans3D,
     unsafeCoercionOfOneWayCoercion,
     unsafeOneWayCoercible,
+    unsafeOneWayCoerce,
   )
 import Bluefin.Internal.Vault (Vault)
 import Bluefin.Internal.Vault qualified as Vault
@@ -447,7 +447,7 @@ class
 --   oneWayCoercibleImpl = 'oneWayCoercibleTrustMe' $ \\h -> \<mapHandle definition\>
 -- @
 mapHandle :: forall h e es. (Handle h, e <: es) => h e -> h es
-mapHandle = case handleDictImpl @h of MkHandleDict -> oneWayCoerce
+mapHandle = unsafeOneWayCoerce
 
 withHandle ::
   forall h r.
