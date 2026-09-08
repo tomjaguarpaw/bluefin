@@ -10,6 +10,7 @@ import Bluefin.Internal.OneWayCoercible
     oneWayCoercible,
     oneWayCoercibleImpl,
   )
+import GHC.Base (oneShot)
 
 newtype DslBuilderEff h es r
   = MkDslBuilderEff {unMkDslBuilderEff :: forall e. h e -> Eff (e :& es) r}
@@ -33,7 +34,7 @@ dslBuilderEff ::
   -- | ͘
   DslBuilderEff h es r
 dslBuilderEff f = MkDslBuilderEff $ \h -> case f h of
-  UnsafeMkEff g -> UnsafeMkEff g
+  UnsafeMkEff g -> UnsafeMkEff (oneShot g)
 
 instance
   (e <: es) =>
