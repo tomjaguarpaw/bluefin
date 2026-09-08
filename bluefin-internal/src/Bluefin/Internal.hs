@@ -1711,8 +1711,7 @@ mapHandleReader ::
 mapHandleReader = case coerceH of Coercion -> coerce
   where
     oneWayCoerceH :: OneWayCoercion (h e) (h es)
-    oneWayCoerceH = case handleDictOfHandleD (handleImpl @h) of
-      MkHandleDict -> oneWayCoercion
+    oneWayCoerceH = withHandle @h oneWayCoercion
 
     coerceH :: Coercion (h e) (h es)
     coerceH = unsafeCoercionOfOneWayCoercion oneWayCoerceH
