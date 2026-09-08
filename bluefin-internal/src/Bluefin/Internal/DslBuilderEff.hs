@@ -32,7 +32,8 @@ dslBuilderEff ::
   (forall e. h e -> Eff (e :& es) r) ->
   -- | ͘
   DslBuilderEff h es r
-dslBuilderEff f = MkDslBuilderEff $ \h -> f h
+dslBuilderEff f = MkDslBuilderEff $ \h -> case f h of
+  r -> r
 
 instance
   (e <: es) =>
