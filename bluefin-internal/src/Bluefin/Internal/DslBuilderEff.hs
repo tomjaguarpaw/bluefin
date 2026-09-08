@@ -33,7 +33,7 @@ dslBuilderEff ::
   -- | ͘
   DslBuilderEff h es r
 dslBuilderEff f = MkDslBuilderEff $ \h -> case f h of
-  r -> r
+  UnsafeMkEff g -> UnsafeMkEff g
 
 instance
   (e <: es) =>
