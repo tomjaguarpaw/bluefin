@@ -36,7 +36,8 @@ dslBuilderEff ::
   DslBuilderEff h es r
 dslBuilderEff f = MkDslBuilderEff $ \h -> case f h of
   UnsafeMkEff g -> UnsafeMkEff $ oneShot $ \env -> case g env of
-    IO io -> IO io
+    -- Expose IO's state transformer so it too can be marked one-shot
+    IO io -> IO (oneShot io)
 
 instance
   (e <: es) =>
