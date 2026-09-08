@@ -1753,8 +1753,7 @@ runHandleReader ::
 runHandleReader h k = do
   runReader (mapHandle h) $ \(st :: Reader (h es) e) -> do
     let oneWayCoerceH :: OneWayCoercion (h es) (h (e :& es))
-        oneWayCoerceH = case handleDictOfHandleD (handleImpl @h) of
-          MkHandleDict -> oneWayCoercion
+        oneWayCoerceH = withHandle @h oneWayCoercion
 
     let coerceH :: Coercion (h es) (h (e :& es))
         coerceH = unsafeCoercionOfOneWayCoercion oneWayCoerceH
