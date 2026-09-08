@@ -517,11 +517,11 @@ handleOneWayCoercible ::
 -- https://mailman.haskell.org/archives/list/ghc-devs@haskell.org/thread/A4AJPPA3WSORHKCMFWAFX26XNQQVYT5R/
 handleOneWayCoercible = MkHandleD (unsafeCoerce (MkHandleDict @h))
 
-instance (Handle h) => Handle (Rec1 h) where
+instance (Handle h) => Handle (Rec1 h)
 
-instance (Handle h) => Handle (M1 i t h) where
+instance (Handle h) => Handle (M1 i t h)
 
-instance (Handle h1, Handle h2) => Handle (h1 :*: h2) where
+instance (Handle h1, Handle h2) => Handle (h1 :*: h2)
 
 -- | It is not always possible to derive an instance of
 -- 'OneWayCoercible'.  In such cases write a definition of
