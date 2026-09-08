@@ -34,7 +34,7 @@ dslBuilderEff ::
   -- | ͘
   DslBuilderEff h es r
 dslBuilderEff f = MkDslBuilderEff $ \h -> case f h of
-  UnsafeMkEff g -> UnsafeMkEff $ oneShot $ g
+  UnsafeMkEff g -> UnsafeMkEff $ oneShot $ \env -> g env
 
 instance
   (e <: es) =>
