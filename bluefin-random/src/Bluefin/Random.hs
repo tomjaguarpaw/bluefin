@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Bluefin.Random
@@ -24,6 +25,7 @@ where
 import Bluefin.Compound
   ( Handle,
     OneWayCoercible (oneWayCoercibleImpl),
+    OneWayCoercibleHandle (MkOneWayCoercibleHandle),
     oneWayCoercibleNewtypeHandle,
   )
 import Bluefin.Eff (Eff, Effects, (:&), type (<:))
@@ -145,7 +147,7 @@ import System.Random.Stateful qualified as Rnd
 -- You will most likely never need to use @RandomPure@ directly.
 
 newtype Random g e = Random (State g e)
-  deriving newtype (Handle)
+  deriving (Handle) via OneWayCoercibleHandle (Random g)
 
 instance (e <: es) => OneWayCoercible (Random g e) (Random g es) where
   oneWayCoercibleImpl = oneWayCoercibleNewtypeHandle @(State g)
