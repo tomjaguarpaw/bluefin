@@ -1,6 +1,6 @@
 # 0.8.1.0
 
-* Add `trans3D`
+* Add `trans3D`, `oneWayCoercibleNewtypeHandle`
 
 # 0.8.0.0
 

@@ -21,6 +21,7 @@ import Bluefin.Internal.OneWayCoercible
     oneWayCoerce,
     oneWayCoercible,
     oneWayCoercion,
+    trans3D,
     unsafeCoercionOfOneWayCoercion,
     unsafeOneWayCoercible,
   )
@@ -48,6 +49,7 @@ import GHC.Generics (Generic, M1, Rec1, (:*:))
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
+import Data.Coerce (Coercible)
 
 -- | Each inhabitant of @Effects@ is a set of effect tags, used for
 -- effect tracking to ensure that effects don't escape the scope of
@@ -578,6 +580,20 @@ instance
   oneWayCoercibleImpl = gOneWayCoercible
 
 -- }
+
+oneWayCoercibleNewtypeHandle ::
+  forall h1 h2 e es.
+  (e :> es) =>
+  ( Coercible (h2 e) (h1 e),
+    OneWayCoercible (h1 e) (h1 es),
+    Coercible (h1 es) (h2 es)
+  ) =>
+  OneWayCoercibleD (h2 e) (h2 es)
+oneWayCoercibleNewtypeHandle =
+  trans3D
+    (oneWayCoercible @(h2 e) @(h1 e))
+    (oneWayCoercibleImpl @(h1 e) @(h1 es))
+    (oneWayCoercible @(h1 es) @(h2 es))
 
 -- | A convenience type whose only purpose is to avoid writing @(# #)@
 -- as an argument to functions which are only functions because
