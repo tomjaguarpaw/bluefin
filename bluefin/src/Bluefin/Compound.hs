@@ -677,7 +677,6 @@ module Bluefin.Compound
     OneWayCoercible.OneWayCoercible (OneWayCoercible.oneWayCoercibleImpl),
     OneWayCoercibleHandle (MkOneWayCoercibleHandle),
     handleOneWayCoercible,
-    withHandle,
     OneWayCoercible.gOneWayCoercible,
     oneWayCoercibleTrustMe,
     oneWayCoercibleNewtypeHandle,
@@ -697,6 +696,7 @@ module Bluefin.Compound
     runCompound,
     withCompound,
     useImplWithin,
+    withHandle,
   )
 where
 
