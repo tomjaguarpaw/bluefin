@@ -5,17 +5,21 @@
 module Test.RunPureEff where
 
 import Bluefin.Internal
-import Control.Concurrent (threadDelay, throwTo)
+import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
+import Control.Concurrent (throwTo)
 import Control.Concurrent.Async (asyncThreadId, waitCatch, withAsync)
 import Control.Exception (AsyncException (ThreadKilled), SomeException, evaluate)
 import Control.Exception qualified as Exception
 import Data.Foldable (for_)
+import System.IO.Unsafe (unsafePerformIO)
 import Test.SpecH (SpecH, assertEqual)
 
 test_runPureEffAsyncSafeSurvivesInterruptedBracket ::
   (forall r. (forall e. Eff e r) -> r) ->
   IO InterruptedBracketResult
 test_runPureEffAsyncSafeSurvivesInterruptedBracket run = do
+  started <- newEmptyMVar
+  continue <- newEmptyMVar
   let iterations :: Int
       iterations = 10_000_000
       result = run $
@@ -23,13 +27,16 @@ test_runPureEffAsyncSafeSurvivesInterruptedBracket run = do
           (pure ())
           (\() -> pure ())
           ( \() ->
-              evalState (0 :: Int) $ \state -> do
-                for_ [1 .. iterations] $ \_ -> modify state (+ 1)
-                get state
+              unsafePerformIO (putMVar started () >> takeMVar continue) `seq`
+                evalState (0 :: Int) (\state -> do
+                  for_ [1 .. iterations] $ \_ -> modify state (+ 1)
+                  get state
+                )
           )
   interrupted <- withAsync (result `seq` pure ()) $ \worker -> do
-    threadDelay 20_000
+    takeMVar started
     throwTo (asyncThreadId worker) ThreadKilled
+    putMVar continue ()
     waitCatch worker
   case interrupted of
     Left e
