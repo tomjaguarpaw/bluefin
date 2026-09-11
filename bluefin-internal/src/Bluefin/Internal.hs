@@ -44,7 +44,7 @@ import Data.IORef (IORef, modifyIORef', newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
 import Data.Proxy (Proxy (Proxy))
 import Data.Type.Coercion (Coercion (Coercion))
-import GHC.Exts (Any, Proxy#, proxy#)
+import GHC.Exts (Proxy#, proxy#)
 import GHC.Generics (Generic, M1, Rec1, (:*:))
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
@@ -415,9 +415,6 @@ type Consume a = Coroutine () a
 class
   (forall e es. (e <: es) => OneWayCoercible (h e) (h es)) =>
   Handle (h :: Effects -> Type)
-  where
-  handleImpl :: HandleD h
-  handleImpl = handleOneWayCoercible
 
 -- | This was previously a method of class 'Handle' using which you
 -- could define @Handle@ instances. Now, you should define
@@ -457,65 +454,6 @@ withHandle ::
   ((forall e es. (e <: es) => OneWayCoercible (h e) (h es)) => r) ->
   r
 withHandle r = r
-
-type HandleDict :: (Effects -> Type) -> Type
-data HandleDict h where
-  MkHandleDict ::
-    (forall e es. (e <: es) => OneWayCoercible (h e) (h es)) =>
-    HandleDict h
-
-type role HandleDict nominal
-
--- The essential properties of HandleD h are
---
--- (defining Handle' h =
---    forall e es. (e <: es) => OneWayCoercible (h e) (h es))
---
--- 1. It can be created by having Handle' h in scope
---
--- 2. Having it can put Handle' h into scope
---
--- 3. There is an instance
---
---      Coercible h1 h2 => Coercible (Handle' h1) (Handle' h2)
---
--- 1 is used by handleOneWayCoercible
---
--- 2 is used by withHandle
---
--- 3 is used by deriving via of OneWayCoercibleHandle
---
--- The only way I have worked out how to satisfy all three properties
--- is to have `HandleD h` not depend on `h`, instead have `Any` in
--- place of where we would use `h`.  That way we can get property 3
--- (which requires cooperation with GHC) and achieve properties 1 and
--- 2 by unsafeCoerce.
-
--- | The type of the 'handleImpl' method of the 'Handle' class.
--- Create a @HandleD@ using deriving via of 'OneWayCoercibleHandle'.
-type HandleD :: (Effects -> Type) -> Type
-newtype HandleD h = MkHandleD (HandleDict Any)
-
-handleDictOfHandleD :: HandleD h -> HandleDict h
--- SPJ suggests this might be safe on ghc-devs
---
--- https://mailman.haskell.org/archives/list/ghc-devs@haskell.org/thread/A4AJPPA3WSORHKCMFWAFX26XNQQVYT5R/
-handleDictOfHandleD (MkHandleD f) = unsafeCoerce f
-
-handleDictImpl :: (Handle h) => HandleDict h
-handleDictImpl = handleDictOfHandleD handleImpl
-
-type role HandleD representational
-
-handleOneWayCoercible ::
-  forall h.
-  (forall e es. (e <: es) => OneWayCoercible (h e) (h es)) =>
-  -- | ͘
-  HandleD h
--- SPJ suggests this might be safe on ghc-devs
---
--- https://mailman.haskell.org/archives/list/ghc-devs@haskell.org/thread/A4AJPPA3WSORHKCMFWAFX26XNQQVYT5R/
-handleOneWayCoercible = MkHandleD (unsafeCoerce (MkHandleDict @h))
 
 instance (Handle h) => Handle (Rec1 h)
 
@@ -570,7 +508,6 @@ instance
   forall h.
   (forall e' es'. (e' <: es') => OneWayCoercible (OneWayCoercibleHandle h e') (OneWayCoercibleHandle h es')) =>
   Handle (OneWayCoercibleHandle h)
-  where
 
 instance
   (OneWayCoercible (h e) (h es)) =>
