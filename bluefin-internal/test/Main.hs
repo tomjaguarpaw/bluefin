@@ -7,6 +7,10 @@ import Bluefin.Internal
 import Control.Monad (forever, when)
 import Data.Foldable (for_)
 import Test.GeneralBracket (test_generalBracket)
+import Test.RunPureEff
+  ( InterruptedBracketResult (..),
+    assertInterruptedBracketOutcome,
+  )
 import Test.SpecH (SpecH, assertEqual, runSpecH)
 import Prelude hiding (break, read)
 
@@ -14,6 +18,19 @@ main :: IO ()
 main = runEff $ \io -> do
   runSpecH io $ \y -> do
     let assertEqual' = assertEqual y
+
+    assertInterruptedBracketOutcome
+      io
+      y
+      "runPureEff retains bracket's rethrown exception"
+      ThunkPoisoned
+      runPureEff
+    assertInterruptedBracketOutcome
+      io
+      y
+      "runPureEffAsyncSafe survives an interrupted bracket"
+      ThunkClean
+      runPureEffAsyncSafe
 
     assertEqual' "oddsUntilFirstGreaterThan5" oddsUntilFirstGreaterThan5 [1, 3, 5, 7]
     assertEqual' "index 1" ([0, 1, 2, 3] !? 2) (Just 2)

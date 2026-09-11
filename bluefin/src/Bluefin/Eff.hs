@@ -6,6 +6,7 @@ module Bluefin.Eff
 
     -- * Run an 'Eff'
     runPureEff,
+    runPureEffAsyncSafe,
     runEff,
 
     -- * Resource management

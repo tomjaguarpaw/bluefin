@@ -108,7 +108,9 @@ test-suite bluefin-test
     hs-source-dirs:   test
     main-is:          Main.hs
     other-modules:    Test.GeneralBracket,
+                      Test.RunPureEff,
                       Test.SpecH
     build-depends:
         base,
+        async,
         bluefin-internal

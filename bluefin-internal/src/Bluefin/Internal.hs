@@ -26,8 +26,9 @@ import Bluefin.Internal.OneWayCoercible
   )
 import Bluefin.Internal.Vault (Vault)
 import Bluefin.Internal.Vault qualified as Vault
+import Control.Concurrent (forkIOWithUnmask)
 import Control.Concurrent.Async qualified as Async
-import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
+import Control.Concurrent.MVar (newEmptyMVar, putMVar, readMVar, takeMVar)
 import Control.Exception qualified
 import Control.Monad (forever)
 import Control.Monad.Base (MonadBase (liftBase))
@@ -277,6 +278,23 @@ withMonadFail f m = unEffReader m f
 -- | Run an 'Eff' that doesn't contain any unhandled effects.
 runPureEff :: (forall es. Eff es a) -> a
 runPureEff e = unsafePerformIO (runEff (\_ -> e))
+
+-- | Run an 'Eff' that doesn't contain any unhandled effects. The computation
+-- runs in a dedicated thread, so an asynchronous exception received by a
+-- thread demanding the result does not interrupt the computation itself; an
+-- exception delivered to the worker is rethrown and can poison the thunk.
+-- If all forcing threads abandon it, the worker still runs to completion,
+-- unnecessarily consuming resources.
+-- The proper fix is an asynchronous-exception-transparent 'bracket'.
+runPureEffAsyncSafe :: (forall es. Eff es a) -> a
+runPureEffAsyncSafe e = unsafePerformIO $ do
+  result <- newEmptyMVar
+  _ <- Control.Exception.mask_ $ forkIOWithUnmask $ \unmask -> do
+    r <- Control.Exception.try @Control.Exception.SomeException . unmask $
+      runEff (\_ -> e)
+    putMVar result r
+  r <- readMVar result
+  either Control.Exception.throwIO pure r
 
 unsafeCoerceEff :: Eff t r -> Eff t' r
 unsafeCoerceEff = coerce
