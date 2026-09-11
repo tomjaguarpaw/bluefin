@@ -666,7 +666,8 @@ module Bluefin.Compound
     -- * Functions for making compound effects
 
     -- ** @Handle@
-    Handle,
+    Handle (handleImpl),
+    HandleD,
     mapHandle,
 
     -- ** @OneWayCoercible@
@@ -695,6 +696,7 @@ module Bluefin.Compound
     withCompound,
     useImplWithin,
     withHandle,
+    handleOneWayCoercible,
   )
 where
 

@@ -8,6 +8,7 @@ import Bluefin.Internal
   ( Eff,
     Effects,
     Handle,
+    HandleD (MkHandleD),
     OneWayCoercibleHandle,
     effIO,
     makeOp,
