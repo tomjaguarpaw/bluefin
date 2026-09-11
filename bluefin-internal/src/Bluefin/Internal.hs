@@ -412,7 +412,9 @@ type Consume a = Coroutine () a
 --
 -- Please note the "handle" nomeclature is legacy and will probably
 -- change to "capability" in the future.  See "Bluefin.Capability".
-class Handle (h :: Effects -> Type) where
+class
+  Handle (h :: Effects -> Type)
+  where
   handleImpl :: HandleD h
 
 -- | This was previously a method of class 'Handle' using which you
