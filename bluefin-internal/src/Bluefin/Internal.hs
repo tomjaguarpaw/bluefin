@@ -455,7 +455,7 @@ withHandle ::
   -- | ͘
   ((forall e es. (e <: es) => OneWayCoercible (h e) (h es)) => r) ->
   r
-withHandle r = case handleDictImpl @h of MkHandleDict -> r
+withHandle r = r
 
 type HandleDict :: (Effects -> Type) -> Type
 data HandleDict h where
