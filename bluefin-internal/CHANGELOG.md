@@ -1,3 +1,7 @@
+# 0.8.1.0
+
+* Add `trans3D`
+
 # 0.8.0.0
 
 * Restrict `Reader` type tag to `Effects`

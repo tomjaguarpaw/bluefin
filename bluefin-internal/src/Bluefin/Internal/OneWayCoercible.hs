@@ -96,6 +96,18 @@ trans c1 c2 = case unsafeCoercionOfOneWayCoercion c1 of
   Coercion -> case unsafeCoercionOfOneWayCoercion c2 of
     Coercion -> MkOneWayCoercion Coercion
 
+trans3D ::
+  forall t1 t2 t3 t4.
+  OneWayCoercibleD t1 t2 ->
+  OneWayCoercibleD t2 t3 ->
+  OneWayCoercibleD t3 t4 ->
+  OneWayCoercibleD t1 t4
+trans3D
+  (MkOneWayCoercibleD t1t2)
+  (MkOneWayCoercibleD t2t3)
+  (MkOneWayCoercibleD t3t4) =
+    MkOneWayCoercibleD ((t1t2 `trans` t2t3) `trans` t3t4)
+
 class GOneWayCoercible a b
 
 instance GOneWayCoercible U1 U1
