@@ -38,7 +38,7 @@ import Control.Monad.IO.Unlift (MonadUnliftIO, withRunInIO)
 import Control.Monad.Trans.Control (MonadBaseControl, StM, liftBaseWith, restoreM)
 import Control.Monad.Trans.Reader (ReaderT)
 import Control.Monad.Trans.Reader qualified as Reader
-import Data.Coerce (coerce)
+import Data.Coerce (Coercible, coerce)
 import Data.Foldable (for_)
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
@@ -49,7 +49,6 @@ import GHC.Generics (Generic, M1, Rec1, (:*:))
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
-import Data.Coerce (Coercible)
 
 -- | Each inhabitant of @Effects@ is a set of effect tags, used for
 -- effect tracking to ensure that effects don't escape the scope of
@@ -1624,7 +1623,6 @@ tell ::
 tell (Writer y) = yield y
 
 type Reader :: Type -> Effects -> Type
-
 newtype Reader r e = MkReader (Vault.Key r)
   deriving (Handle) via OneWayCoercibleHandle (Reader r)
 
