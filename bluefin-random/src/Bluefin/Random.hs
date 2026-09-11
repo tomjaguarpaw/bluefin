@@ -23,6 +23,8 @@ where
 
 import Bluefin.Compound
   ( Handle,
+    OneWayCoercible (oneWayCoercibleImpl),
+    oneWayCoercibleNewtypeHandle,
   )
 import Bluefin.Eff (Eff, Effects, (:&), type (<:))
 import Bluefin.IO (IOE, effIO)
@@ -144,6 +146,9 @@ import System.Random.Stateful qualified as Rnd
 
 newtype Random g e = Random (State g e)
   deriving newtype (Handle)
+
+instance (e <: es) => OneWayCoercible (Random g e) (Random g es) where
+  oneWayCoercibleImpl = oneWayCoercibleNewtypeHandle @(State g)
 
 newtype RandomPure g (e :: Effects) = RandomPure g
   deriving newtype (Rnd.RandomGen)
