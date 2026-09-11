@@ -413,6 +413,7 @@ type Consume a = Coroutine () a
 -- Please note the "handle" nomeclature is legacy and will probably
 -- change to "capability" in the future.  See "Bluefin.Capability".
 class
+  (forall e es. (e <: es) => OneWayCoercible (h e) (h es)) =>
   Handle (h :: Effects -> Type)
   where
   handleImpl :: HandleD h
