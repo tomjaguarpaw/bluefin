@@ -51,7 +51,6 @@ newtype HandleCloner h1 h2 es
       )
 
 instance (Handle h1, Handle h2) => Handle (HandleCloner h1 h2) where
-  handleImpl = handleOneWayCoercible
 
 instance
   (Handle h1, Handle h2) =>
@@ -139,7 +138,6 @@ instance
 newtype (h1 :~> h2) es = MkArrow (forall e. h1 e -> h2 (e :& es))
 
 instance (Handle h1, Handle h2) => Handle (h1 :~> h2) where
-  handleImpl = handleOneWayCoercible
 
 instance
   (Handle h1, Handle h2, e <: es) =>

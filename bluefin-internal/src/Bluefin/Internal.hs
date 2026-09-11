@@ -417,6 +417,7 @@ class
   Handle (h :: Effects -> Type)
   where
   handleImpl :: HandleD h
+  handleImpl = handleOneWayCoercible
 
 -- | This was previously a method of class 'Handle' using which you
 -- could define @Handle@ instances. Now, you should define
@@ -517,13 +518,10 @@ handleOneWayCoercible ::
 handleOneWayCoercible = MkHandleD (unsafeCoerce (MkHandleDict @h))
 
 instance (Handle h) => Handle (Rec1 h) where
-  handleImpl = handleOneWayCoercible
 
 instance (Handle h) => Handle (M1 i t h) where
-  handleImpl = handleOneWayCoercible
 
 instance (Handle h1, Handle h2) => Handle (h1 :*: h2) where
-  handleImpl = handleOneWayCoercible
 
 -- | It is not always possible to derive an instance of
 -- 'OneWayCoercible'.  In such cases write a definition of
@@ -573,7 +571,6 @@ instance
   (forall e' es'. (e' <: es') => OneWayCoercible (OneWayCoercibleHandle h e') (OneWayCoercibleHandle h es')) =>
   Handle (OneWayCoercibleHandle h)
   where
-  handleImpl = handleOneWayCoercible
 
 instance
   (OneWayCoercible (h e) (h es)) =>
