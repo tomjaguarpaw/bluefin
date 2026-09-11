@@ -26,7 +26,7 @@ import Bluefin.Internal.OneWayCoercible
   )
 import Bluefin.Internal.Vault (Vault)
 import Bluefin.Internal.Vault qualified as Vault
-import Control.Concurrent (forkIOWithUnmask)
+import Control.Concurrent (forkIOWithUnmask, killThread, myThreadId)
 import Control.Concurrent.Async qualified as Async
 import Control.Concurrent.MVar (newEmptyMVar, putMVar, readMVar, takeMVar)
 import Control.Exception qualified
@@ -44,9 +44,11 @@ import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
 import Data.Proxy (Proxy (Proxy))
 import Data.Type.Coercion (Coercion (Coercion))
-import GHC.Exts (Any, Proxy#, proxy#)
+import GHC.Exts (Any, Proxy#, keepAlive#, proxy#)
 import GHC.Generics (Generic, M1, Rec1, (:*:))
+import GHC.IO (IO (..))
 import System.IO.Unsafe (unsafePerformIO)
+import System.Mem.Weak (addFinalizer)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
 
@@ -63,6 +65,9 @@ infixr 9 :&
 type (:&) = Union
 
 type Env = IORef Vault
+
+keepAlive :: a -> IO b -> IO b
+keepAlive a (IO action) = IO $ \s -> keepAlive# a s action
 
 newtype Eff (es :: Effects) a = UnsafeMkEff {unsafeUnEff :: Env -> IO a}
   deriving stock (Functor)
@@ -283,17 +288,20 @@ runPureEff e = unsafePerformIO (runEff (\_ -> e))
 -- runs in a dedicated thread, so an asynchronous exception received by a
 -- thread demanding the result does not interrupt the computation itself; an
 -- exception delivered to the worker is rethrown and can poison the thunk.
--- If all forcing threads abandon it, the worker still runs to completion,
--- unnecessarily consuming resources.
+-- A weak finalizer reaps the worker when the thunk becomes unreachable.
 -- The proper fix is an asynchronous-exception-transparent 'bracket'.
 runPureEffAsyncSafe :: (forall es. Eff es a) -> a
 runPureEffAsyncSafe e = unsafePerformIO $ do
   result <- newEmptyMVar
-  _ <- Control.Exception.mask_ $ forkIOWithUnmask $ \unmask -> do
-    r <- Control.Exception.try @Control.Exception.SomeException . unmask $
-      runEff (\_ -> e)
-    putMVar result r
-  r <- readMVar result
+  owner <- newIORef ()
+  _ <- Control.Exception.mask_ $
+    forkIOWithUnmask $ \unmask -> do
+      tid <- myThreadId
+      addFinalizer owner (killThread tid)
+      r <- Control.Exception.try @Control.Exception.SomeException . unmask $
+        runEff (\_ -> e)
+      putMVar result r
+  r <- keepAlive owner (readMVar result)
   either Control.Exception.throwIO pure r
 
 unsafeCoerceEff :: Eff t r -> Eff t' r
