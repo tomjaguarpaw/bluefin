@@ -1,3 +1,7 @@
+# 0.7.1.0
+
+* Add `Bluefin.Compound.oneWayCoercibleNewtypeHandle`
+
 # 0.7.0.1
 
 * Update `Bluefin.Compound` documentation

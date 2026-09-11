@@ -680,6 +680,7 @@ module Bluefin.Compound
     withHandle,
     OneWayCoercible.gOneWayCoercible,
     oneWayCoercibleTrustMe,
+    oneWayCoercibleNewtypeHandle,
     -- | Bluefin re-exports @Generic@ for convenience.
     OneWayCoercible.Generic,
 
