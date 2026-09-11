@@ -517,13 +517,13 @@ handleOneWayCoercible ::
 handleOneWayCoercible = MkHandleD (unsafeCoerce (MkHandleDict @h))
 
 instance (Handle h) => Handle (Rec1 h) where
-  handleImpl = withHandle @h handleOneWayCoercible
+  handleImpl = handleOneWayCoercible
 
 instance (Handle h) => Handle (M1 i t h) where
-  handleImpl = withHandle @h handleOneWayCoercible
+  handleImpl = handleOneWayCoercible
 
 instance (Handle h1, Handle h2) => Handle (h1 :*: h2) where
-  handleImpl = withHandle @h1 (withHandle @h2 handleOneWayCoercible)
+  handleImpl = handleOneWayCoercible
 
 -- | It is not always possible to derive an instance of
 -- 'OneWayCoercible'.  In such cases write a definition of
@@ -1728,7 +1728,7 @@ mapHandleReader ::
 mapHandleReader = case coerceH of Coercion -> coerce
   where
     oneWayCoerceH :: OneWayCoercion (h e) (h es)
-    oneWayCoerceH = withHandle @h oneWayCoercion
+    oneWayCoerceH = oneWayCoercion
 
     coerceH :: Coercion (h e) (h es)
     coerceH = unsafeCoercionOfOneWayCoercion oneWayCoerceH
@@ -1770,7 +1770,7 @@ runHandleReader ::
 runHandleReader h k = do
   runReader (mapHandle h) $ \(st :: Reader (h es) e) -> do
     let oneWayCoerceH :: OneWayCoercion (h es) (h (e :& es))
-        oneWayCoerceH = withHandle @h oneWayCoercion
+        oneWayCoerceH = oneWayCoercion
 
     let coerceH :: Coercion (h es) (h (e :& es))
         coerceH = unsafeCoercionOfOneWayCoercion oneWayCoerceH
