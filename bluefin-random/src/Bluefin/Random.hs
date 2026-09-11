@@ -21,7 +21,9 @@ module Bluefin.Random
   )
 where
 
-import Bluefin.Compound (Handle)
+import Bluefin.Compound
+  ( Handle,
+  )
 import Bluefin.Eff (Eff, Effects, (:&), type (<:))
 import Bluefin.IO (IOE, effIO)
 import Bluefin.State (State, get, put, runState)
