@@ -676,7 +676,6 @@ module Bluefin.Compound
     -- @OneWayCoercible@ to define @Handle@ instances.
     OneWayCoercible.OneWayCoercible (OneWayCoercible.oneWayCoercibleImpl),
     OneWayCoercibleHandle (MkOneWayCoercibleHandle),
-    handleOneWayCoercible,
     OneWayCoercible.gOneWayCoercible,
     oneWayCoercibleTrustMe,
     oneWayCoercibleNewtypeHandle,
@@ -697,6 +696,7 @@ module Bluefin.Compound
     withCompound,
     useImplWithin,
     withHandle,
+    handleOneWayCoercible,
   )
 where
 
