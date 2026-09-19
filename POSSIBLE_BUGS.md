@@ -62,3 +62,16 @@ key with the exported `insert` and `lookup` at incompatible types. Vault
 issue 56 concludes that a representational role is valid, but also explicitly
 notes that a phantom role is wrong. `Key` should therefore have an explicit
 representational role rather than the currently inferred phantom role.
+
+## Downstream `:>` instances can forge effect containment
+
+The effect-subset relation `:>` (also exported as `<:`) is an open type class.
+`has` in `bluefin-internal/src/Bluefin/Internal.hs` converts any dictionary for
+that class into erased `In` evidence and ultimately uses it to coerce `Eff`
+actions and capabilities between scopes. Downstream code can define an
+invalid orphan instance, including a sufficiently general incoherent one,
+without importing an explicitly unsafe operation. Such an instance could
+make an escaped capability usable outside its handler and undermine the
+guarantees on which `runPureEff` relies. The relation needs to be sealed, or
+its evidence must not be trusted as proof unless it came from Bluefin's own
+instances.
