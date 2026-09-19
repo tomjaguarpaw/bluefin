@@ -1,3 +1,13 @@
+-- | 'OneWayCoercible' morally belongs to GHC as erased,
+-- compiler-checked evidence of representational "castability"
+-- (i.e. conversion in one direction only), just like 'Coercible` is
+-- evidence of representational equality (i.e. "castability" in both
+-- directions).  But such a feature is missing in GHC and Bluefin
+-- simulates it with an ordinary class.  To obtain zero-cost
+-- conversions it must trust the evidence without evaluating its
+-- dictionary, introducing potential unsafety when 'OneWayCoercible'
+-- instances are not valid.
+
 {-# OPTIONS_HADDOCK not-home #-}
 
 module Bluefin.Internal.OneWayCoercible
