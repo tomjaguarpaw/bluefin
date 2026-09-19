@@ -581,6 +581,15 @@ instance
 
 -- }
 
+-- | For defining 'OneWayCoercible' instances for newtypes. Example:
+--
+-- @
+-- newtype Random g e = Random (State g e)
+--   deriving (Handle) via OneWayCoercibleHandle (Random g)
+--
+-- instance (e \<: es) => OneWayCoercible (Random g e) (Random g es) where
+--   oneWayCoercibleImpl = oneWayCoercibleNewtypeHandle @(State g)
+-- @
 oneWayCoercibleNewtypeHandle ::
   forall h1 h2 e es.
   (e :> es) =>
