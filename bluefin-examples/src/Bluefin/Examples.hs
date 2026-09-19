@@ -28,7 +28,6 @@ import Bluefin.Jump
 import Bluefin.Reader
 import Bluefin.State (evalState)
 import Bluefin.StateSource
-import Bluefin.Stream
 import Bluefin.Writer
 import Control.Exception (IOException)
 import Control.Exception qualified
@@ -213,7 +212,7 @@ example3_ = runEff $ \io -> do
       enumeratedLines = enumerateFrom 1 nonEmptyLines
 
       formattedLines =
-        mapStream
+        mapYield
           (\(i, line) -> show i ++ ". Hello! You said " ++ line)
           enumeratedLines
 
@@ -1114,12 +1113,12 @@ zipCoroutines c m1 m2 = do
           a2' <- yieldCoroutine c2 b'
           put ass (a1', a2')
 
-mapStream ::
+mapYield ::
   (e2 <: es) =>
-  -- | Apply this function to all elements of the input stream.
+  -- | Apply this function to all yielded elements.
   (a -> b) ->
-  -- | Input stream
-  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
-  Stream b e2 ->
+  -- | Input yield capability
+  (forall e1. Yield a e1 -> Eff (e1 :& es) r) ->
+  Yield b e2 ->
   Eff es r
-mapStream f = mapMaybe (Just . f)
+mapYield f = mapMaybe (Just . f)
