@@ -101,3 +101,12 @@ empty, the repeated action performs no effects and never yields, producing a
 tight nonproductive loop. A consumer waiting for an element cannot make
 progress, and the producer can consume a CPU indefinitely. The
 `cycleToYield` alias has the same behavior.
+
+## Generic handle cloning can destroy aliasing between fields
+
+The product `GCloneableHandle` instance clones each field independently in
+`bluefin-internal/src/Bluefin/Internal/CloneableHandle.hs`. If two fields in a
+compound capability refer to the same `State`, the generic clone allocates a
+separate copied `State` for each field. The original fields alias, while the
+cloned fields do not, so code that observes or relies on that sharing changes
+behavior when run through `withEffToIOCloneHandle`.
