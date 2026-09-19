@@ -22,3 +22,11 @@ the `Reader` cloner reuses the existing Reader key, while `local` temporarily
 replaces and later restores the whole Vault. Overlapping calls can therefore
 observe another call's local Reader value or restore a stale Vault over its
 changes. This could leak request-specific values between threads.
+
+## `Pipes.Prelude.replicateM` runs one extra iteration
+
+`replicateM n` iterates over `[0 .. n]` in
+`bluefin-internal/src/Bluefin/Internal/Pipes.hs`. For nonnegative `n`, that
+range contains `n + 1` elements, so the action runs and yields once more than
+the function name and its `Control.Monad.replicateM` analogue imply. The
+function is publicly re-exported from `Bluefin.Pipes.Prelude`.
