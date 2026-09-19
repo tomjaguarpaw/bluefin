@@ -588,6 +588,7 @@ oneWayCoercibleNewtypeHandle ::
     OneWayCoercible (h1 e) (h1 es),
     Coercible (h1 es) (h2 es)
   ) =>
+  -- | ͘
   OneWayCoercibleD (h2 e) (h2 es)
 oneWayCoercibleNewtypeHandle =
   trans3D
