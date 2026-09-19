@@ -1,3 +1,7 @@
+# 0.9.1.0
+
+* Add `yieldToPureList`
+
 # 0.9.0.0
 
 * Add quantified constraint `forall e es. (e <: es) => OneWayCoercible
