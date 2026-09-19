@@ -1334,6 +1334,12 @@ yieldToList f = do
   (as, r) <- yieldToReverseList f
   pure (reverse as, r)
 
+-- | Gather all yielded elements into a list, purely.  Can be used
+-- when only when there are no other capabilities in scope, besides
+-- the 'Yield'.
+yieldToPureList :: (forall e. Yield a e -> Eff e r) -> ([a], r)
+yieldToPureList f = runPureEff $ yieldToList $ \y -> useImpl (f y)
+
 -- |
 -- @
 -- >>> runPureEff $ withYieldToList $ \\y -> do

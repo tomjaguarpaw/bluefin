@@ -15,6 +15,7 @@ module Bluefin.Capability.Yield
     -- * Handlers
     forEach,
     yieldToList,
+    yieldToPureList,
     yieldToReverseList,
     withYieldToList,
     ignoreYield,

@@ -34,6 +34,14 @@ main = runEff $ \io -> do
       "List"
       (runPureEff (yieldToList (listEff ([20, 30, 40], "Hello"))))
       ([20, 30, 40], "Hello")
+    assertEqual'
+      "Pure list"
+      ( yieldToPureList $ \y -> do
+          yield y 20
+          yield y 30
+          pure "Hello"
+      )
+      ([20, 30], "Hello")
 
     test_localInHandler y
     test_generalBracket io y
