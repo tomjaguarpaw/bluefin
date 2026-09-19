@@ -1,3 +1,6 @@
+* Breaking change: separate `Prim`'s primitive state and capability
+  scope type parameters
+
 # 0.9.1.0
 
 * Add `yieldToPureList`

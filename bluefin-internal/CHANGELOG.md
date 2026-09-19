@@ -1,3 +1,6 @@
+* Breaking change: separate `Prim`'s primitive state and capability
+  scope type parameters
+
 # 0.9.2.0
 
 * Bug fix: release `Reader` Vault keys when their handler scope exits.

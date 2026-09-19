@@ -1,5 +1,6 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE UnboxedTuples #-}
 
 module Bluefin.Internal.Prim where
@@ -21,19 +22,23 @@ import Bluefin.Internal.OneWayCoercible
     unsafeOneWayCoercible,
   )
 import Control.Monad.Primitive qualified as P
+import Data.Kind (Type)
 import GHC.Exts (State#)
 import Unsafe.Coerce (unsafeCoerce)
 
-data Prim (e :: Effects) = UnsafeMkPrim
-  deriving (Handle) via OneWayCoercibleHandle Prim
+type Prim :: Effects -> Effects -> Type
+data Prim e1 e2 = UnsafeMkPrim
+  deriving (Handle) via OneWayCoercibleHandle (Prim e1)
+
+type role Prim nominal nominal
 
 data PrimStateEff (es :: Effects)
 
-instance (e <: es) => OneWayCoercible (Prim e) (Prim es) where
+instance (e2 <: es) => OneWayCoercible (Prim e1 e2) (Prim e1 es) where
   oneWayCoercibleImpl = unsafeOneWayCoercible
 
 runPrim ::
-  (forall e. Prim e -> Eff (e :& es) r) ->
+  (forall e. Prim e e -> Eff (e :& es) r) ->
   -- | ͘
   Eff es r
 runPrim k = makeOp (k UnsafeMkPrim)
@@ -44,9 +49,9 @@ unsafeCoerceStateM :: forall s1 s2 a. StateM s1 a -> StateM s2 a
 unsafeCoerceStateM = unsafeCoerce
 
 primitive ::
-  forall e1 es a.
-  (e1 <: es) =>
-  Prim e1 ->
+  forall e1 e2 es a.
+  (e2 <: es) =>
+  Prim e1 e2 ->
   (State# (PrimStateEff e1) -> (# State# (PrimStateEff e1), a #)) ->
   -- | ͘
   Eff es a

@@ -20,24 +20,24 @@ import Data.Primitive.Array qualified as A
 import Data.Traversable (for)
 
 -- Define a capability which includes Prim
-data ExAndPrim e = MkExAndPrim (Exception String e) (P.Prim e)
+data ExAndPrim e1 e2 = MkExAndPrim (Exception String e2) (P.Prim e1 e2)
   -- Give it a Handle instance, as per Bluefin.Compound
-  deriving (Handle) via OneWayCoercibleHandle ExAndPrim
+  deriving (Handle) via OneWayCoercibleHandle (ExAndPrim e1)
   deriving stock (Generic)
 
-instance (e <: es) => OneWayCoercible (ExAndPrim e) (ExAndPrim es) where
+instance (e2 <: es) => OneWayCoercible (ExAndPrim e1 e2) (ExAndPrim e1 es) where
   oneWayCoercibleImpl = gOneWayCoercible
 
 -- Define a monad M containing the Prim handle
-newtype M e es a = MkM (ReaderT (ExAndPrim e) (Eff es) a)
+newtype M e es a = MkM (ReaderT (ExAndPrim e es) (Eff es) a)
   deriving newtype (Functor, Applicative, Monad)
 
 -- Define a way of running M
 runM ::
   (e1 <: es, e2 <: es) =>
   Exception String e1 ->
-  P.Prim e2 ->
-  M es es r ->
+  P.Prim e e2 ->
+  M e es r ->
   Eff es r
 runM ex prim (MkM m) =
   runReaderT m (MkExAndPrim (mapHandle ex) (mapHandle prim))
