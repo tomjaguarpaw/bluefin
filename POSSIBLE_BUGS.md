@@ -51,3 +51,14 @@ capability can then be used after the handler that introduced `e` has ended.
 and says it will be removed, and `bluefin-internal/test/Main.hs` contains an
 escape reproducer. Until removal, both `askCapability` and its deprecated
 `askHandle` alias expose this scope escape.
+
+## `Bluefin.Internal.Vault.Key` has a phantom value role
+
+`Bluefin.Internal.Vault` defines `newtype Key a = MkKey (Vault.Key Any)`
+without a role annotation, so `a` is inferred at phantom role. Because this
+is an exposed module, client code can use ordinary `coerce` to turn a
+`Key a` into `Key b` even when `a` and `b` are unrelated, then use the same
+key with the exported `insert` and `lookup` at incompatible types. Vault
+issue 56 concludes that a representational role is valid, but also explicitly
+notes that a phantom role is wrong. `Key` should therefore have an explicit
+representational role rather than the currently inferred phantom role.
