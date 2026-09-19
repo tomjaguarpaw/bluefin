@@ -85,3 +85,11 @@ entering a Reader scope can evaluate the environment even when the body never
 calls `ask`. This differs from normal Reader semantics and from storing the
 environment lazily in an `IORef`; an unused bottom or expensive thunk can fail
 or run unexpectedly at handler entry.
+
+## Exported `connect` and `head'` always fail
+
+`Bluefin.Internal` is an exposed module and implicitly exports `connect`, but
+`connect` is defined only as `error "connect unimplemented, sorry"`.
+The exported `head'` function calls `connect`, so it also fails whenever used.
+These declarations should either be implemented or removed from the exposed
+surface.
