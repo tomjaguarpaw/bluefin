@@ -1,3 +1,13 @@
+# 0.9.0.0
+
+* Add quantified constraint `forall e es. (e <: es) => OneWayCoercible
+  (h e) (h es)` as a superclass of `Handle h`
+
+* Improve performance of `mapHandle` by using `unsafeOneWayCoerce`.
+  This can violate type safety if a `OneWayCoercibleInstance` is
+  invalid, so do not define or use invalid `OneWayCoercible`
+  instances!
+
 # 0.7.1.0
 
 * Add `Bluefin.Compound.oneWayCoercibleNewtypeHandle`
