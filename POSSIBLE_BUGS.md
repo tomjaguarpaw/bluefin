@@ -93,3 +93,11 @@ or run unexpectedly at handler entry.
 The exported `head'` function calls `connect`, so it also fails whenever used.
 These declarations should either be implemented or removed from the exposed
 surface.
+
+## `cycleToStream` busy-loops on an empty input
+
+`cycleToStream f y` is implemented as `forever (inFoldable f y)`. If `f` is
+empty, the repeated action performs no effects and never yields, producing a
+tight nonproductive loop. A consumer waiting for an element cannot make
+progress, and the producer can consume a CPU indefinitely. The
+`cycleToYield` alias has the same behavior.
