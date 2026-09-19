@@ -30,3 +30,14 @@ changes. This could leak request-specific values between threads.
 range contains `n + 1` elements, so the action runs and yields once more than
 the function name and its `Control.Monad.replicateM` analogue imply. The
 function is publicly re-exported from `Bluefin.Pipes.Prelude`.
+
+## An async exception can poison a shared `runPureEff` thunk
+
+`runPureEff` is implemented directly with `unsafePerformIO` in
+`bluefin-internal/src/Bluefin/Internal.hs`. If evaluation of a shared
+`runPureEff` thunk is interrupted by an asynchronous exception, the thunk may
+retain that exception rather than the intended value, causing later users of
+the same pure value to fail. This can turn cancellation or a timeout during
+first evaluation into persistent denial of service for a shared thunk or CAF.
+The unmerged `runPureEffAsyncSafe` branches contain work aimed at this case,
+but the current implementation does not include it.
