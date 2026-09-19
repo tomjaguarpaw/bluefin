@@ -56,6 +56,9 @@ oneWayCoercion = case oneWayCoercibleImpl of
 oneWayCoerce :: forall a b. (OneWayCoercible a b) => a -> b
 oneWayCoerce = oneWayCoerceWith (oneWayCoercion @a @b)
 
+unsafeOneWayCoerce :: forall a b. (OneWayCoercible a b) => a -> b
+unsafeOneWayCoerce = unsafeCoerce
+
 oneWayCoerceWith :: OneWayCoercion a b -> a -> b
 oneWayCoerceWith (MkOneWayCoercion Coercion) = coerce
 
