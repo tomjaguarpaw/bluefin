@@ -30,6 +30,8 @@ runDslBuilderEff ::
   Eff es r
 runDslBuilderEff h f = makeOp (unMkDslBuilderEff f h)
 
+-- oneShot is essential for good performance. I don't fully understand
+-- why.
 dslBuilderEff ::
   (forall e. h e -> Eff (e :& es) r) ->
   -- | ͘
