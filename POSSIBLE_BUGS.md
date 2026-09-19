@@ -41,3 +41,13 @@ the same pure value to fail. This can turn cancellation or a timeout during
 first evaluation into persistent denial of service for a shared thunk or CAF.
 The unmerged `runPureEffAsyncSafe` branches contain work aimed at this case,
 but the current implementation does not include it.
+
+## `askCapability` can return a capability beyond its scope
+
+`askCapability` can read an `h e` from a `HandleReader h e`, lift that read
+with `useImpl`, and return the capability into a wider effect scope. The
+capability can then be used after the handler that introduced `e` has ended.
+`bluefin-internal/src/Bluefin/Internal.hs` already labels the operation unsafe
+and says it will be removed, and `bluefin-internal/test/Main.hs` contains an
+escape reproducer. Until removal, both `askCapability` and its deprecated
+`askHandle` alias expose this scope escape.
