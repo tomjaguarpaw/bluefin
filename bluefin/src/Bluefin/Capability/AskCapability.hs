@@ -20,9 +20,11 @@ module Bluefin.Capability.AskCapability
     runAskCapability,
 
     -- * Effectful operations
-    askCapability,
     asksCapability,
     localCapability,
+
+    -- * Deprecated versions
+    askCapability,
   )
 where
 

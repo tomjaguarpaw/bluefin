@@ -2057,6 +2057,8 @@ runAskCapability ::
   Eff es r
 runAskCapability = runHandleReader
 
+-- | Do not use @askCapability@.  It is unsafe and will be removed in
+-- a future version.  Use 'asksCapability' instead.
 askCapability ::
   (e <: es, Handle h) =>
   HandleReader h e ->

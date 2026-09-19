@@ -48,6 +48,7 @@ main = runEff $ \io -> do
     test_streamConsumeReader y
     test_streamConsumeHandleReader y
     test_unliftIOReader io y
+    test_askCapabilityEscape y
 
 (!?) :: [a] -> Int -> Maybe a
 xs !? i = runPureEff $
@@ -183,3 +184,15 @@ test_unliftIOReader io spech = do
             assertEqual spech "myLocal" i i'
         )
         (\x -> effToIO . local r (const x) . effIO io)
+
+test_askCapabilityEscape :: (e <: es) => SpecH e -> Eff es ()
+test_askCapabilityEscape y = runConstEffect False $ \cFalse ->
+  runAskCapability cFalse $ \(ac :: HandleReader (ConstEffect Bool) e) -> do
+    -- We should not be allowed to escape `escaped` like this.  A
+    -- future version of Bluefin should fix this by removing
+    -- `askCapability`.
+    escaped <- runConstEffect True $ \cTrue -> do
+      localCapability ac (const (mapHandle cTrue)) $ do
+        useImpl (askCapability @_ @e ac)
+    let MkConstEffect escapedValue = escaped
+    assertEqual y "askCapability escape" True escapedValue
