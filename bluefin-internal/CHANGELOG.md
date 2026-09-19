@@ -1,3 +1,7 @@
+# 0.8.2.0
+
+* Improve performance of `Reader` and `DslBuilderEff`
+
 # 0.8.1.0
 
 * Add `trans3D`, `oneWayCoercibleNewtypeHandle`
