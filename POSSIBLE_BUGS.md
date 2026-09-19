@@ -84,15 +84,9 @@ guarantees on which `runPureEff` relies. The relation needs to be sealed, or
 its evidence must not be trusted as proof unless it came from Bluefin's own
 instances.
 
-## `runReader` may force an environment that is never read
+## Strict Reader values are intentional
 
-`runReader` inserts its environment into `Data.Vault.Strict` with
-`modifyIORef'`. The Vault module documents that it is strict in values, and
-the strict `IORef` update evaluates the resulting Vault. Consequently,
-entering a Reader scope can evaluate the environment even when the body never
-calls `ask`. This differs from normal Reader semantics and from storing the
-environment lazily in an `IORef`; an unused bottom or expensive thunk can fail
-or run unexpectedly at handler entry.
+Not a bug: Reader values are deliberately strict, consistent with State.
 
 ## Exported `connect` and `head'` always fail
 
