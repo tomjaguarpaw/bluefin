@@ -1,25 +1,27 @@
-module Bluefin.Internal.Pipes where
+module Bluefin.Examples.Pipes.Internal where
 
-import Bluefin.Internal
+import Bluefin.Capability.ReturnEarly (returnEarly, withReturnEarly)
+import Bluefin.Capability.Yield qualified
+import Bluefin.Compound (mapHandle, useImpl, useImplIn)
+import Bluefin.Coroutine
   ( Coroutine,
-    Eff,
-    IOE,
-    effIO,
-    evalState,
     forEach,
-    get,
-    mapHandle,
-    put,
-    receiveStream,
-    returnEarly,
-    useImpl,
-    useImplIn,
-    withReturnEarly,
     yieldCoroutine,
+  )
+import Bluefin.Eff
+  ( Eff,
     (:&),
     type (<:),
   )
-import Bluefin.Internal qualified
+import Bluefin.IO
+  ( IOE,
+    effIO,
+  )
+import Bluefin.State
+  ( evalState,
+    get,
+    put,
+  )
 import Control.Monad (forever)
 import Data.Foldable (for_)
 import Data.Void (Void, absurd)
@@ -46,7 +48,7 @@ infixl 7 >->
   -- | ͘
   Eff es r
 (>->) k1 k2 (MkProxy c1 c2) =
-  receiveStream
+  Bluefin.Capability.Yield.awaitYield
     (\c -> useImplIn k2 (MkProxy (mapHandle c) (mapHandle c2)))
     (\s -> useImplIn k1 (MkProxy (mapHandle c1) (mapHandle s)))
 
@@ -155,7 +157,7 @@ yield ::
   a ->
   -- | ͘
   Eff es ()
-yield (MkProxy _ c) = Bluefin.Internal.yield c
+yield (MkProxy _ c) = Bluefin.Capability.Yield.yield c
 
 await :: (e <: es) => Proxy () a y' y e -> Eff es a
 await (MkProxy c _) = yieldCoroutine c ()

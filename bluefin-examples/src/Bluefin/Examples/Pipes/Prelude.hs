@@ -10,7 +10,7 @@
 --   'Bluefin.Coroutine.yieldCoroutine' and
 --   'Bluefin.Coroutine.connectCoroutines'
 --
--- See also "Bluefin.Pipes".
+-- See also "Bluefin.Examples.Pipes".
 --
 -- @
 -- >>> 'Bluefin.Eff.runEff' $ \\io -> 'runEffect' $ do
@@ -42,6 +42,5 @@ module Bluefin.Examples.Pipes.Prelude
   )
 where
 
--- Eventually we'll copy the actual implementation here
-import Bluefin.Pipes.Prelude
+import Bluefin.Examples.Pipes.Internal
 import Prelude ()

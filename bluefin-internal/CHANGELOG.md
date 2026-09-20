@@ -1,3 +1,5 @@
+* Move `Bluefin.Internal.Pipes` to `bluefin-examples`
+
 * Remove unused failing stubs `connect` and `head'` from
   `Bluefin.Internal`
 

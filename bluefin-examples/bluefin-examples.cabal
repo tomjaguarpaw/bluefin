@@ -82,6 +82,7 @@ library
       Bluefin.Examples.GadtEffect,
       Bluefin.Examples.HandleReader,
       Bluefin.Examples.Pipes,
+      Bluefin.Examples.Pipes.Internal,
       Bluefin.Examples.Pipes.Prelude,
       Bluefin.Examples.Prim,
       Bluefin.Examples.Random,

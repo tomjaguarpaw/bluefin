@@ -10,7 +10,7 @@
 --   'Bluefin.Coroutine.yieldCoroutine' and
 --   'Bluefin.Coroutine.connectCoroutines'
 --
--- See also "Bluefin.Pipes.Prelude".
+-- See also "Bluefin.Examples.Pipes.Prelude".
 module Bluefin.Examples.Pipes
   ( -- * The Proxy handle
     Proxy,
@@ -46,12 +46,10 @@ module Bluefin.Examples.Pipes
   )
 where
 
--- Eventually we'll copy the actual implementation here
-
 import Bluefin.Capability.ReturnEarly
 import Bluefin.Eff
+import Bluefin.Examples.Pipes.Internal hiding (print, stdinLn, stdoutLn, takeWhile')
 import Bluefin.IO
-import Bluefin.Pipes
 import Control.Monad
 import Prelude hiding (break, print, takeWhile)
 import Prelude qualified

@@ -96,7 +96,6 @@ library
       Bluefin.Internal.GadtEffect,
       Bluefin.Internal.Key,
       Bluefin.Internal.OneWayCoercible,
-      Bluefin.Internal.Pipes,
       Bluefin.Internal.Prim,
       Bluefin.Internal.System.IO,
       Bluefin.Internal.Vault

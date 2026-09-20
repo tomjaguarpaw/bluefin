@@ -1,3 +1,5 @@
+* Move `Bluefin.Pipes` and `Bluefin.Pipes.Prelude` to `bluefin-examples`
+
 * Breaking change: separate `Prim`'s primitive state and capability
   scope type parameters
 
