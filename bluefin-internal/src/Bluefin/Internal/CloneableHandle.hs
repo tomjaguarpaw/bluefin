@@ -117,10 +117,10 @@ cloneHandleClass =
 
 hcHandleReader :: (CloneableHandle h) => HandleCloner (HandleReader h) (HandleReader h) e
 hcHandleReader = MkHandleCloner $ \hr k -> do
-  h <- askHandle hr
-  cloneHandleClass h $ \h' -> do
-    runHandleReader h' $ \hr' -> do
-      useImplIn k (mapHandle hr')
+  asksHandle hr $ \h -> do
+    cloneHandleClass h $ \h' -> do
+      runHandleReader h' $ \hr' -> do
+        useImplIn k (mapHandle hr')
 
 instance
   (TypeError (Text "Coroutine cannot be cloned. Perhaps you want an STM channel?")) =>

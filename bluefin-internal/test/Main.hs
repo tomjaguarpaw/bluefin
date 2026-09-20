@@ -167,7 +167,7 @@ test_streamConsumeReader spech = do
       )
 
 -- localHandle run in one branch of a streamConsume should not affect
--- askHandle in the other branch.
+-- asksHandle in the other branch.
 test_streamConsumeHandleReader :: (e <: es) => SpecH e -> Eff es ()
 test_streamConsumeHandleReader spech = do
   runConstEffect @Int 0 $ \ce ->
@@ -176,8 +176,8 @@ test_streamConsumeHandleReader spech = do
         ( \y -> do
             let s = yield y ()
             let check i = do
-                  MkConstEffect i' <- askHandle r
-                  assertEqual spech "HandleReader local" i i'
+                  asksHandle r $ \(MkConstEffect i') -> do
+                    assertEqual spech "HandleReader local" i i'
             check 0
             s
             check 0

@@ -4,7 +4,7 @@ import Bluefin.Compound (Handle, mapHandle, useImpl)
 import Bluefin.Eff (Eff, runEff, (:&), type (<:))
 import Bluefin.HandleReader
   ( HandleReader,
-    askHandle,
+    asksHandle,
     localHandle,
     runHandleReader,
   )
@@ -39,8 +39,8 @@ onHandle ::
   (forall e. h e -> Eff e r) ->
   Eff es r
 onHandle hr k = do
-  h <- askHandle hr
-  useImpl (k h)
+  asksHandle hr $ \h -> do
+    useImpl (k h)
 
 -- | Locally override the @SummableStream@ so that @yieldSummable@, as
 -- well as yielding to the @Stream@ as normal, also accumulates into
@@ -52,22 +52,22 @@ sumYields ::
   Eff es r ->
   Eff es r
 sumYields (MkSummableStream hr) st body = do
-  yorig <- askHandle hr
-  -- In the body, hr is modified so that it both modifies the State
-  -- and yields to the original Stream
-  forEach
-    ( \ynested -> do
-        localHandle
-          hr
-          (\_ -> mapHandle ynested)
-          (useImpl body)
-    )
-    ( \i -> do
-        -- yield to the original Stream
-        yield yorig i
-        -- modify the State
-        modify st (+ i)
-    )
+  asksHandle hr $ \yorig -> do
+    -- In the body, hr is modified so that it both modifies the State
+    -- and yields to the original Stream
+    forEach
+      ( \ynested -> do
+          localHandle
+            hr
+            (\_ -> mapHandle ynested)
+            (useImpl body)
+      )
+      ( \i -> do
+          -- yield to the original Stream
+          yield yorig i
+          -- modify the State
+          modify st (+ i)
+      )
 
 -- ghci> exampleHandleReader
 -- 1
