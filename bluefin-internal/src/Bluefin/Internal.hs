@@ -1656,10 +1656,12 @@ runReader ::
   (forall e. Reader r e -> Eff (e :& es) a) ->
   Eff es a
 runReader r f = do
-  k <- UnsafeMkEff $ \vault -> do
-    k <- Vault.newKey
-    modifyIORef' vault (\v -> Vault.insert k r v)
-    pure k
+  k <-
+    ( UnsafeMkEff $ \vault -> do
+        k <- Vault.newKey
+        modifyIORef' vault (\v -> Vault.insert k r v)
+        pure k
+    )
   makeOp (f (MkReader k))
 
 -- | Read the value.  Note that @ask@ has the property that these two
