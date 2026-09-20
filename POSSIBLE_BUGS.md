@@ -93,6 +93,8 @@ Not a bug: Reader values are deliberately strict, consistent with State.
 
 ## Exported `connect` and `head'` always fail
 
+Fixed: remove both unused, unimplemented declarations.
+
 `Bluefin.Internal` is an exposed module and implicitly exports `connect`, but
 `connect` is defined only as `error "connect unimplemented, sorry"`.
 The exported `head'` function calls `connect`, so it also fails whenever used.
