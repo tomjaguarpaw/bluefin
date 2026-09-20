@@ -1,5 +1,10 @@
 module Bluefin.Examples.Pipes.Internal where
 
+import Bluefin.Capability.Modify
+  ( evalModify,
+    get,
+    put,
+  )
 import Bluefin.Capability.Request
   ( Request,
     forEach,
@@ -16,11 +21,6 @@ import Bluefin.Eff
 import Bluefin.IO
   ( IOE,
     effIO,
-  )
-import Bluefin.State
-  ( evalState,
-    get,
-    put,
   )
 import Control.Monad (forever, replicateM_)
 import Data.Foldable (for_)
@@ -213,7 +213,7 @@ unfoldr ::
   -- | ͘
   Eff es r
 unfoldr next_ sInit p =
-  withReturnEarly $ \break -> evalState sInit $ \ss -> forever $ do
+  withReturnEarly $ \break -> evalModify sInit $ \ss -> forever $ do
     s <- get ss
     useImpl (next_ s) >>= \case
       Left r -> returnEarly break r
