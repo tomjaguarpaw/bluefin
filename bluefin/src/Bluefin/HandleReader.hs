@@ -24,9 +24,11 @@ module Bluefin.HandleReader
     runHandleReader,
 
     -- * Effectful operations
-    askHandle,
     asksHandle,
     localHandle,
+
+    -- ** Deprecated
+    askHandle,
   )
 where
 
