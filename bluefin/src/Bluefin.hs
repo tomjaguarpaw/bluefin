@@ -743,7 +743,7 @@ module Bluefin
     --   IOE e3 ->
     --   Eff es ()
     -- incrementReadLine state exception io = do
-    --   'Bluefin.Jump.withJump' $ \\break -> 'Control.Monad.forever' $ do
+    --   'Bluefin.Capability.JumpTo.withJumpTo' $ \\break -> 'Control.Monad.forever' $ do
     --     line <- 'Bluefin.IO.effIO' io getLine
     --     i <- case 'Text.Read.readMaybe' line of
     --       Nothing ->
@@ -752,7 +752,7 @@ module Bluefin
     --         pure i
     --
     --     when (i == 0) $
-    --       'Bluefin.Jump.jumpTo' break
+    --       'Bluefin.Capability.JumpTo.jumpTo' break
     --
     --     'Bluefin.Capability.Modify.modify' state (+ i)
     -- @

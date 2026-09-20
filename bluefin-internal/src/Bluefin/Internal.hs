@@ -984,10 +984,10 @@ withScopedException_ f =
 --   n <- 'newState' source 5
 --   total <- newState source 0
 --
---   'withJump' $ \\done -> forever $ do
+--   'withJumpTo' $ \\done -> forever $ do
 --     n' <- 'Bluefin.State.get' n
 --     'Bluefin.State.modify' total (+ n')
---     when (n' == 0) $ 'Bluefin.Jump.jumpTo' done
+--     when (n' == 0) $ 'Bluefin.Capability.JumpTo.jumpTo' done
 --     modify n (subtract 1)
 --
 --   get total
@@ -1005,10 +1005,10 @@ withStateSource f = useImplIn f StateSource
 --   n <- 'newState' source 5
 --   total <- newState source 0
 --
---   'Bluefin.Jump.withJump' $ \\done -> forever $ do
+--   'Bluefin.Capability.JumpTo.withJumpTo' $ \\done -> forever $ do
 --     n' <- 'Bluefin.State.get' n
 --     'Bluefin.State.modify' total (+ n')
---     when (n' == 0) $ 'Bluefin.Jump.jumpTo' done
+--     when (n' == 0) $ 'Bluefin.Capability.JumpTo.jumpTo' done
 --     modify n (subtract 1)
 --
 --   get total
@@ -1442,7 +1442,7 @@ takeConsume count source sink = loop count
       await source >>= yield sink
       loop (c - 1)
 
-type Jump = ReturnEarly ()
+type JumpTo = ReturnEarly ()
 
 -- |
 -- @
@@ -1450,10 +1450,10 @@ type Jump = ReturnEarly ()
 --   n <- 'newState' source 5
 --   total <- newState source 0
 --
---   'Bluefin.Jump.withJump' $ \\done -> forever $ do
+--   'Bluefin.Capability.JumpTo.withJumpTo' $ \\done -> forever $ do
 --     n' <- 'Bluefin.State.get' n
 --     'Bluefin.State.modify' total (+ n')
---     when (n' == 0) $ 'Bluefin.Jump.jumpTo' done
+--     when (n' == 0) $ 'Bluefin.Capability.JumpTo.jumpTo' done
 --     modify n (subtract 1)
 --
 --   get total
@@ -1471,10 +1471,10 @@ withJump = withEarlyReturn
 --   n <- 'newState' source 5
 --   total <- newState source 0
 --
---   'Bluefin.Jump.withJump' $ \\done -> forever $ do
+--   'Bluefin.Capability.JumpTo.withJumpTo' $ \\done -> forever $ do
 --     n' <- 'Bluefin.State.get' n
 --     'Bluefin.State.modify' total (+ n')
---     when (n' == 0) $ 'Bluefin.Jump.jumpTo' done
+--     when (n' == 0) $ 'Bluefin.Capability.JumpTo.jumpTo' done
 --     modify n (subtract 1)
 --
 --   get total
@@ -1482,12 +1482,12 @@ withJump = withEarlyReturn
 -- @
 jumpTo ::
   (e <: es) =>
-  Jump e ->
+  JumpTo e ->
   -- | ͘
   Eff es a
 jumpTo tag = throw tag ()
 
-unwrap :: (e <: es) => Jump e -> Maybe a -> Eff es a
+unwrap :: (e <: es) => JumpTo e -> Maybe a -> Eff es a
 unwrap j = \case
   Nothing -> jumpTo j
   Just a -> pure a
@@ -1799,7 +1799,7 @@ type HandleReader = AskCapability
 -- | Capability to await values of type @a@
 type Consume a = Await a
 
-type JumpTo = Jump
+type Jump = JumpTo
 
 -- | Capability to yield a value of type @a@ and then await a value of
 -- type @b@ in response.
