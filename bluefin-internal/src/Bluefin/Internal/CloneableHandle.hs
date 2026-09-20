@@ -37,7 +37,7 @@ withEffToIOCloneHandle io h k = do
   withClonedEnv $ do
     withEffToIO_ io $ \runInIO -> do
       k $ \body -> do
-        runInIO $ do
+        runInIO $ withClonedEnv $ do
           cloneHandleClass h $ \h' -> do
             cloneHandleClass io $ \io' -> do
               body (mapHandle io') (mapHandle h')
