@@ -186,7 +186,7 @@ module Bluefin.GadtEffect
     -- augmentOp2Interpose ::
     --   (e1 \<: es, e2 \<: es) =>
     --   IOE e2 ->
-    --   t'Bluefin.HandleReader.HandleReader' (Send E) e1 ->
+    --   t'Bluefin.Capability.AskCapability.AskCapability' (Send E) e1 ->
     --   Eff es r ->
     --   Eff es r
     -- augmentOp2Interpose io = 'interpose' $ \\fc -> \\case
@@ -209,8 +209,8 @@ module Bluefin.GadtEffect
     --     augmentOp2Interpret io fc $ \\fc' -> action fc'
     --
     --   effIO io (putStrLn "-- interpose:")
-    --   runE io $ \\fc -> 'Bluefin.HandleReader.runHandleReader' fc $ \\hr -> do
-    --     augmentOp2Interpose io hr $ 'Bluefin.HandleReader.asksHandle' hr action
+    --   runE io $ \\fc -> 'Bluefin.Capability.AskCapability.runAskCapability' fc $ \\hr -> do
+    --     augmentOp2Interpose io hr $ 'Bluefin.Capability.AskCapability.asksCapability' hr action
     -- @
     --
     -- @

@@ -6,7 +6,7 @@ import Bluefin.Internal
   ( Eff,
     Effects,
     Handle,
-    HandleReader,
+    AskCapability,
     OneWayCoercibleHandle (..),
     localHandle,
     mapHandle,
@@ -129,7 +129,7 @@ oneWayCoercibleGadtEffectTrustMe k = oneWayCoercibleTrustMe (mapGadtEffect k)
 -- augmentOp2Interpose ::
 --   (e1 \<: es, e2 \<: es) =>
 --   IOE e2 ->
---   t'Bluefin.HandleReader.HandleReader' (Send E) e1 ->
+--   t'Bluefin.Capability.AskCapability.AskCapability' (Send E) e1 ->
 --   Eff es r ->
 --   Eff es r
 -- augmentOp2Interpose io = 'interpose' $ \\fc -> \\case
@@ -149,7 +149,7 @@ passthrough fc = send fc . unGadtEffect . mapHandle . MkGadtEffect
 -- augmentOp2Interpose ::
 --   (e1 \<: es, e2 \<: es) =>
 --   IOE e2 ->
---   t'Bluefin.HandleReader.HandleReader' (Send E) e1 ->
+--   t'Bluefin.Capability.AskCapability.AskCapability' (Send E) e1 ->
 --   Eff es r ->
 --   Eff es r
 -- augmentOp2Interpose io = 'interpose' $ \\fc -> \\case
@@ -162,7 +162,7 @@ interpose ::
   -- the original effect handler, which is passed as the argument
   (Send f es -> EffectHandler f es) ->
   -- | Original effect handler
-  HandleReader (Send f) e1 ->
+  AskCapability (Send f) e1 ->
   -- | Within this block, @send@ has the implementation given above.
   Eff es r ->
   Eff es r

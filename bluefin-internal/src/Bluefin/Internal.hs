@@ -1698,8 +1698,8 @@ local (MkReader key) f k = UnsafeMkEff $ \env@vault -> do
     (\() -> writeIORef vault orig)
     (\() -> case k of UnsafeMkEff m -> m env)
 
-newtype HandleReader h e = UnsafeMkHandleReader (Ask (h e) e)
-  deriving (Handle) via OneWayCoercibleHandle (HandleReader h)
+newtype AskCapability h e = UnsafeMkHandleReader (Ask (h e) e)
+  deriving (Handle) via OneWayCoercibleHandle (AskCapability h)
 
 -- In general this is really tremendously unsafe because we could take
 -- an `HandleReader h e`, map it to `HandleReader h es`, write an `h
@@ -1774,7 +1774,7 @@ runHandleReader h k = do
 
     useImplIn k h'
 
-instance (e <: es) => OneWayCoercible (HandleReader h e) (HandleReader h es) where
+instance (e <: es) => OneWayCoercible (AskCapability h e) (AskCapability h es) where
   oneWayCoercibleImpl = unsafeOneWayCoercible
 
 newtype ConstEffect r (e :: Effects) = MkConstEffect r
@@ -1794,7 +1794,7 @@ runConstEffect r k = useImplIn k (MkConstEffect r)
 
 type Reader = Ask
 
-type AskCapability = HandleReader
+type HandleReader = AskCapability
 
 -- | Capability to await values of type @a@
 type Await a = Consume a
@@ -2025,7 +2025,7 @@ execTell = execWriter
 runAskCapability ::
   (e1 <: es, Handle h) =>
   h e1 ->
-  (forall e. HandleReader h e -> Eff (e :& es) r) ->
+  (forall e. AskCapability h e -> Eff (e :& es) r) ->
   -- | ͘
   Eff es r
 runAskCapability = runHandleReader
@@ -2034,7 +2034,7 @@ runAskCapability = runHandleReader
 -- a future version.  Use 'asksCapability' instead.
 askCapability ::
   (e <: es, Handle h) =>
-  HandleReader h e ->
+  AskCapability h e ->
   -- | ͘
   Eff es (h es)
 askCapability = askHandle

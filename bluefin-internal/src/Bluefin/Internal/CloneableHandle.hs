@@ -102,9 +102,9 @@ hcReader :: HandleCloner (Ask r) (Ask r) e
 hcReader = MkHandleCloner $ \r k -> do
   useImplIn k (mapHandle r)
 
--- | Cloning a @HandleReader@ copies its contents to a new
--- @HandleReader@.  Changes to one will not effect the other.
-instance (CloneableHandle h) => CloneableHandle (HandleReader h) where
+-- | Cloning an @AskCapability@ copies its contents to a new
+-- @AskCapability@.  Changes to one will not effect the other.
+instance (CloneableHandle h) => CloneableHandle (AskCapability h) where
   cloneableHandleImpl = MkCloneableHandleD hcHandleReader
 
 cloneHandleClass ::
@@ -115,7 +115,7 @@ cloneHandleClass ::
 cloneHandleClass =
   cloneHandle2 (case cloneableHandleImpl of MkCloneableHandleD c' -> c')
 
-hcHandleReader :: (CloneableHandle h) => HandleCloner (HandleReader h) (HandleReader h) e
+hcHandleReader :: (CloneableHandle h) => HandleCloner (AskCapability h) (AskCapability h) e
 hcHandleReader = MkHandleCloner $ \hr k -> do
   asksHandle hr $ \h -> do
     cloneHandleClass h $ \h' -> do
