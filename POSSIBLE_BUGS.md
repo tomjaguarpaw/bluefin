@@ -29,6 +29,8 @@ changes. This could leak request-specific values between threads.
 
 ## `Pipes.Prelude.replicateM` runs one extra iteration
 
+Fixed: use `replicateM_`, so the action runs exactly `n` times.
+
 `replicateM n` iterates over `[0 .. n]` in
 `bluefin-internal/src/Bluefin/Internal/Pipes.hs`. For nonnegative `n`, that
 range contains `n + 1` elements, so the action runs and yields once more than
