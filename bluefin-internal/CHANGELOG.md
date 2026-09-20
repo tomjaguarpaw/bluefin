@@ -1,3 +1,8 @@
+* Make `Ask`, `AskCapability`, `Await`, `JumpTo`, `Modify`, `Request`,
+  `ReturnEarly`, `Tell`, `Throw`, and `Yield` the canonical capability
+  types; `Reader`, `HandleReader`, `Consume`, `Jump`, `State`, `Coroutine`,
+  `EarlyReturn`, `Writer`, `Exception`, and `Stream` are now type synonyms.
+
 * Move `Bluefin.Internal.Pipes` to `bluefin-examples`
 
 * Remove unused failing stubs `connect` and `head'` from
