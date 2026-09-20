@@ -2,7 +2,7 @@
 --
 -- @
 -- -- Define a capability which includes Prim
--- data ExAndPrim e1 e2 = MkExAndPrim (Exception String e2) (P.Prim e1 e2)
+-- data ExAndPrim e1 e2 = MkExAndPrim (Throw String e2) (P.Prim e1 e2)
 --   -- Give it a Handle instance, as per Bluefin.Compound
 --   deriving (Handle) via OneWayCoercibleHandle (ExAndPrim e1)
 --   deriving stock (Generic)
@@ -17,7 +17,7 @@
 -- -- Define a way of running M
 -- runM ::
 --   (e1 \<: es, e2 \<: es) =>
---   Exception String e1 ->
+--   Throw String e1 ->
 --   P.Prim e e2 ->
 --   M e r ->
 --   Eff es r

@@ -88,10 +88,10 @@ hcState = MkHandleCloner $ \st k -> do
   evalState s $ \st' ->
     useImplIn k (mapHandle st')
 
-instance CloneableHandle (Exception a) where
+instance CloneableHandle (Throw a) where
   cloneableHandleImpl = MkCloneableHandleD hcException
 
-hcException :: HandleCloner (Exception ex) (Exception ex) e
+hcException :: HandleCloner (Throw ex) (Throw ex) e
 hcException = MkHandleCloner $ \ex k -> do
   useImplIn k (mapHandle ex)
 
@@ -254,7 +254,7 @@ gCloneableHandle =
 -- example:
 --
 -- @
--- data MyHandle e = MkMyHandle ('Bluefin.Exception.Exception' String e) ('Bluefin.Capability.Modify.Modify' Int e)
+-- data MyHandle e = MkMyHandle ('Bluefin.Capability.Throw.Throw' String e) ('Bluefin.Capability.Modify.Modify' Int e)
 --   deriving ('Bluefin.Compound.Generic', 'Generic1')
 --   deriving ('Bluefin.Compound.Handle') via t'Bluefin.Compound.OneWayCoercibleHandle' MyHandle
 --   deriving ('CloneableHandle') via 'GenericCloneableHandle' MyHandle

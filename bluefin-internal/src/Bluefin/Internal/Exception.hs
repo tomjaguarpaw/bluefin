@@ -7,7 +7,7 @@ module Bluefin.Internal.Exception where
 
 import Bluefin.Internal
   ( Eff,
-    Exception (..),
+    Throw (..),
     Handle,
     OneWayCoercibleHandle (..),
     effIO,
@@ -156,7 +156,7 @@ catchWithResource ::
   forall ex r a es.
   (r -> ex -> Eff es a) ->
   -- | ͘
-  MakeExceptions r a (Exception ex) es
+  MakeExceptions r a (Throw ex) es
 catchWithResource f = MkMakeExceptions $ unsafeProvideIO $ \io -> do
   scopedEx <- effIO io (SE.newException @ex)
   let hk = MkHandledKey scopedEx (flip f)

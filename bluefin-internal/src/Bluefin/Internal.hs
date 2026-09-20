@@ -226,7 +226,7 @@ instance (e <: es) => MonadBaseControl IO (EffReader (IOE e) es) where
   liftBaseWith = withRunInIO
   restoreM = pure
 
-instance (e <: es) => MonadFail (EffReader (Exception String e) es) where
+instance (e <: es) => MonadFail (EffReader (Throw String e) es) where
   fail = MkEffReader . flip throw
 
 hoistReader ::
@@ -267,8 +267,8 @@ withMonadIO io m = unEffReader m io
 -- `Either String` and then applying `either (throw f) pure`.
 withMonadFail ::
   (e <: es) =>
-  -- | @Exception@ to @throw@ on @fail@
-  Exception String e ->
+  -- | @Throw@ to @throw@ on @fail@
+  Throw String e ->
   -- | 'MonadFail' operation
   (forall m. (MonadFail m) => m r) ->
   -- | @MonadFail@ operation run in @Eff@
@@ -346,13 +346,13 @@ data StateSource (e :: Effects) = StateSource
 type role StateSource nominal
 
 -- | Capability to throw an exception of type @exn@
-newtype Exception exn (e :: Effects)
+newtype Throw exn (e :: Effects)
   = MkException (forall a. exn -> Eff e a)
-  deriving (Handle) via OneWayCoercibleHandle (Exception exn)
+  deriving (Handle) via OneWayCoercibleHandle (Throw exn)
 
-type role Exception representational nominal
+type role Throw representational nominal
 
-instance (e <: es) => OneWayCoercible (Exception ex e) (Exception ex es) where
+instance (e <: es) => OneWayCoercible (Throw ex e) (Throw ex es) where
   oneWayCoercibleImpl = oneWayCoercible
 
 -- | Capability to modify a reference to an @s@
@@ -380,7 +380,7 @@ type Yield a = Request a ()
 type Await a = Request () a
 
 -- | Every Bluefin capability should have an instance of class @Handle@.
--- Built-in capabilities, such as 'Exception', 'Modify' and 'IOE', come with
+-- Built-in capabilities, such as 'Throw', 'Modify' and 'IOE', come with
 -- @Handle@ instances.
 --
 -- You should define a @Handle@ instance for each capability that you
@@ -755,7 +755,7 @@ handleTag _ = pure Proxy
 -- @
 throw ::
   (e <: es) =>
-  Exception ex e ->
+  Throw ex e ->
   -- | Value to throw
   ex ->
   Eff es a
@@ -785,7 +785,7 @@ have _ = unsafeCoerceDict @(a <: (a :& b)) @(a <: b) Dict
 -- @
 try ::
   forall exn (es :: Effects) a.
-  (forall e. Exception exn e -> Eff (e :& es) a) ->
+  (forall e. Throw exn e -> Eff (e :& es) a) ->
   -- | @Left@ if the exception was thrown, @Right@ otherwise
   Eff es (Either exn a)
 try f =
@@ -805,7 +805,7 @@ handle ::
   forall exn (es :: Effects) a.
   -- | If the exception is thrown, apply this handler
   (exn -> Eff es a) ->
-  (forall e. Exception exn e -> Eff (e :& es) a) ->
+  (forall e. Throw exn e -> Eff (e :& es) a) ->
   Eff es a
 handle h f =
   try f >>= \case
@@ -815,7 +815,7 @@ handle h f =
 -- | 'handle', but with the argument order swapped
 catch ::
   forall exn (es :: Effects) a.
-  (forall e. Exception exn e -> Eff (e :& es) a) ->
+  (forall e. Throw exn e -> Eff (e :& es) a) ->
   -- | If the exception is thrown, apply this handler
   (exn -> Eff es a) ->
   Eff es a
@@ -855,7 +855,7 @@ rethrowIO ::
   forall ex es e1 e2 r.
   (e1 <: es, e2 <: es, Control.Exception.Exception ex) =>
   IOE e1 ->
-  Exception ex e2 ->
+  Throw ex e2 ->
   Eff es r ->
   -- | ͘
   Eff es r
@@ -1183,7 +1183,7 @@ consumeEach k e = forEach k (\() -> e)
 await :: (e <: es) => Await a e -> Eff es a
 await r = yieldCoroutine r ()
 
-type ReturnEarly = Exception
+type ReturnEarly = Throw
 
 -- | Run an 'Eff' action with the ability to return early to this
 -- point.  In the language of exceptions, 'withEarlyReturn' installs
@@ -1813,7 +1813,7 @@ type State = Modify
 type Writer = Tell
 
 -- | Capability to throw an exception of type @exn@
-type Throw = Exception
+type Exception = Throw
 
 -- | Capability to yield values of type @a@.  It is implemented as a
 -- 'Bluefin.Capability.Request' capability that can yield values of

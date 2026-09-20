@@ -39,13 +39,13 @@ module Bluefin.CloneableHandle
     -- @
     -- example :: IO ()
     -- example = 'Bluefin.Eff.runEff' $ \\io -> 'Bluefin.Capability.Modify.evalModify' 0 $ \\st -> do
-    --   r \<- 'Bluefin.Exception.try' $ \\ex -> do
+    --   r \<- 'Bluefin.Capability.Throw.try' $ \\ex -> do
     --     bluefinRace
     --       io
     --       (MkMyHandle ('Bluefin.Handle.mapHandle' ex) (mapHandle st))
     --       ( \\_ (MkMyHandle ex' st') -> do
     --           'Bluefin.Capability.Modify.modify' st' (subtract 2000)
-    --           'Bluefin.Exception.throw' ex' "Aborting from branch 1"
+    --           'Bluefin.Capability.Throw.throw' ex' "Aborting from branch 1"
     --       )
     --       ( \\_ (MkMyHandle _ st') -> do
     --           modify st' (+ 3000)

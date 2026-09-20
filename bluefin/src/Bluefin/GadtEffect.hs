@@ -98,7 +98,7 @@ module Bluefin.GadtEffect
     --   forall es e1 e2 r.
     --   (e1 \<: es, e2 \<: es) =>
     --   t'Bluefin.IO.IOE' e1 ->
-    --   t'Bluefin.Exception.Exception' t'Control.Exception.IOException' e2 ->
+    --   t'Bluefin.Capability.Throw.Throw' t'Control.Exception.IOException' e2 ->
     --   (forall e. 'Send' FileSystem e -> Eff (e :& es) r) ->
     --   Eff es r
     -- runFileSystem io ex = 'interpret' $ \\case
