@@ -1733,13 +1733,6 @@ localHandle hh f k = do
   let UnsafeMkHandleReader st = mapHandle hh
   local st f k
 
-askHandle ::
-  (e <: es, Handle h) =>
-  HandleReader h e ->
-  -- | ͘
-  Eff es (h es)
-askHandle hh = let UnsafeMkHandleReader st = mapHandle hh in ask st
-
 asksHandle ::
   (e1 <: es, Handle h) =>
   HandleReader h e1 ->
@@ -1747,7 +1740,8 @@ asksHandle ::
   -- | ͘
   Eff es r
 asksHandle hh k = do
-  h <- askHandle hh
+  let UnsafeMkHandleReader st = mapHandle hh
+  h <- ask st
   makeOp (k h)
 
 runHandleReader ::
@@ -2029,15 +2023,6 @@ runAskCapability ::
   -- | ͘
   Eff es r
 runAskCapability = runHandleReader
-
--- | Do not use @askCapability@.  It is unsafe and will be removed in
--- a future version.  Use 'asksCapability' instead.
-askCapability ::
-  (e <: es, Handle h) =>
-  AskCapability h e ->
-  -- | ͘
-  Eff es (h es)
-askCapability = askHandle
 
 asksCapability ::
   (e1 <: es, Handle h) =>

@@ -48,6 +48,9 @@ but the current implementation does not include it.
 
 ## `askCapability` can return a capability beyond its scope
 
+Fixed: remove `askCapability` and `askHandle`; use the scoped
+`asksCapability` and `asksHandle` continuations instead.
+
 `askCapability` can read an `h e` from a `HandleReader h e`, lift that read
 with `useImpl`, and return the capability into a wider effect scope. The
 capability can then be used after the handler that introduced `e` has ended.

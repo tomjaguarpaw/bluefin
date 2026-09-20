@@ -1,3 +1,8 @@
+* Remove unscoped `askCapability` and `askHandle`; use scoped continuations.
+
+* Breaking change: remove `askCapability` and `askHandle`; use
+  `asksCapability` and `asksHandle` instead to keep capabilities scoped
+
 * Clone each `withEffToIOCloneHandle` invocation in its own environment.
 
 * Use Vault 0.3.2.0's `Key`, because it now has the correct type role,
