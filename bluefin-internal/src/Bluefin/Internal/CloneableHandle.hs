@@ -123,11 +123,11 @@ hcHandleReader = MkHandleCloner $ \hr k -> do
         useImplIn k (mapHandle hr')
 
 instance
-  (TypeError (Text "Coroutine cannot be cloned. Perhaps you want an STM channel?")) =>
-  CloneableHandle (Coroutine a b)
+  (TypeError (Text "Request cannot be cloned. Perhaps you want an STM channel?")) =>
+  CloneableHandle (Request a b)
   where
   cloneableHandleImpl =
-    error "instance CloneableHandle (Coroutine a b) not implemented"
+    error "instance CloneableHandle (Request a b) not implemented"
 
 instance
   (TypeError (Text "Writer cannot be cloned. Perhaps you want an STM channel?")) =>

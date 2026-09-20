@@ -366,18 +366,18 @@ instance (e <: es) => OneWayCoercible (State s e) (State s es) where
 
 -- | Capability to yield a value of type @a@ and then await a value of
 -- type @b@ in response.
-newtype Coroutine a b (e :: Effects) = MkCoroutine (a -> Eff e b)
-  deriving (Handle) via OneWayCoercibleHandle (Coroutine a b)
+newtype Request a b (e :: Effects) = MkCoroutine (a -> Eff e b)
+  deriving (Handle) via OneWayCoercibleHandle (Request a b)
 
-instance (e <: es) => OneWayCoercible (Coroutine a b e) (Coroutine a b es) where
+instance (e <: es) => OneWayCoercible (Request a b e) (Request a b es) where
   oneWayCoercibleImpl = oneWayCoercible
 
 -- | Capability to yield values of type @a@.  It is implemented as a
 -- 'Bluefin.Capability.Request' capability that can yield values of
 -- type @a@ and then await values of type @()@.
-type Stream a = Coroutine a ()
+type Stream a = Request a ()
 
-type Consume a = Coroutine () a
+type Consume a = Request () a
 
 -- | Every Bluefin capability should have an instance of class @Handle@.
 -- Built-in capabilities, such as 'Exception', 'State' and 'IOE', come with
@@ -1093,7 +1093,7 @@ handleCoroutine update finish f = do
 -- ([0, 0, 1, 10, 2, 20, 3, 30], ())
 -- @
 forEach ::
-  (forall e1. Coroutine a b e1 -> Eff (e1 :& es) r) ->
+  (forall e1. Request a b e1 -> Eff (e1 :& es) r) ->
   -- | Apply this effectful function for each element of the coroutine
   (a -> Eff es b) ->
   Eff es r
@@ -1803,7 +1803,7 @@ type JumpTo = Jump
 
 -- | Capability to yield a value of type @a@ and then await a value of
 -- type @b@ in response.
-type Request = Coroutine
+type Coroutine = Request
 
 type ReturnEarly = EarlyReturn
 
