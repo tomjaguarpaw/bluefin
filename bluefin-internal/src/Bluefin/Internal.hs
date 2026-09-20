@@ -375,7 +375,7 @@ instance (e <: es) => OneWayCoercible (Request a b e) (Request a b es) where
 -- | Capability to yield values of type @a@.  It is implemented as a
 -- 'Bluefin.Capability.Request' capability that can yield values of
 -- type @a@ and then await values of type @()@.
-type Stream a = Request a ()
+type Yield a = Request a ()
 
 type Await a = Request () a
 
@@ -393,7 +393,7 @@ type Await a = Request () a
 -- data Application e = MkApplication
 --   { queryDatabase :: String -> Int -> Eff e [String],
 --     applicationState :: State (Int, Bool) e,
---     logger :: Stream String e
+--     logger :: Yield String e
 --   }
 --   deriving (Generic)
 --   deriving (Handle) via 'OneWayCoercibleHandle' Application
@@ -1066,7 +1066,7 @@ yieldCoroutine (MkCoroutine f) = useImpl . f
 -- @
 yield ::
   (e1 <: es) =>
-  Stream a e1 ->
+  Yield a e1 ->
   -- | Yield this value from the stream
   a ->
   Eff es ()
@@ -1127,7 +1127,7 @@ inFoldable ::
   (Foldable t, e1 <: es) =>
   -- | Yield all these values from the stream
   t a ->
-  Stream a e1 ->
+  Yield a e1 ->
   Eff es ()
 inFoldable t = for_ t . yield
 
@@ -1141,8 +1141,8 @@ inFoldable t = for_ t . yield
 enumerate ::
   (e2 <: es) =>
   -- | ͘
-  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
-  Stream (Int, a) e2 ->
+  (forall e1. Yield a e1 -> Eff (e1 :& es) r) ->
+  Yield (Int, a) e2 ->
   Eff es r
 enumerate s = enumerateFrom 0 s
 
@@ -1157,8 +1157,8 @@ enumerateFrom ::
   (e2 <: es) =>
   -- | Initial value
   Int ->
-  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
-  Stream (Int, a) e2 ->
+  (forall e1. Yield a e1 -> Eff (e1 :& es) r) ->
+  Yield (Int, a) e2 ->
   Eff es r
 enumerateFrom n ss st =
   evalState n $ \i -> forEach (useImplUnder . ss) $ \s -> do
@@ -1327,7 +1327,7 @@ runCompound e1 e2 k = assoc1Eff (k (compound e1 e2))
 -- ([1,2,100], ())
 -- @
 yieldToList ::
-  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
+  (forall e1. Yield a e1 -> Eff (e1 :& es) r) ->
   -- | Yielded elements and final result
   Eff es ([a], r)
 yieldToList f = do
@@ -1350,8 +1350,8 @@ yieldToPureList f = runPureEff $ yieldToList $ \y -> useImpl (f y)
 -- 3
 -- @
 withYieldToList ::
-  -- | Stream computation
-  (forall e. Stream a e -> Eff (e :& es) ([a] -> r)) ->
+  -- | Yield computation
+  (forall e. Yield a e -> Eff (e :& es) ([a] -> r)) ->
   -- | Result
   Eff es r
 withYieldToList f = do
@@ -1370,7 +1370,7 @@ withYieldToList f = do
 -- ([100,2,1], ())
 -- @
 yieldToReverseList ::
-  (forall e. Stream a e -> Eff (e :& es) r) ->
+  (forall e. Yield a e -> Eff (e :& es) r) ->
   -- | Yielded elements in reverse order, and final result
   Eff es ([a], r)
 yieldToReverseList f = do
@@ -1386,8 +1386,8 @@ mapMaybe ::
   -- stream for which this function returns @Just@
   (a -> Maybe b) ->
   -- | Input stream
-  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
-  Stream b e2 ->
+  (forall e1. Yield a e1 -> Eff (e1 :& es) r) ->
+  Yield b e2 ->
   Eff es r
 mapMaybe f s y = forEach s $ \a -> do
   case f a of
@@ -1398,8 +1398,8 @@ mapMaybe f s y = forEach s $ \a -> do
 catMaybes ::
   (e2 <: es) =>
   -- | Input stream
-  (forall e1. Stream (Maybe a) e1 -> Eff (e1 :& es) r) ->
-  Stream a e2 ->
+  (forall e1. Yield (Maybe a) e1 -> Eff (e1 :& es) r) ->
+  Yield a e2 ->
   Eff es r
 catMaybes s y = mapMaybe id s y
 
@@ -1414,7 +1414,7 @@ catMaybes s y = mapMaybe id s y
 cycleToStream ::
   (Foldable f, e1 <: es) =>
   f a ->
-  Stream a e1 ->
+  Yield a e1 ->
   -- | ͘
   Eff es ()
 cycleToStream f y = do
@@ -1553,7 +1553,7 @@ unsafeProvideIO ::
   Eff es a
 unsafeProvideIO eff = useImplIn eff MkIOE
 
-newtype Writer w e = Writer (Stream w e)
+newtype Writer w e = Writer (Yield w e)
   deriving (Handle) via OneWayCoercibleHandle (Writer w)
 
 instance (e <: es) => OneWayCoercible (Writer w e) (Writer w es) where
@@ -1818,7 +1818,7 @@ type Throw = Exception
 -- | Capability to yield values of type @a@.  It is implemented as a
 -- 'Bluefin.Capability.Request' capability that can yield values of
 -- type @a@ and then await values of type @()@.
-type Yield a = Stream a
+type Stream a = Yield a
 
 runAsk ::
   -- | Initial value for @Ask@.
@@ -1900,7 +1900,7 @@ takeAwait = takeConsume
 -- 42
 -- @
 ignoreYield ::
-  (forall e1. Stream a e1 -> Eff (e1 :& es) r) ->
+  (forall e1. Yield a e1 -> Eff (e1 :& es) r) ->
   -- | ͘
   Eff es r
 ignoreYield = ignoreStream

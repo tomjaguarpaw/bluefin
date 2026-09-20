@@ -181,7 +181,7 @@ module Bluefin.DslBuilder
     -- @ArenaH@? It is defined like this:
     --
     -- @
-    -- data ArenaH e = MkArenaH ('Bluefin.Stream.Stream' RobotEntry e) (Stream ObstacleEntry e)
+    -- data ArenaH e = MkArenaH ('Bluefin.Capability.Yield.Yield' RobotEntry e) (Yield ObstacleEntry e)
     --   deriving t'Bluefin.Compound.Generic'
     --   deriving t'Bluefin.Compound.Handle' via t'Bluefin.Compound.OneWayCoercibleHandle' ArenaH
     --
@@ -191,7 +191,7 @@ module Bluefin.DslBuilder
     --
     -- What does that mean? Well, @ArenaH@ is defined according to one
     -- of the recipes from "Bluefin.Compound", and gives the ability
-    -- to yield to a @Stream@ of @RobotEntry@s and a stream of
+    -- to yield to a @Yield@ of @RobotEntry@s and a yield of
     -- @ObstacleEntry@s, i.e. the components that make up an @Arena@.
     -- The only things we can do with the @ArenaH@ then are to give it
     -- @RobotEntry@s or @ObstacleEntry@s.  How do we get them?
@@ -213,7 +213,7 @@ module Bluefin.DslBuilder
     -- @
     -- obstacle o coord =
     --   MkArenaBuilder $ 'dslBuilder' $ \(MkArenaH _ yobstacle) -> do
-    --     'Bluefin.Stream.yield' yobstacle (o, coord)
+    --     'Bluefin.Capability.Yield.yield' yobstacle (o, coord)
     -- @
 
     -- *** @robot@ and @InstructionsBuilder@
@@ -244,7 +244,7 @@ module Bluefin.DslBuilder
     -- capability, this time @InstructionsH@:
     --
     -- @
-    -- data InstructionsH e = MkInstructionsH ('Bluefin.Stream.Stream' Instruction e)
+    -- data InstructionsH e = MkInstructionsH ('Bluefin.Capability.Yield.Yield' Instruction e)
     --   deriving t'Bluefin.Compound.Generic'
     --   deriving t'Bluefin.Compound.Handle' via t'Bluefin.Compound.OneWayCoercibleHandle' InstructionsH
     --
@@ -256,15 +256,15 @@ module Bluefin.DslBuilder
     -- @Instruction@s, i.e. the type of robot instructions defined
     -- above and used in @Arena@ via @RobotEntry@.  In fact, the job
     -- of @robot@ is exactly to allow us to define a @RobotEntry@ and
-    -- yield it to the @Stream RobotEntry@ of @Arena@:
+    -- yield it to the @Yield RobotEntry@ of @Arena@:
     --
     -- @
     -- robot name coords dir (MkInstructionsBuilder ibuilder) =
     --   MkArenaBuilder $ 'dslBuilder' $ \\(MkArenaH yrobot _) -> do
-    --     (insns, ()) \<- 'Bluefin.Stream.yieldToList' $ \\yinsns -> do
+    --     (insns, ()) \<- 'Bluefin.Capability.Yield.yieldToList' $ \\yinsns -> do
     --       'runDslBuilder' (MkInstructionsH ('Bluefin.Compound.mapHandle' yinsns)) ibuilder
     --
-    --     'Bluefin.Stream.yield' yrobot (name, coords, dir, insns)
+    --     'Bluefin.Capability.Yield.yield' yrobot (name, coords, dir, insns)
     -- @
 
     -- *** Creating @InstructionsBuilder@s
@@ -305,7 +305,7 @@ module Bluefin.DslBuilder
     -- *** Implementing @buildArena@
 
     -- | We're now ready to implement @buildArena@. We create a
-    -- @Stream RobotEntry@ and a @Stream ObstacleEntry@ to pass to the
+    -- @Yield RobotEntry@ and a @Yield ObstacleEntry@ to pass to the
     -- @MkArenaH@ constructor, and use @runDslBuilder@ to run the
     -- @ArenaBuilder@ provided.  (This is a lot like some of the approaches
     -- in "Bluefin.Compound".)
@@ -313,7 +313,7 @@ module Bluefin.DslBuilder
     -- @
     -- buildArena :: ArenaBuilder -> Arena
     -- buildArena (MkArenaBuilder arenaBuilder) = runPureEff $ do
-    --   (robots, obstacles) \<- 'Bluefin.Stream.yieldToList' $ \\yrobots -> do
+    --   (robots, obstacles) \<- 'Bluefin.Capability.Yield.yieldToList' $ \\yrobots -> do
     --     (obstacles, ()) \<- yieldToList $ \\yobstacles -> do
     --       'runDslBuilder'
     --         (MkArenaH ('Bluefin.Compound.mapHandle' yrobots) (mapHandle yobstacles))
