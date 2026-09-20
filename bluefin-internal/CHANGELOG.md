@@ -1,3 +1,6 @@
+* Remove unused failing stubs `connect` and `head'` from
+  `Bluefin.Internal`
+
 * Breaking change: separate `Prim`'s primitive state and capability
   scope type parameters
 

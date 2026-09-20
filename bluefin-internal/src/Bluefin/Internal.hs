@@ -1553,36 +1553,6 @@ unsafeProvideIO ::
   Eff es a
 unsafeProvideIO eff = useImplIn eff MkIOE
 
-connect ::
-  (forall e1. Coroutine a b e1 -> Eff (e1 :& es) r1) ->
-  (forall e2. a -> Coroutine b a e2 -> Eff (e2 :& es) r2) ->
-  forall e1 e2.
-  (e1 <: es, e2 <: es) =>
-  Eff
-    es
-    ( Either
-        (r1, a -> Coroutine b a e2 -> Eff es r2)
-        (r2, b -> Coroutine a b e1 -> Eff es r1)
-    )
-connect _ _ = error "connect unimplemented, sorry"
-
-head' ::
-  forall a b r es.
-  (forall e. Coroutine a b e -> Eff (e :& es) r) ->
-  forall e.
-  (e <: es) =>
-  Eff
-    es
-    ( Either
-        r
-        (a, b -> Coroutine a b e -> Eff es r)
-    )
-head' c = do
-  r <- connect c (\a _ -> pure a) @_ @es
-  pure $ case r of
-    Right r' -> Right r'
-    Left (l, _) -> Left l
-
 newtype Writer w e = Writer (Stream w e)
   deriving (Handle) via OneWayCoercibleHandle (Writer w)
 
