@@ -4,8 +4,11 @@
 module Main (main) where
 
 import Bluefin.Internal
+import Bluefin.Internal.Vault qualified as Vault
 import Control.Monad (forever, when)
 import Data.Foldable (for_)
+import Data.IORef (readIORef)
+import Data.Maybe (isNothing)
 import Test.GeneralBracket (test_generalBracket)
 import Test.SpecH (SpecH, assertEqual, runSpecH)
 import Prelude hiding (break, read)
@@ -44,6 +47,7 @@ main = runEff $ \io -> do
       ([20, 30], "Hello")
 
     test_localInHandler y
+    test_readerCleanup y
     test_generalBracket io y
     test_streamConsumeReader y
     test_streamConsumeHandleReader y
@@ -93,6 +97,27 @@ listEff :: (e1 <: es) => ([a], r) -> Stream a e1 -> Eff es r
 listEff (as, r) y = do
   for_ as (yield y)
   pure r
+
+test_readerCleanup :: (e <: es) => SpecH e -> Eff es ()
+test_readerCleanup y = runReader @Int 1 $ \outer -> do
+  for_ [False, True] $ \abort -> do
+    key <- withEarlyReturn $ \ex ->
+      runReader @Int 2 $ \(MkReader key) ->
+        if abort then returnEarly ex key else pure key
+    do
+      -- Use the internals to check a property that cannot be tested without them.
+      cleanedUp <- UnsafeMkEff $ \vault -> do
+        contents <- readIORef vault
+        pure (isNothing (Vault.lookup key contents))
+      -- FIXME: This test shows that we do not clean up properly:
+      assertEqual
+        y
+        "Reader key not released on normal and exceptional exit (evidence of a bug)"
+        False
+        cleanedUp
+    do
+      outerValue <- ask outer
+      assertEqual y "Outer Reader survives inner cleanup" 1 outerValue
 
 test_localInHandler :: (e <: es) => SpecH e -> Eff es ()
 test_localInHandler y = runReader "global" $ \re ->
