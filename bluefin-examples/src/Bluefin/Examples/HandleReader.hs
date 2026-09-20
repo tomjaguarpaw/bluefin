@@ -40,7 +40,7 @@ onHandle ::
   Eff es r
 onHandle hr k = do
   h <- askHandle hr
-  k h
+  useImpl (k h)
 
 -- | Locally override the @SummableStream@ so that @yieldSummable@, as
 -- well as yielding to the @Stream@ as normal, also accumulates into
