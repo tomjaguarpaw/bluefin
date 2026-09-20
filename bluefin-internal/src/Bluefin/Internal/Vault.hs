@@ -1,3 +1,5 @@
+{-# LANGUAGE RoleAnnotations #-}
+
 module Bluefin.Internal.Vault
   ( module Bluefin.Internal.Vault,
     Vault,
@@ -17,6 +19,8 @@ import Unsafe.Coerce (unsafeCoerce)
 --     https://github.com/HeinrichApfelmus/vault/issues/56
 type Key :: Type -> Type
 newtype Key a = MkKey (Vault.Key Any)
+
+type role Key representational
 
 fromMine :: Key a -> Vault.Key a
 fromMine (MkKey k) = unsafeCoerce k
