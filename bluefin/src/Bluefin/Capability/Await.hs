@@ -4,7 +4,7 @@ module Bluefin.Capability.Await
     -- @await@ from Conduit or Pipes.
     --
     -- For information about prompt finalization/resource safety when
-    -- using Bluefin @Consume@s, see "Bluefin.Capability.Request".
+    -- using Bluefin @Await@s, see "Bluefin.Capability.Request".
 
     -- * Capability
     Await,

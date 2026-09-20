@@ -377,7 +377,7 @@ instance (e <: es) => OneWayCoercible (Request a b e) (Request a b es) where
 -- type @a@ and then await values of type @()@.
 type Stream a = Request a ()
 
-type Consume a = Request () a
+type Await a = Request () a
 
 -- | Every Bluefin capability should have an instance of class @Handle@.
 -- Built-in capabilities, such as 'Exception', 'State' and 'IOE', come with
@@ -1180,7 +1180,7 @@ consumeEach ::
   Eff es r
 consumeEach k e = forEach k (\() -> e)
 
-await :: (e <: es) => Consume a e -> Eff es a
+await :: (e <: es) => Await a e -> Eff es a
 await r = yieldCoroutine r ()
 
 type EarlyReturn = Exception
@@ -1797,7 +1797,7 @@ type Reader = Ask
 type HandleReader = AskCapability
 
 -- | Capability to await values of type @a@
-type Await a = Consume a
+type Consume a = Await a
 
 type JumpTo = Jump
 
@@ -1851,7 +1851,7 @@ request = yieldCoroutine
 -- | 'awaitYield' is 'Bluefin.Capability.Request.connectRequests'
 -- specialized to @Await@ and @Yield@, which is the most common case.
 awaitYield ::
-  -- | Starts running first. Each 'await' from the @Consume@ ...
+  -- | Starts running first. Each 'await' from the @Await@ ...
   (forall e. Await a e -> Eff (e :& es) r) ->
   -- | ... receives the value 'yield'ed from the @Yield@
   (forall e. Yield a e -> Eff (e :& es) r) ->
