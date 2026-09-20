@@ -5,6 +5,8 @@ verified with a reproducer.
 
 ## `runReader` never releases its Vault key
 
+Fixed: bracket key insertion and deletion, including exceptional exit.
+
 `runReader` creates a fresh key and inserts the Reader value into the
 environment Vault, but it never removes that entry when the Reader scope
 ends (`bluefin-internal/src/Bluefin/Internal.hs`, in `runReader`). Repeated
