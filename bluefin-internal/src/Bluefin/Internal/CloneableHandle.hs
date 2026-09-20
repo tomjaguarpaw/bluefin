@@ -95,10 +95,10 @@ hcException :: HandleCloner (Exception ex) (Exception ex) e
 hcException = MkHandleCloner $ \ex k -> do
   useImplIn k (mapHandle ex)
 
-instance CloneableHandle (Reader r) where
+instance CloneableHandle (Ask r) where
   cloneableHandleImpl = MkCloneableHandleD hcReader
 
-hcReader :: HandleCloner (Reader r) (Reader r) e
+hcReader :: HandleCloner (Ask r) (Ask r) e
 hcReader = MkHandleCloner $ \r k -> do
   useImplIn k (mapHandle r)
 

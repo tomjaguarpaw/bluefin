@@ -490,7 +490,7 @@ module Bluefin.Compound
     -- effectful operations as arguments, by giving the effectful
     -- operation the effect tag @e'@.  Here's an example of a dynamic
     -- reader effect, and one handler for the effect, which runs it in
-    -- terms of the existing 'Bluefin.Reader' effect.
+    -- terms of the existing 'Bluefin.Capability.Ask' effect.
     --
     -- @
     -- data DynamicReader r e = DynamicReader
@@ -536,8 +536,8 @@ module Bluefin.Compound
     --     'useImplIn'
     --       k
     --       DynamicReader
-    --         { askLRImpl = 'Bluefin.Reader.ask' h,
-    --           localLRImpl = \\f k' -> 'Bluefin.Reader.local' h f ('useImpl' k')
+    --         { askLRImpl = 'Bluefin.Capability.Ask.ask' h,
+    --           localLRImpl = \\f k' -> 'Bluefin.Capability.Ask.local' h f ('useImpl' k')
     --         }
     -- @
 

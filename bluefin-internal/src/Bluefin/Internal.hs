@@ -1611,14 +1611,14 @@ tell ::
   Eff es ()
 tell (Writer y) = yield y
 
-type Reader :: Type -> Effects -> Type
-newtype Reader r e = MkReader (Vault.Key r)
-  deriving (Handle) via OneWayCoercibleHandle (Reader r)
+type Ask :: Type -> Effects -> Type
+newtype Ask r e = MkReader (Vault.Key r)
+  deriving (Handle) via OneWayCoercibleHandle (Ask r)
 
-instance (e <: es) => OneWayCoercible (Reader r e) (Reader r es) where
+instance (e <: es) => OneWayCoercible (Ask r e) (Ask r es) where
   oneWayCoercibleImpl = oneWayCoercible
 
-type role Reader representational nominal
+type role Ask representational nominal
 
 runReader ::
   -- | Initial value for @Reader@.
@@ -1653,7 +1653,7 @@ runReader r f = do
 ask ::
   (e <: es) =>
   -- | ͘
-  Reader r e ->
+  Ask r e ->
   Eff es r
 ask (MkReader k) = UnsafeMkEff $ \vault -> do
   v <- readIORef vault
@@ -1675,17 +1675,17 @@ ask (MkReader k) = UnsafeMkEff $ \vault -> do
 -- | Read the value modified by a function
 asks ::
   (e <: es) =>
-  Reader r e ->
+  Ask r e ->
   -- | Read the value modified by this function
   (r -> a) ->
   Eff es a
 asks r f = fmap f (ask r)
 
--- | Locally override the value in the @Reader@. It will be restored
+-- | Locally override the value in the @Ask@. It will be restored
 -- when the @local@ block ends.
 local ::
   (e1 <: es) =>
-  Reader r e1 ->
+  Ask r e1 ->
   -- | In the body, the reader value is modified by this function.
   (r -> r) ->
   -- | Body
@@ -1698,7 +1698,7 @@ local (MkReader key) f k = UnsafeMkEff $ \env@vault -> do
     (\() -> writeIORef vault orig)
     (\() -> case k of UnsafeMkEff m -> m env)
 
-newtype HandleReader h e = UnsafeMkHandleReader (Reader (h e) e)
+newtype HandleReader h e = UnsafeMkHandleReader (Ask (h e) e)
   deriving (Handle) via OneWayCoercibleHandle (HandleReader h)
 
 -- In general this is really tremendously unsafe because we could take
@@ -1757,14 +1757,14 @@ runHandleReader ::
   -- | ͘
   Eff es r
 runHandleReader h k = do
-  runReader (mapHandle h) $ \(st :: Reader (h es) e) -> do
+  runReader (mapHandle h) $ \(st :: Ask (h es) e) -> do
     let oneWayCoerceH :: OneWayCoercion (h es) (h (e :& es))
         oneWayCoerceH = oneWayCoercion
 
     let coerceH :: Coercion (h es) (h (e :& es))
         coerceH = unsafeCoercionOfOneWayCoercion oneWayCoerceH
 
-    let mapS :: Reader (h es) e' -> Reader (h (e :& es)) e'
+    let mapS :: Ask (h es) e' -> Ask (h (e :& es)) e'
         mapS = case coerceH of Coercion -> coerce
 
     let h' :: HandleReader h (e :& es)
@@ -1792,7 +1792,7 @@ runConstEffect r k = useImplIn k (MkConstEffect r)
 
 -- Capbility synonyms
 
-type Ask = Reader
+type Reader = Ask
 
 type AskCapability = HandleReader
 
