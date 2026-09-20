@@ -1183,7 +1183,7 @@ consumeEach k e = forEach k (\() -> e)
 await :: (e <: es) => Await a e -> Eff es a
 await r = yieldCoroutine r ()
 
-type EarlyReturn = Exception
+type ReturnEarly = Exception
 
 -- | Run an 'Eff' action with the ability to return early to this
 -- point.  In the language of exceptions, 'withEarlyReturn' installs
@@ -1214,7 +1214,7 @@ withEarlyReturn = handle pure
 -- @
 returnEarly ::
   (e <: es) =>
-  EarlyReturn r e ->
+  ReturnEarly r e ->
   -- | Return early to the handler, with this value.
   r ->
   Eff es a
@@ -1442,7 +1442,7 @@ takeConsume count source sink = loop count
       await source >>= yield sink
       loop (c - 1)
 
-type Jump = EarlyReturn ()
+type Jump = ReturnEarly ()
 
 -- |
 -- @
@@ -1805,7 +1805,7 @@ type JumpTo = Jump
 -- type @b@ in response.
 type Coroutine = Request
 
-type ReturnEarly = EarlyReturn
+type EarlyReturn r = ReturnEarly r
 
 -- | Capability to modify a reference to an @s@
 type Modify = State
@@ -1934,7 +1934,7 @@ cycleToYield = cycleToStream
 -- "Returned early with 5"
 -- @
 withReturnEarly ::
-  (forall e. EarlyReturn r e -> Eff (e :& es) r) ->
+  (forall e. ReturnEarly r e -> Eff (e :& es) r) ->
   -- | ͘
   Eff es r
 withReturnEarly = withEarlyReturn
