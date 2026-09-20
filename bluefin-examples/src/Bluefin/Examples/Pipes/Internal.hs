@@ -1,13 +1,13 @@
 module Bluefin.Examples.Pipes.Internal where
 
+import Bluefin.Capability.Request
+  ( Request,
+    forEach,
+    request,
+  )
 import Bluefin.Capability.ReturnEarly (returnEarly, withReturnEarly)
 import Bluefin.Capability.Yield qualified
 import Bluefin.Compound (mapHandle, useImpl, useImplIn)
-import Bluefin.Coroutine
-  ( Coroutine,
-    forEach,
-    yieldCoroutine,
-  )
 import Bluefin.Eff
   ( Eff,
     (:&),
@@ -28,7 +28,7 @@ import Data.Void (Void, absurd)
 import Prelude hiding (break, print, takeWhile)
 import Prelude qualified
 
-data Proxy a' a b' b e = MkProxy (Coroutine a' a e) (Coroutine b b' e)
+data Proxy a' a b' b e = MkProxy (Request a' a e) (Request b b' e)
 
 type Pipe a = Proxy () a ()
 
@@ -131,8 +131,8 @@ infixr 5 ~<
 
 cat :: Pipe a a e -> Eff (e :& es) r
 cat (MkProxy c1 c2) = forever $ do
-  a <- yieldCoroutine c1 ()
-  yieldCoroutine c2 a
+  a <- request c1 ()
+  request c2 a
 
 runEffect ::
   (forall e. Effect e -> Eff (e :& es) r) ->
@@ -160,7 +160,7 @@ yield ::
 yield (MkProxy _ c) = Bluefin.Capability.Yield.yield c
 
 await :: (e <: es) => Proxy () a y' y e -> Eff es a
-await (MkProxy c _) = yieldCoroutine c ()
+await (MkProxy c _) = request c ()
 
 -- | @pipe@'s 'next' doesn't exist in Bluefin
 next :: ()
