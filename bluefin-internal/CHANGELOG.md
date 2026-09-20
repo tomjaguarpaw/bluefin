@@ -1,3 +1,5 @@
+# 0.9.2.0
+
 * Bug fix: release `Reader` Vault keys when their handler scope exits.
 
 * Make `Vault`'s `Key` type role representational.  This is
