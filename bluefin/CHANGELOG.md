@@ -1,3 +1,6 @@
+* Use Vault 0.3.2.0's `Key`, because it now has the correct type role,
+  instead of unsafe wrapper
+
 # 0.10.0.0
 
 * Make `Ask`, `AskCapability`, `Await`, `JumpTo`, `Modify`, `Request`,
