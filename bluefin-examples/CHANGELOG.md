@@ -1,3 +1,5 @@
+* Fix `Pipes.replicateM` to run the action `n` rather than `n + 1` times.
+
 * Add `Bluefin.Examples.GadtEffect`
 
 * Add `Bluefin.Examples.Contrib.Operators`

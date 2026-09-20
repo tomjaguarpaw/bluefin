@@ -22,7 +22,7 @@ import Bluefin.State
     get,
     put,
   )
-import Control.Monad (forever)
+import Control.Monad (forever, replicateM_)
 import Data.Foldable (for_)
 import Data.Void (Void, absurd)
 import Prelude hiding (break, print, takeWhile)
@@ -191,7 +191,7 @@ replicateM ::
   Proxy x' x () a e ->
   -- | ͘
   Eff es ()
-replicateM n e p = for_ [0 .. n] $ \_ -> do
+replicateM n e p = replicateM_ n $ do
   a <- e
   yield p a
 
