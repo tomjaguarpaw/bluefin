@@ -130,11 +130,11 @@ instance
     error "instance CloneableHandle (Request a b) not implemented"
 
 instance
-  (TypeError (Text "Writer cannot be cloned. Perhaps you want an STM channel?")) =>
-  CloneableHandle (Writer w)
+  (TypeError (Text "Tell cannot be cloned. Perhaps you want an STM channel?")) =>
+  CloneableHandle (Tell w)
   where
   cloneableHandleImpl =
-    error "instance CloneableHandle (Writer a) not implemented"
+    error "instance CloneableHandle (Tell a) not implemented"
 
 newtype (h1 :~> h2) es = MkArrow (forall e. h1 e -> h2 (e :& es))
 

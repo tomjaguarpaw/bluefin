@@ -1553,10 +1553,10 @@ unsafeProvideIO ::
   Eff es a
 unsafeProvideIO eff = useImplIn eff MkIOE
 
-newtype Writer w e = Writer (Yield w e)
-  deriving (Handle) via OneWayCoercibleHandle (Writer w)
+newtype Tell w e = Tell (Yield w e)
+  deriving (Handle) via OneWayCoercibleHandle (Tell w)
 
-instance (e <: es) => OneWayCoercible (Writer w e) (Writer w es) where
+instance (e <: es) => OneWayCoercible (Tell w e) (Tell w es) where
   oneWayCoercibleImpl = oneWayCoercible
 
 -- |
@@ -1572,7 +1572,7 @@ runWriter ::
   (forall e. Writer w e -> Eff (e :& es) r) ->
   Eff es (r, w)
 runWriter f = runState mempty $ \st -> do
-  forEach (useImplUnder . f . Writer) $ \ww -> do
+  forEach (useImplUnder . f . Tell) $ \ww -> do
     modify st (<> ww)
 
 -- |
@@ -1605,11 +1605,11 @@ execWriter f = fmap snd (runWriter f)
 -- @
 tell ::
   (e <: es) =>
-  Writer w e ->
+  Tell w e ->
   -- | ͘
   w ->
   Eff es ()
-tell (Writer y) = yield y
+tell (Tell y) = yield y
 
 type Ask :: Type -> Effects -> Type
 newtype Ask r e = MkReader (Vault.Key r)
@@ -1810,7 +1810,7 @@ type EarlyReturn r = ReturnEarly r
 -- | Capability to modify a reference to an @s@
 type State = Modify
 
-type Tell = Writer
+type Writer = Tell
 
 -- | Capability to throw an exception of type @exn@
 type Throw = Exception
