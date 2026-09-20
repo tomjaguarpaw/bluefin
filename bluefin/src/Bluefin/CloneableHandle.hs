@@ -38,13 +38,13 @@ module Bluefin.CloneableHandle
     --
     -- @
     -- example :: IO ()
-    -- example = 'Bluefin.Eff.runEff' $ \\io -> 'Bluefin.State.evalState' 0 $ \\st -> do
+    -- example = 'Bluefin.Eff.runEff' $ \\io -> 'Bluefin.Capability.Modify.evalModify' 0 $ \\st -> do
     --   r \<- 'Bluefin.Exception.try' $ \\ex -> do
     --     bluefinRace
     --       io
     --       (MkMyHandle ('Bluefin.Handle.mapHandle' ex) (mapHandle st))
     --       ( \\_ (MkMyHandle ex' st') -> do
-    --           'Bluefin.State.modify' st' (subtract 2000)
+    --           'Bluefin.Capability.Modify.modify' st' (subtract 2000)
     --           'Bluefin.Exception.throw' ex' "Aborting from branch 1"
     --       )
     --       ( \\_ (MkMyHandle _ st') -> do
@@ -52,14 +52,14 @@ module Bluefin.CloneableHandle
     --           pure (2 :: Int)
     --       )
     --
-    --   s <- 'Bluefin.State.get' st
+    --   s <- 'Bluefin.Capability.Modify.get' st
     --   'Bluefin.IO.effIO' io (print r)
     --   effIO io (putStrLn ("State started at 0 and was cloned. Now: " <> show s))
     -- @
     --
     -- You can see from the output that the actions were raced as
-    -- expected, and the @State@ was cloned so that changes to it in
-    -- the branches of @race@ did not affect the original @State@.
+    -- expected, and the @Modify@ capability was cloned so that changes to it
+    -- in the branches of @race@ did not affect the original capability.
     --
     -- @
     -- -- Run one time (the first thread was faster)

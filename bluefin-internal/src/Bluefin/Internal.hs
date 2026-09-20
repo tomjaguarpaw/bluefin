@@ -356,12 +356,12 @@ instance (e <: es) => OneWayCoercible (Exception ex e) (Exception ex es) where
   oneWayCoercibleImpl = oneWayCoercible
 
 -- | Capability to modify a reference to an @s@
-newtype State s (e :: Effects) = UnsafeMkState (IORef s)
-  deriving (Handle) via OneWayCoercibleHandle (State s)
+newtype Modify s (e :: Effects) = UnsafeMkState (IORef s)
+  deriving (Handle) via OneWayCoercibleHandle (Modify s)
 
-type role State representational nominal
+type role Modify representational nominal
 
-instance (e <: es) => OneWayCoercible (State s e) (State s es) where
+instance (e <: es) => OneWayCoercible (Modify s e) (Modify s es) where
   oneWayCoercibleImpl = oneWayCoercible
 
 -- | Capability to yield a value of type @a@ and then await a value of
@@ -380,7 +380,7 @@ type Yield a = Request a ()
 type Await a = Request () a
 
 -- | Every Bluefin capability should have an instance of class @Handle@.
--- Built-in capabilities, such as 'Exception', 'State' and 'IOE', come with
+-- Built-in capabilities, such as 'Exception', 'Modify' and 'IOE', come with
 -- @Handle@ instances.
 --
 -- You should define a @Handle@ instance for each capability that you
@@ -392,7 +392,7 @@ type Await a = Request () a
 -- @
 -- data Application e = MkApplication
 --   { queryDatabase :: String -> Int -> Eff e [String],
---     applicationState :: State (Int, Bool) e,
+--     applicationState :: Modify (Int, Bool) e,
 --     logger :: Yield String e
 --   }
 --   deriving (Generic)
@@ -586,11 +586,11 @@ instance
 -- | For defining 'OneWayCoercible' instances for newtypes. Example:
 --
 -- @
--- newtype Random g e = Random (State g e)
+-- newtype Random g e = Random (Modify g e)
 --   deriving (Handle) via OneWayCoercibleHandle (Random g)
 --
 -- instance (e \<: es) => OneWayCoercible (Random g e) (Random g es) where
---   oneWayCoercibleImpl = oneWayCoercibleNewtypeHandle @(State g)
+--   oneWayCoercibleImpl = oneWayCoercibleNewtypeHandle @(Modify g)
 -- @
 oneWayCoercibleNewtypeHandle ::
   forall h1 h2 e es.
@@ -922,7 +922,7 @@ finally body after =
 withStateInIO ::
   (e1 <: es, e2 <: es) =>
   IOE e1 ->
-  State s e2 ->
+  Modify s e2 ->
   (IORef s -> IO r) ->
   Eff es r
 withStateInIO io (UnsafeMkState r) k = effIO io (k r)
@@ -936,7 +936,7 @@ withStateInIO io (UnsafeMkState r) k = effIO io (k r)
 -- @
 get ::
   (e <: es) =>
-  State s e ->
+  Modify s e ->
   -- | The current value of the state
   Eff es s
 get st = unsafeProvideIO $ \io -> withStateInIO io st readIORef
@@ -950,7 +950,7 @@ get st = unsafeProvideIO $ \io -> withStateInIO io st readIORef
 -- @
 put ::
   (e <: es) =>
-  State s e ->
+  Modify s e ->
   -- | The new value of the state.  The new value is forced before
   -- writing it to the state.
   s ->
@@ -965,7 +965,7 @@ put st s = unsafeProvideIO $ \io -> withStateInIO io st (flip writeIORef $! s)
 -- @
 modify ::
   (e <: es) =>
-  State s e ->
+  Modify s e ->
   -- | Apply this function to the state.  The new value of the state
   -- is forced before writing it to the state.
   (s -> s) ->
@@ -985,8 +985,8 @@ withScopedException_ f =
 --   total <- newState source 0
 --
 --   'withJumpTo' $ \\done -> forever $ do
---     n' <- 'Bluefin.State.get' n
---     'Bluefin.State.modify' total (+ n')
+--     n' <- 'Bluefin.Capability.Modify.get' n
+--     'Bluefin.Capability.Modify.modify' total (+ n')
 --     when (n' == 0) $ 'Bluefin.Capability.JumpTo.jumpTo' done
 --     modify n (subtract 1)
 --
@@ -1006,8 +1006,8 @@ withStateSource f = useImplIn f StateSource
 --   total <- newState source 0
 --
 --   'Bluefin.Capability.JumpTo.withJumpTo' $ \\done -> forever $ do
---     n' <- 'Bluefin.State.get' n
---     'Bluefin.State.modify' total (+ n')
+--     n' <- 'Bluefin.Capability.Modify.get' n
+--     'Bluefin.Capability.Modify.modify' total (+ n')
 --     when (n' == 0) $ 'Bluefin.Capability.JumpTo.jumpTo' done
 --     modify n (subtract 1)
 --
@@ -1020,7 +1020,7 @@ newState ::
   -- | The initial value for the state capability
   s ->
   -- | A new state capability
-  Eff es (State s e)
+  Eff es (Modify s e)
 newState StateSource s = unsafeProvideIO $ \io -> do
   fmap UnsafeMkState (effIO io (newIORef s))
 
@@ -1035,7 +1035,7 @@ runState ::
   -- | Initial state
   s ->
   -- | Stateful computation
-  (forall e. State s e -> Eff (e :& es) a) ->
+  (forall e. Modify s e -> Eff (e :& es) a) ->
   -- | Result and final state
   Eff es (a, s)
 runState s f = do
@@ -1231,7 +1231,7 @@ evalState ::
   -- | Initial state
   s ->
   -- | Stateful computation
-  (forall e. State s e -> Eff (e :& es) a) ->
+  (forall e. Modify s e -> Eff (e :& es) a) ->
   -- | Result
   Eff es a
 evalState s f = fmap fst (runState s f)
@@ -1247,7 +1247,7 @@ withState ::
   -- | Initial state
   s ->
   -- | Stateful computation
-  (forall e. State s e -> Eff (e :& es) (s -> a)) ->
+  (forall e. Modify s e -> Eff (e :& es) (s -> a)) ->
   -- | Result
   Eff es a
 withState s f = do
@@ -1300,10 +1300,10 @@ withC2 ::
   Eff es r
 withC2 c f = withCompound c (\_ i -> f i)
 
-putC :: forall ss es e. (ss <: es) => Compound e (State Int) ss -> Int -> Eff es ()
+putC :: forall ss es e. (ss <: es) => Compound e (Modify Int) ss -> Int -> Eff es ()
 putC c i = withC2 c (\h -> put h i)
 
-getC :: forall ss es e. (ss <: es) => Compound e (State Int) ss -> Eff es Int
+getC :: forall ss es e. (ss <: es) => Compound e (Modify Int) ss -> Eff es Int
 getC c = withC2 c (\h -> get h)
 
 -- TODO: Make this (s1 <: es, s2 <: es), like withC
@@ -1374,7 +1374,7 @@ yieldToReverseList ::
   -- | Yielded elements in reverse order, and final result
   Eff es ([a], r)
 yieldToReverseList f = do
-  evalState [] $ \(s :: State lo st) -> do
+  evalState [] $ \(s :: Modify lo st) -> do
     r <- forEach (useImplUnder . f) $ \i ->
       modify s (i :)
     as <- get s
@@ -1451,8 +1451,8 @@ type JumpTo = ReturnEarly ()
 --   total <- newState source 0
 --
 --   'Bluefin.Capability.JumpTo.withJumpTo' $ \\done -> forever $ do
---     n' <- 'Bluefin.State.get' n
---     'Bluefin.State.modify' total (+ n')
+--     n' <- 'Bluefin.Capability.Modify.get' n
+--     'Bluefin.Capability.Modify.modify' total (+ n')
 --     when (n' == 0) $ 'Bluefin.Capability.JumpTo.jumpTo' done
 --     modify n (subtract 1)
 --
@@ -1472,8 +1472,8 @@ withJump = withEarlyReturn
 --   total <- newState source 0
 --
 --   'Bluefin.Capability.JumpTo.withJumpTo' $ \\done -> forever $ do
---     n' <- 'Bluefin.State.get' n
---     'Bluefin.State.modify' total (+ n')
+--     n' <- 'Bluefin.Capability.Modify.get' n
+--     'Bluefin.Capability.Modify.modify' total (+ n')
 --     when (n' == 0) $ 'Bluefin.Capability.JumpTo.jumpTo' done
 --     modify n (subtract 1)
 --
@@ -1808,7 +1808,7 @@ type Coroutine = Request
 type EarlyReturn r = ReturnEarly r
 
 -- | Capability to modify a reference to an @s@
-type Modify = State
+type State = Modify
 
 type Tell = Writer
 

@@ -77,12 +77,12 @@ hcIOE :: HandleCloner IOE IOE e
 hcIOE = MkHandleCloner $ \io k -> do
   useImplIn k (mapHandle io)
 
--- | Cloning a @State@ copies its contents to a new @State@.  Changes
+-- | Cloning a @Modify@ copies its contents to a new @Modify@.  Changes
 -- to one will not effect the other.
-instance CloneableHandle (State s) where
+instance CloneableHandle (Modify s) where
   cloneableHandleImpl = MkCloneableHandleD hcState
 
-hcState :: HandleCloner (State s) (State s) e
+hcState :: HandleCloner (Modify s) (Modify s) e
 hcState = MkHandleCloner $ \st k -> do
   s <- get st
   evalState s $ \st' ->
@@ -254,7 +254,7 @@ gCloneableHandle =
 -- example:
 --
 -- @
--- data MyHandle e = MkMyHandle ('Bluefin.Exception.Exception' String e) ('Bluefin.State.State' Int e)
+-- data MyHandle e = MkMyHandle ('Bluefin.Exception.Exception' String e) ('Bluefin.Capability.Modify.Modify' Int e)
 --   deriving ('Bluefin.Compound.Generic', 'Generic1')
 --   deriving ('Bluefin.Compound.Handle') via t'Bluefin.Compound.OneWayCoercibleHandle' MyHandle
 --   deriving ('CloneableHandle') via 'GenericCloneableHandle' MyHandle
