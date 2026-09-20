@@ -54,6 +54,10 @@ escape reproducer. Until removal, both `askCapability` and its deprecated
 
 ## `Bluefin.Internal.Vault.Key` has a phantom value role
 
+Fixed: require `vault >= 0.3.2.0` and re-export its types and operations,
+removing Bluefin's coercion wrapper entirely. Upstream keys have a
+representational value role and an abstract constructor.
+
 `Bluefin.Internal.Vault` defines `newtype Key a = MkKey (Vault.Key Any)`
 without a role annotation, so `a` is inferred at phantom role. Because this
 is an exposed module, client code can use ordinary `coerce` to turn a
