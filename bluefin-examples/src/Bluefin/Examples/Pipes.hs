@@ -47,11 +47,12 @@ module Bluefin.Examples.Pipes
 where
 
 -- Eventually we'll copy the actual implementation here
-import Bluefin.Pipes
+
+import Bluefin.Capability.ReturnEarly
 import Bluefin.Eff
 import Bluefin.IO
+import Bluefin.Pipes
 import Control.Monad
-import Bluefin.Capability.ReturnEarly
 import Prelude hiding (break, print, takeWhile)
 import Prelude qualified
 

@@ -22,8 +22,8 @@ import Bluefin.Internal.OneWayCoercible
     oneWayCoercion,
     trans3D,
     unsafeCoercionOfOneWayCoercion,
-    unsafeOneWayCoercible,
     unsafeOneWayCoerce,
+    unsafeOneWayCoercible,
   )
 import Bluefin.Internal.Vault (Vault)
 import Bluefin.Internal.Vault qualified as Vault

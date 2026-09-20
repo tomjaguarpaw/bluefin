@@ -59,8 +59,7 @@ sumYields (MkSummableStream hr) st body = do
     ( \ynested -> do
         localHandle
           hr
-          ( \_ -> mapHandle ynested
-          )
+          (\_ -> mapHandle ynested)
           (useImpl body)
     )
     ( \i -> do
