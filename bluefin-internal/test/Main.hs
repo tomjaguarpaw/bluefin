@@ -4,7 +4,10 @@
 module Main (main) where
 
 import Bluefin.Internal
+import Bluefin.Internal.CloneableHandle (withEffToIOCloneHandle)
 import Bluefin.Internal.Vault qualified as Vault
+import Control.Concurrent.Async (concurrently)
+import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 import Control.Monad (forever, when)
 import Data.Foldable (for_)
 import Data.IORef (readIORef)
@@ -52,6 +55,7 @@ main = runEff $ \io -> do
     test_streamConsumeReader y
     test_streamConsumeHandleReader y
     test_unliftIOReader io y
+    test_cloneReader io y
     test_askCapabilityEscape y
 
 (!?) :: [a] -> Int -> Maybe a
@@ -97,6 +101,25 @@ listEff :: (e1 <: es) => ([a], r) -> Stream a e1 -> Eff es r
 listEff (as, r) y = do
   for_ as (yield y)
   pure r
+
+test_cloneReader :: (e1 <: es, e2 <: es) => IOE e1 -> SpecH e2 -> Eff es ()
+test_cloneReader io y = runReader @Int 0 $ \reader -> do
+  actual <- withEffToIOCloneHandle io (mapHandle reader) $ \runInIO -> do
+    entered <- newEmptyMVar
+    observed <- newEmptyMVar
+    concurrently
+      ( runInIO $ \io' r -> local r (+ 1) $ do
+          effIO io' (putMVar entered ())
+          effIO io' (takeMVar observed)
+          ask r
+      )
+      ( runInIO $ \io' r -> do
+          effIO io' (takeMVar entered)
+          value <- ask r
+          effIO io' (putMVar observed ())
+          pure value
+      )
+  assertEqual y "Cloned Readers have independent local scopes" (1, 0) actual
 
 test_readerCleanup :: (e <: es) => SpecH e -> Eff es ()
 test_readerCleanup y = runReader @Int 1 $ \outer -> do

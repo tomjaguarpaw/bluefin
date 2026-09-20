@@ -16,6 +16,8 @@ retain sensitive values beyond their intended lifetime.
 
 ## `withEffToIOCloneHandle` shares its cloned environment between calls
 
+Fixed: clone the captured environment for each runner invocation.
+
 `withEffToIOCloneHandle` applies `withClonedEnv` outside `withEffToIO_`, so
 the generated runner closes over one cloned Vault
 (`bluefin-internal/src/Bluefin/Internal/CloneableHandle.hs`). Concurrent
