@@ -2062,10 +2062,10 @@ localCapability = localHandle
 --   n <- 'newState' source 5
 --   total <- newState source 0
 --
---   'Bluefin.JumpTo.withJumpTo' $ \\done -> forever $ do
+--   'Bluefin.Capability.JumpTo.withJumpTo' $ \\done -> forever $ do
 --     n' <- 'Bluefin.Capability.Modify.get' n
 --     'Bluefin.Capability.Modify.modify' total (+ n')
---     when (n' == 0) $ 'Bluefin.JumpTo.jumpTo' done
+--     when (n' == 0) $ 'Bluefin.Capability.JumpTo.jumpTo' done
 --     modify n (subtract 1)
 --
 --   get total
