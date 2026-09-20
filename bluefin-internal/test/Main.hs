@@ -109,11 +109,10 @@ test_readerCleanup y = runReader @Int 1 $ \outer -> do
       cleanedUp <- UnsafeMkEff $ \vault -> do
         contents <- readIORef vault
         pure (isNothing (Vault.lookup key contents))
-      -- FIXME: This test shows that we do not clean up properly:
       assertEqual
         y
-        "Reader key not released on normal and exceptional exit (evidence of a bug)"
-        False
+        "Reader key released on normal and exceptional exit"
+        True
         cleanedUp
     do
       outerValue <- ask outer

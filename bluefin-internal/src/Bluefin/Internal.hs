@@ -1656,13 +1656,14 @@ runReader ::
   (forall e. Reader r e -> Eff (e :& es) a) ->
   Eff es a
 runReader r f = do
-  k <-
+  bracket
     ( UnsafeMkEff $ \vault -> do
         k <- Vault.newKey
         modifyIORef' vault (\v -> Vault.insert k r v)
         pure k
     )
-  makeOp (f (MkReader k))
+    (\k -> UnsafeMkEff $ \vault -> modifyIORef' vault (Vault.delete k))
+    (\k -> makeOp (f (MkReader k)))
 
 -- | Read the value.  Note that @ask@ has the property that these two
 -- operations are always equivalent:

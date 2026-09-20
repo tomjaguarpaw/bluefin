@@ -39,3 +39,6 @@ newKey = fmap toMine Vault.newKey
 
 insert :: Key a -> a -> Vault -> Vault
 insert = Vault.insert . fromMine
+
+delete :: Key a -> Vault -> Vault
+delete = Vault.delete . fromMine

@@ -1,3 +1,5 @@
+* Bug fix: release `Reader` Vault keys when their handler scope exits.
+
 * Make `Vault`'s `Key` type role representational.  This is
   technically a PVP violation but since it's fixing a type safety bug
   we're not going to release a major version for it.
