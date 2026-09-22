@@ -29,6 +29,12 @@ runDslBuilderEff ::
   -- | ͘
   Eff es r
 runDslBuilderEff h f = makeOp (unMkDslBuilderEff f h)
+{-# INLINE [0] runDslBuilderEff #-}
+-- GHC's simplifier phase numbers count down toward 0. INLINE [0] keeps this
+-- wrapper intact until phase 0, the final phase, so earlier simplifications
+-- can work with the call before its body is exposed; it then strongly
+-- encourages inlining to remove the wrapper. See
+-- https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/pragmas.html#phase-control
 
 -- oneShot is essential for good performance. I don't fully understand
 -- why.
