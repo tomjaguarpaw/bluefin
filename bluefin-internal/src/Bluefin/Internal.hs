@@ -277,7 +277,17 @@ withMonadFail f m = unEffReader m f
 
 -- | Run an 'Eff' that doesn't contain any unhandled effects.
 runPureEff :: (forall es. Eff es a) -> a
-runPureEff e = unsafePerformIO (runEff (\_ -> e))
+runPureEff = runPureEffPoisonable
+
+-- | Run an 'Eff' that doesn't contain any unhandled effects.  If the
+-- evaluation of the result of runPureEffPoisonable is interrupted by
+-- an asynchronous exception the thunk can become poisoned and unable
+-- to be resumed (subsequent evaluation throws the async exception
+-- again).
+--
+-- See https://github.com/tomjaguarpaw/bluefin/issues/30
+runPureEffPoisonable :: (forall es. Eff es a) -> a
+runPureEffPoisonable e = unsafePerformIO (runEff (\_ -> e))
 
 unsafeCoerceEff :: Eff t r -> Eff t' r
 unsafeCoerceEff = coerce
