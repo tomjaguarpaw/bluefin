@@ -27,8 +27,9 @@ import Bluefin.Internal.OneWayCoercible
   )
 import Bluefin.Internal.Vault (Vault)
 import Bluefin.Internal.Vault qualified as Vault
+import Control.Concurrent (forkIO, forkIOWithUnmask, killThread, myThreadId, throwTo)
 import Control.Concurrent.Async qualified as Async
-import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
+import Control.Concurrent.MVar (newEmptyMVar, putMVar, readMVar, takeMVar)
 import Control.Exception qualified
 import Control.Monad (forever)
 import Control.Monad.Base (MonadBase (liftBase))
@@ -40,13 +41,16 @@ import Control.Monad.Trans.Reader (ReaderT)
 import Control.Monad.Trans.Reader qualified as Reader
 import Data.Coerce (Coercible, coerce)
 import Data.Foldable (for_)
+import Data.Function (fix)
 import Data.IORef (IORef, modifyIORef', newIORef, readIORef, writeIORef)
 import Data.Kind (Type)
 import Data.Proxy (Proxy (Proxy))
 import Data.Type.Coercion (Coercion (Coercion))
-import GHC.Exts (Any, Proxy#, proxy#)
+import GHC.Exts (Any, Proxy#, keepAlive#, proxy#)
 import GHC.Generics (Generic, M1, Rec1, (:*:))
+import GHC.IO (IO (..))
 import System.IO.Unsafe (unsafePerformIO)
+import System.Mem.Weak (addFinalizer)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude hiding (drop, head, read, return)
 
@@ -288,6 +292,78 @@ runPureEff = runPureEffPoisonable
 -- See https://github.com/tomjaguarpaw/bluefin/issues/30
 runPureEffPoisonable :: (forall es. Eff es a) -> a
 runPureEffPoisonable e = unsafePerformIO (runEff (\_ -> e))
+
+-- | Run an 'Eff' that doesn't contain any unhandled effects. The
+-- computation runs in a dedicated worker thread, so an asynchronous
+-- exception received by a thread demanding the result does not
+-- interrupt the computation itself. (An exception delivered to the
+-- worker thread would be rethrown and could poison the thunk, but
+-- that cannot happen unless the worker thread's ID is looked up by
+-- some out-of-band means -- don't do that!).
+--
+-- The worker thread continues to work even if the thread forcing it
+-- is killed, which may be surprising. If no references to the thunk
+-- for the result of runPureEffAsyncSafe remain, the worker thread is
+-- killed.
+--
+-- A proper fix to this issue probably belongs in GHC.
+runPureEffAsyncSafe :: (forall es. Eff es a) -> a
+runPureEffAsyncSafe e = unsafePerformIO $ do
+  result <- newEmptyMVar
+  owner <- newIORef ()
+  _ <- Control.Exception.mask_ $ forkIOWithUnmask $ \unmask -> do
+    tid <- myThreadId
+    addFinalizer owner (killThread tid)
+    r <- Control.Exception.try @Control.Exception.SomeException . unmask $ do
+      runEff (\_ -> e)
+    putMVar result r
+  r <- keepAlive owner (readMVar result)
+  either Control.Exception.throwIO pure r
+
+keepAlive :: a -> IO b -> IO b
+keepAlive a (IO action) = IO $ \s -> keepAlive# a s action
+
+-- | Like 'runPureEffAsyncSafe', but starts a fresh worker after an
+-- asynchronous exception interrupts a demand for the result.  This
+-- means that if the thread forcing the thunk is killed the work done
+-- so far is discarded, and restarted from scratch in the next
+-- evaluation.
+--
+-- This should not be used. It exists only as an example of a (worse)
+-- alternative approach.  Use 'runPureEffAsyncSafe' instead.
+runPureEffAsyncSafeRestarting :: (forall es. Eff es a) -> a
+runPureEffAsyncSafeRestarting effBody = unsafePerformIO $
+  Control.Exception.mask $ \restore -> do
+    tidVar <- newEmptyMVar
+    done <- newEmptyMVar
+
+    let body = do
+          tid <- forkIO $ do
+            r <-
+              Control.Exception.try @Control.Exception.SomeException $
+                restore $
+                  runEff (\_ -> effBody)
+            putMVar done r
+          putMVar tidVar tid
+          takeMVar done
+
+    r <- fix $ \again -> do
+      attempted <-
+        restore $
+          Control.Exception.try @Control.Exception.SomeException body
+      case attempted of
+        Left ex -> do
+          tid <- takeMVar tidVar
+          killThread tid
+          _ <- takeMVar done
+          myself <- myThreadId
+          throwTo myself ex
+          again
+        Right result -> pure result
+
+    case r of
+      Left l -> Control.Exception.throwIO l
+      Right r' -> pure r'
 
 unsafeCoerceEff :: Eff t r -> Eff t' r
 unsafeCoerceEff = coerce

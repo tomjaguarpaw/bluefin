@@ -5,11 +5,19 @@ module Main (main) where
 
 import Bluefin.Internal
 import Bluefin.Internal.Vault qualified as Vault
+import Control.Exception (AsyncException (ThreadKilled))
 import Control.Monad (forever, when)
 import Data.Foldable (for_)
 import Data.IORef (readIORef)
 import Data.Maybe (isNothing)
 import Test.GeneralBracket (test_generalBracket)
+import Test.RunPureEff
+  ( assertInterruptedBracketOutcome,
+    isClean,
+    isPoisoned,
+    isRanAtLeastTwice,
+    test_runPureEffAsyncSafeReapsWorker,
+  )
 import Test.SpecH (SpecH, assertEqual, runSpecH)
 import Prelude hiding (break, read)
 
@@ -17,6 +25,30 @@ main :: IO ()
 main = runEff $ \io -> do
   runSpecH io $ \y -> do
     let assertEqual' = assertEqual y
+
+    assertInterruptedBracketOutcome
+      io
+      y
+      "runPureEff retains bracket's rethrown exception"
+      isPoisoned
+      runPureEff
+    assertInterruptedBracketOutcome
+      io
+      y
+      "runPureEffAsyncSafe survives an interrupted bracket"
+      isClean
+      runPureEffAsyncSafe
+    assertInterruptedBracketOutcome
+      io
+      y
+      "runPureEffAsyncSafeRestarting restarts interrupted work"
+      isRanAtLeastTwice
+      runPureEffAsyncSafeRestarting
+    workerException <- effIO io test_runPureEffAsyncSafeReapsWorker
+    assertEqual'
+      "runPureEffAsyncSafe worker receives ThreadKilled after result thunk GC"
+      (Just ThreadKilled)
+      workerException
 
     assertEqual' "oddsUntilFirstGreaterThan5" oddsUntilFirstGreaterThan5 [1, 3, 5, 7]
     assertEqual' "index 1" ([0, 1, 2, 3] !? 2) (Just 2)

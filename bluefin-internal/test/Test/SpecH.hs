@@ -23,6 +23,23 @@ assertEqual y n c1 c2 =
           yield y2 ("But got: " ++ show c2)
     )
 
+assertSatisfies ::
+  (e <: es, Show a) =>
+  SpecH e ->
+  String ->
+  (a -> Bool) ->
+  a ->
+  Eff es ()
+assertSatisfies y n predicate actual =
+  yield
+    y
+    ( n,
+      if predicate actual
+        then Nothing
+        else Just $ dslBuilder $ \y2 ->
+          yield y2 ("Predicate was not satisfied by: " ++ show actual)
+    )
+
 type SpecInfo r = DslBuilder (Stream String) r
 
 runTests ::
