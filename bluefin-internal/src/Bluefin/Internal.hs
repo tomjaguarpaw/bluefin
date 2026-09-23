@@ -233,12 +233,6 @@ instance (e <: es) => MonadBaseControl IO (EffReader (IOE e) es) where
 instance (e <: es) => MonadFail (EffReader (Throw String e) es) where
   fail = MkEffReader . flip throw
 
-hoistReader ::
-  (forall b. m b -> n b) ->
-  Reader.ReaderT r m a ->
-  Reader.ReaderT r n a
-hoistReader f = Reader.ReaderT . (\m -> f . Reader.runReaderT m)
-
 -- | Run `MonadIO` operations in 'Eff'.
 --
 -- @
