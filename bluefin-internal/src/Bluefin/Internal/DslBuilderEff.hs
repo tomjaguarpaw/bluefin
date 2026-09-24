@@ -38,6 +38,18 @@ runDslBuilderEff h f = makeOp (unMkDslBuilderEff f h)
 
 -- oneShot is essential for good performance. I don't fully understand
 -- why.
+
+runDslBuilderEffMappedArgs ::
+  forall e1 e2 es h r.
+  (Handle h, e1 <: es, e2 <: es) =>
+  h e1 ->
+  DslBuilderEff h e2 r ->
+  -- | ͘
+  Eff es r
+runDslBuilderEffMappedArgs h f =
+  runDslBuilderEff (mapHandle h) (useImplDslBuilderEff f)
+{-# INLINE runDslBuilderEffMappedArgs #-}
+
 dslBuilderEff ::
   (forall e. h e -> Eff (e :& es) r) ->
   -- | ͘
@@ -56,15 +68,15 @@ instance
 instance (Handle h) => Functor (DslBuilderEff h es) where
   fmap f g =
     dslBuilderEff $ \h ->
-      fmap f (runDslBuilderEff (mapHandle h) (useImplDslBuilderEff g))
+      fmap f (runDslBuilderEffMappedArgs h g)
 
 instance (Handle h) => Applicative (DslBuilderEff h es) where
   pure x = dslBuilderEff (pure (pure x))
   f <*> x = dslBuilderEff $ \h ->
-    runDslBuilderEff (mapHandle h) (useImplDslBuilderEff f)
-      <*> runDslBuilderEff (mapHandle h) (useImplDslBuilderEff x)
+    runDslBuilderEffMappedArgs h f
+      <*> runDslBuilderEffMappedArgs h x
 
 instance (Handle h) => Monad (DslBuilderEff h es) where
   m >>= f = dslBuilderEff $ \h -> do
-    r <- runDslBuilderEff (mapHandle h) (useImplDslBuilderEff m)
-    runDslBuilderEff (mapHandle h) (useImplDslBuilderEff (f r))
+    r <- runDslBuilderEffMappedArgs h m
+    runDslBuilderEffMappedArgs h (f r)

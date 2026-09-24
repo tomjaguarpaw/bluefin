@@ -1,3 +1,5 @@
+* Add `Bluefin.Internal.DslBuilderEff.runDslBuilderEffMappedArgs`
+
 * Remove `Bluefin.Internal.DslBuilderEffects`
 
 # 0.10.1.0
