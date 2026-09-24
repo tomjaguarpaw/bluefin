@@ -877,8 +877,8 @@ try ::
 try f =
   unsafeProvideIO $ \io -> do
     withEffToIO_ io $ \effToIO -> do
-      withScopedException_ $ \throw_ -> do
-        effToIO (f (MkException (effIO io . throw_)))
+      ScopedException.try $ \ex -> do
+        effToIO (f (MkException (effIO io . ScopedException.throw ex)))
 
 -- |
 -- @
@@ -1059,11 +1059,6 @@ modify ::
 modify state f = do
   s <- get state
   put state (f s)
-
-withScopedException_ :: ((forall a. e -> IO a) -> IO r) -> IO (Either e r)
-withScopedException_ f =
-  ScopedException.try $ \ex -> do
-    f (ScopedException.throw ex)
 
 -- |
 -- @

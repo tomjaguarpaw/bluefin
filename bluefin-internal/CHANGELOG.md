@@ -1,3 +1,5 @@
+* Remove `withScopedException_`
+
 * Add `Bluefin.Internal.DslBuilderEff.runDslBuilderEffMappedArgs`
 
 * Remove `Bluefin.Internal.DslBuilderEffects`
