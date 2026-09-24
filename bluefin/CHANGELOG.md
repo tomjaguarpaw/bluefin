@@ -1,3 +1,5 @@
+# 0.10.1.0
+
 * Add `runPureEffAsyncSafe` and `runPureEffAsyncSafeRestarting`
 
 * Use `INLINE [0]` on `runDslBuilderEff` for improved performance
