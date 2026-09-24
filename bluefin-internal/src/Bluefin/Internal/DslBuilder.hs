@@ -3,11 +3,7 @@
 module Bluefin.Internal.DslBuilder where
 
 import Bluefin.Internal
-import Bluefin.Internal.DslBuilderEffects
-  ( DslBuilderEffects,
-    dslBuilderEffects,
-    runDslBuilderEffects,
-  )
+import Bluefin.Internal.DslBuilderEff
 
 newtype Forall f r = MkForall {unForall :: forall es. f es r}
 
@@ -27,13 +23,13 @@ instance (forall es. Monad (f es)) => Monad (Forall f) where
     unForall (f r)
 
 newtype DslBuilder h r
-  = MkDslBuilder {unMkDslBuilder :: Forall (DslBuilderEffects h) r}
+  = MkDslBuilder {unMkDslBuilder :: Forall (DslBuilderEff h) r}
 
 runDslBuilder :: (Handle h) => h es -> DslBuilder h r -> Eff es r
-runDslBuilder h f = runDslBuilderEffects h (unForall (unMkDslBuilder f))
+runDslBuilder h f = runDslBuilderEff h (unForall (unMkDslBuilder f))
 
 dslBuilder :: (forall e. h e -> Eff e r) -> DslBuilder h r
-dslBuilder k = MkDslBuilder (mkForall (dslBuilderEffects (useImpl . k)))
+dslBuilder k = MkDslBuilder (mkForall (dslBuilderEff (useImpl . k)))
 
 instance (Handle h) => Functor (DslBuilder h) where
   fmap f g = dslBuilder (\h -> fmap f (runDslBuilder h g))
