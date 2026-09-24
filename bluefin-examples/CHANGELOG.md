@@ -1,3 +1,9 @@
+* Add `Bluefin.Internal.Exception.Scoped.localTry`
+
+* Add `Bluefin.Internal.Capability.ThrowCatch`
+
+* Add `Bluefin.Examples.MonadError`
+
 * Fix `Pipes.replicateM` to run the action `n` rather than `n + 1` times.
 
 * Add `Bluefin.Examples.GadtEffect`

@@ -25,6 +25,7 @@ library
       Bluefin.Capability.Ask,
       Bluefin.Capability.AskCapability,
       Bluefin.Capability.Await,
+      Bluefin.Capability.ThrowCatch,
       Bluefin.Capability.JumpTo,
       Bluefin.Capability.Modify,
       Bluefin.Capability.Request,

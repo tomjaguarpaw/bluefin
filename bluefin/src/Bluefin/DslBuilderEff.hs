@@ -4,6 +4,7 @@ module Bluefin.DslBuilderEff
   ( DslBuilderEff,
     dslBuilderEff,
     runDslBuilderEff,
+    runDslBuilderEffMappedArgs,
   )
 where
 

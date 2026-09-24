@@ -91,6 +91,7 @@ library
       Bluefin.Internal.DslBuilderEff,
       Bluefin.Internal.Examples,
       Bluefin.Internal.Exception,
+      Bluefin.Internal.Capability.ThrowCatch,
       Bluefin.Internal.Exception.Scoped,
       Bluefin.Internal.GadtEffect,
       Bluefin.Internal.Key,
@@ -107,7 +108,8 @@ test-suite bluefin-test
     main-is:          Main.hs
     other-modules:    Test.GeneralBracket,
                       Test.RunPureEff,
-                      Test.SpecH
+                      Test.SpecH,
+                      Test.ThrowCatch
     build-depends:
         base,
         async,

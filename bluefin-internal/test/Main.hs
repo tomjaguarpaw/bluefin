@@ -19,6 +19,7 @@ import Test.RunPureEff
     test_runPureEffAsyncSafeReapsWorker,
   )
 import Test.SpecH (SpecH, assertEqual, runSpecH)
+import Test.ThrowCatch (test_throwCatch)
 import Prelude hiding (break, read)
 
 main :: IO ()
@@ -81,6 +82,7 @@ main = runEff $ \io -> do
     test_localInHandler y
     test_readerCleanup y
     test_generalBracket io y
+    test_throwCatch y
     test_streamConsumeReader y
     test_streamConsumeHandleReader y
     test_unliftIOReader io y

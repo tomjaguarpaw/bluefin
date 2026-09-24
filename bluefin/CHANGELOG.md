@@ -1,3 +1,7 @@
+* Add `Bluefin.DslBuilderEff.runDslBuilderEffMappedArgs`
+
+* Add `Bluefin.Capability.ThrowCatch`
+
 # 0.10.0.0
 
 * Make `Ask`, `AskCapability`, `Await`, `JumpTo`, `Modify`, `Request`,

@@ -1,3 +1,5 @@
+* Add `Bluefin.Internal.Capability.ThrowCatch`
+
 * Add `ThrowCatch`, `throwCatchThrow`, `throwCatchTry`
 
 * Remove `withScopedException_`
