@@ -1,3 +1,5 @@
+* Remove `Bluefin.Internal.DslBuilderEffects`
+
 # 0.10.1.0
 
 * Add `runPureEffAsyncSafe` and `runPureEffAsyncSafeRestarting`
