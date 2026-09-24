@@ -441,6 +441,20 @@ type role Throw representational nominal
 instance (e <: es) => OneWayCoercible (Throw ex e) (Throw ex es) where
   oneWayCoercibleImpl = oneWayCoercible
 
+-- | A scoped exception capability that can catch within its own scope.
+type ThrowCatch :: Type -> Effects -> Type
+newtype ThrowCatch ex e
+  = MkThrowCatch (ScopedException.Exception ex)
+  deriving (Handle) via OneWayCoercibleHandle (ThrowCatch ex)
+
+type role ThrowCatch nominal nominal
+
+instance
+  (e <: es) =>
+  OneWayCoercible (ThrowCatch ex e) (ThrowCatch ex es)
+  where
+  oneWayCoercibleImpl = unsafeOneWayCoercible
+
 -- | Capability to modify a reference to an @s@
 newtype Modify s (e :: Effects) = UnsafeMkState (IORef s)
   deriving (Handle) via OneWayCoercibleHandle (Modify s)
@@ -847,6 +861,14 @@ throw ::
   Eff es a
 throw h = case mapHandle h of MkException throw_ -> throw_
 
+throwCatchThrow ::
+  (e <: es) =>
+  ThrowCatch ex e ->
+  ex ->
+  Eff es a
+throwCatchThrow (MkThrowCatch ex) exn =
+  unsafeProvideIO $ \io -> effIO io (ScopedException.throw ex exn)
+
 has :: forall a b. (a <: b) => a `In` b
 -- This is safe because, as shown by instanceProof1/2/3, the only way
 -- to construct `a <: b` is if `a `In` b`.
@@ -875,10 +897,17 @@ try ::
   -- | @Left@ if the exception was thrown, @Right@ otherwise
   Eff es (Either exn a)
 try f =
+  throwCatchTry $ \ex ->
+    f (MkException (throwCatchThrow ex))
+
+throwCatchTry ::
+  (forall e. ThrowCatch ex e -> Eff (e :& es) a) ->
+  Eff es (Either ex a)
+throwCatchTry f =
   unsafeProvideIO $ \io -> do
     withEffToIO_ io $ \effToIO -> do
       ScopedException.try $ \ex -> do
-        effToIO (f (MkException (effIO io . ScopedException.throw ex)))
+        effToIO (f (MkThrowCatch ex))
 
 -- |
 -- @

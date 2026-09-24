@@ -1,3 +1,5 @@
+* Add `ThrowCatch`, `throwCatchThrow`, `throwCatchTry`
+
 * Remove `withScopedException_`
 
 * Add `Bluefin.Internal.DslBuilderEff.runDslBuilderEffMappedArgs`
