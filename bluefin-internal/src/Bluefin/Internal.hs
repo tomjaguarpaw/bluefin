@@ -1062,7 +1062,7 @@ modify state f = do
 
 withScopedException_ :: ((forall a. e -> IO a) -> IO r) -> IO (Either e r)
 withScopedException_ f =
-  ScopedException.try $ \ex ->
+  ScopedException.try $ \ex -> do
     f (ScopedException.throw ex)
 
 -- |
