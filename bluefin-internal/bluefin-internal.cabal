@@ -94,7 +94,6 @@ library
       Bluefin.Internal.Exception,
       Bluefin.Internal.Exception.Scoped,
       Bluefin.Internal.GadtEffect,
-      Bluefin.Internal.Key,
       Bluefin.Internal.OneWayCoercible,
       Bluefin.Internal.Prim,
       Bluefin.Internal.System.IO,

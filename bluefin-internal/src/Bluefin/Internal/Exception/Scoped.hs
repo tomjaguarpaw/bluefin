@@ -10,11 +10,10 @@ module Bluefin.Internal.Exception.Scoped
   )
 where
 
-import Bluefin.Internal.Key (Key, eqKey, newKey)
 import Control.Exception (throwIO, tryJust)
 import Control.Exception qualified
 import Data.Kind (Type)
-import Data.Type.Equality ((:~~:) (HRefl))
+import Data.Vault.Strict (Key, Locker, lock, newKey, unlock)
 
 try :: (Exception e -> IO a) -> IO (Either e a)
 try k = do
@@ -35,21 +34,12 @@ newtype Exception (e :: Type) = MkException (Key e)
 
 type role Exception nominal
 
-data Locker = forall e. MkLocker !(Key e) !e
-
 newtype InFlight = MkInFlight Locker
 
 instance Show InFlight where
   show _ = "In-flight scoped exception"
 
 instance Control.Exception.Exception InFlight
-
-lock :: Key e -> e -> Locker
-lock key e = MkLocker key e
-
-unlock :: Key a -> Locker -> Maybe a
-unlock k1 (MkLocker k2 e) =
-  fmap (\HRefl -> e) (k1 `eqKey` k2)
 
 check :: Key a -> InFlight -> Maybe a
 check k1 (MkInFlight locker) = unlock k1 locker
