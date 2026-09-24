@@ -24,7 +24,7 @@ try k = do
     (k ex)
 
 throw :: Exception e -> e -> IO a
-throw ex e = throwIO (MkInFlight ex e)
+throw (MkException key) e = throwIO (MkInFlight key e)
 
 newException :: IO (Exception e)
 newException = fmap MkException newKey
@@ -37,7 +37,7 @@ type role Exception nominal
 
 -- InFlight is like Locker from vault.  MkInflight is like lock from
 -- vault.
-data InFlight = forall e. MkInFlight !(Exception e) !e
+data InFlight = forall e. MkInFlight !(Key e) !e
 
 instance Show InFlight where
   show _ = "In-flight scoped exception"
@@ -46,7 +46,7 @@ instance Control.Exception.Exception InFlight
 
 -- Like unlock from vault
 check :: Key a -> InFlight -> Maybe a
-check k1 (MkInFlight (MkException k2) e) = fmap (\HRefl -> e) (k1 `eqKey` k2)
+check k1 (MkInFlight k2 e) = fmap (\HRefl -> e) (k1 `eqKey` k2)
 
 checkException :: Exception e -> InFlight -> Maybe e
 checkException (MkException key) = check key
