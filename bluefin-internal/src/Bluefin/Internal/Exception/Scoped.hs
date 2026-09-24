@@ -17,9 +17,13 @@ import Data.Type.Equality ((:~~:) (HRefl))
 try :: (Exception e -> IO a) -> IO (Either e a)
 try k = do
   ex <- newException
+  localTry ex (k ex)
+
+localTry :: Exception e -> IO a -> IO (Either e a)
+localTry ex action =
   tryJust
     (checkException ex)
-    (k ex)
+    action
 
 throw :: Exception e -> e -> IO a
 throw ex e = throwIO (MkInFlight ex e)
