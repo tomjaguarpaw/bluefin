@@ -1,3 +1,5 @@
+{-# LANGUAGE RoleAnnotations #-}
+
 module Bluefin.Internal.Exception.Scoped
   ( Exception,
     InFlight,
@@ -30,6 +32,8 @@ newException = fmap MkException newKey
 -- Corresponds to what Bluefin calls an "Exception", i.e. "a handle to
 -- an exception" or "the capability to throw an exception".
 newtype Exception (e :: Type) = MkException (Key e)
+
+type role Exception nominal
 
 -- InFlight is like Locker from vault.  MkInflight is like lock from
 -- vault.
