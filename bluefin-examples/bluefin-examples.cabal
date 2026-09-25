@@ -75,6 +75,7 @@ library
     import:           warnings
     exposed-modules:
       Bluefin.Examples,
+      Bluefin.Examples.CapabilityAttenuation,
       Bluefin.Examples.CloneableHandle,
       Bluefin.Examples.Contrib.Operators,
       Bluefin.Examples.DB,
@@ -94,6 +95,7 @@ library
       async,
       base,
       bytestring,
+      containers,
       mtl,
       primitive,
       random >= 1.3 && < 2,
