@@ -1,3 +1,9 @@
+# 0.10.1.0
+
+* Add `runPureEffAsyncSafe` and `runPureEffAsyncSafeRestarting`
+
+* Use `INLINE [0]` on `runDslBuilderEff` for improved performance
+
 # 0.10.0.0
 
 * Make `Ask`, `AskCapability`, `Await`, `JumpTo`, `Modify`, `Request`,
