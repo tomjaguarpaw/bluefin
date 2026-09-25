@@ -1,3 +1,5 @@
+# 0.10.1.0
+
 * Add `Bluefin.DslBuilderEff.runDslBuilderEffMappedArgs`
 
 * Add `Bluefin.Capability.ThrowCatch`

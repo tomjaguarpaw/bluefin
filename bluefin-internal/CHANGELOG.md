@@ -1,3 +1,5 @@
+# 0.11.0.0
+
 * Add `Bluefin.Internal.Capability.ThrowCatch`
 
 * Add `ThrowCatch`, `throwCatchThrow`, `throwCatchTry`
