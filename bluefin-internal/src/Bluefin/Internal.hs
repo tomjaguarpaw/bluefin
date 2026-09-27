@@ -366,7 +366,9 @@ runPureEffAsyncSafeRestarting effBody = unsafePerformIO $
       Right r' -> pure r'
 
 unsafeCoerceEff :: Eff t r -> Eff t' r
-unsafeCoerceEff = coerce
+-- We eta expand to expose optimization opportunities to the
+-- optimizer.  (I do not have a good grasp for how this works!)
+unsafeCoerceEff (UnsafeMkEff f) = UnsafeMkEff (\env -> f env)
 
 weakenEff :: t `In` t' -> Eff t r -> Eff t' r
 weakenEff (In# (# #)) = unsafeCoerceEff
