@@ -1516,7 +1516,7 @@ catMaybes s y = mapMaybe id s y
 
 -- |
 -- @
--- runPureEff $ yieldToList $ \yOut -> do
+-- runPureEff $ yieldToList $ \\yOut -> do
 --   consumeStream
 --     (\\c -> takeConsume 6 c yOut)
 --     (\\yIn -> cycleToStream [1..3] yIn)
@@ -1533,7 +1533,7 @@ cycleToStream f y = do
 
 -- |
 -- @
--- runPureEff $ yieldToList $ \yOut -> do
+-- runPureEff $ yieldToList $ \\yOut -> do
 --   consumeStream
 --     (\\c -> takeConsume 4 c yOut)
 --     (\\yIn -> inFoldable [1..10] yIn)
@@ -1982,7 +1982,7 @@ eachAwait = consumeEach
 
 -- |
 -- @
--- runPureEff $ yieldToList $ \yOut -> do
+-- runPureEff $ yieldToList $ \\yOut -> do
 --   awaitYield
 --     (\\c -> takeAwait 4 c yOut)
 --     (\\yIn -> inFoldable [1..10] yIn)
@@ -2018,7 +2018,7 @@ ignoreYield = ignoreStream
 
 -- |
 -- @
--- runPureEff $ yieldToList $ \yOut -> do
+-- runPureEff $ yieldToList $ \\yOut -> do
 --   consumeStream
 --     (\\c -> takeAwait 6 c yOut)
 --     (\\yIn -> cycleToYield [1..3] yIn)
